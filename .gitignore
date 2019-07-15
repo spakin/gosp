@@ -1,0 +1,8 @@
+module/.libs/mod_gosp.la
+module/.libs/mod_gosp.lai
+module/.libs/mod_gosp.o
+module/.libs/mod_gosp.so
+module/mod_gosp.la
+module/mod_gosp.lo
+module/mod_gosp.slo
+tools/gosp2go
