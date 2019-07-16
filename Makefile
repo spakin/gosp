@@ -28,7 +28,12 @@ clean:
 # WARNING: "make install" does not honor prefix or DESTDIR when installing the
 # Apache module.  It always installs the module into the current Apache modules
 # directory.
-install:
+install: all
 	for s in $(SUBDIRS) ; do $(MAKE) -C $$s install ; done
 
-.PHONY: all clean install
+# Due the the awkwardness warned about above, "make install-no-module" installs
+# everything except the Apache module.
+install-no-module: all
+	$(MAKE) -C tools install
+
+.PHONY: all clean install install-no-module

@@ -9,19 +9,25 @@
 #include "http_protocol.h"
 #include "ap_config.h"
 
-/* The sample content handler */
+/* Handle requests of type "gosp" by passing them to the gosp2go tool. */
 static int gosp_handler(request_rec *r)
 {
-  if (strcmp(r->handler, "gosp")) {
+  /* We care only about "gosp" requests, and we don't care about HEAD
+   * requests. */
+  if (strcmp(r->handler, "gosp"))
     return DECLINED;
-  }
+  if (r->header_only)
+    return DECLINED;
+
+  /* Go Server Pages are always expressed in HTML. */
   r->content_type = "text/html";      
 
-  if (!r->header_only)
-    ap_rputs("The sample page from mod_gosp.c\n", r);
+  /* Temporary placeholder */
+  ap_rputs("The sample page from mod_gosp.c\n", r);
   return OK;
 }
 
+/* Invoke gosp_handler at the end of every request. */
 static void gosp_register_hooks(apr_pool_t *p)
 {
   ap_hook_handler(gosp_handler, NULL, NULL, APR_HOOK_LAST);
