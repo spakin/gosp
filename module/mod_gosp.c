@@ -4,11 +4,7 @@
  * By Scott Pakin <scott+gosp@pakin.org> *
  *****************************************/
 
-#include "httpd.h"
-#include "http_config.h"
-#include "http_protocol.h"
-#include "http_log.h"
-#include "ap_config.h"
+#include "gosp.h"
 
 /* For now, our only configuration option is the name of a cache directory. */
 static const char *cache_dir = NULL;
@@ -36,24 +32,18 @@ static int validate_cache_dir(request_rec *r)
   apr_status_t status;  /* Return value from a file operation */
 
   /* Ensure that the cache directory was specified in the configuration file. */
-  if (cache_dir == NULL) {
-    ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_ALERT, APR_SUCCESS, r->server,
+  if (cache_dir == NULL)
+    REPORT_ERROR(APLOG_ALERT, APR_SUCCESS,
                  "A Gosp cache directory must be specified in the Apache configuration file using the GospCacheDir directive");
-    return 0;
-  }
 
   /* Ensure that the cache directory exists and is a directory. */
   status = apr_stat(&finfo, cache_dir, APR_FINFO_TYPE, r->pool);
-  if (status != APR_SUCCESS) {
-    ap_log_error(APLOG_MARK, APLOG_ALERT, status, r->server,
+  if (status != APR_SUCCESS)
+    REPORT_ERROR(APLOG_ALERT, status,
                  "Failed to access Gosp cache directory %s", cache_dir);
-    return 0;
-  }
-  if (finfo.filetype != APR_DIR) {
-    ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_ALERT, status, r->server,
+  if (finfo.filetype != APR_DIR)
+    REPORT_ERROR(APLOG_ALERT, APR_SUCCESS,
                  "Gosp cache directory %s is not a directory", cache_dir);
-    return 0;
-  }
 
   /* Everything is okay. */
   return 1;
