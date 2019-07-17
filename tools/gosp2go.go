@@ -75,7 +75,7 @@ func GospToGo(s string) string {
 		if idxs == nil {
 			// No more directives.  Process any HTML text.
 			if len(b) > 0 {
-				body = append(body, fmt.Sprintf(`fmt.Printf("%%s", %q)`+"\n", b))
+				body = append(body, fmt.Sprintf(`gospFmt.Printf("%%s", %q)`+"\n", b))
 			}
 			break
 		}
@@ -85,7 +85,7 @@ func GospToGo(s string) string {
 
 		// Extract HTML text preceding the Gosp code, if any.
 		if i0 > 5 {
-			body = append(body, fmt.Sprintf(`fmt.Printf("%%s", %q)`+"\n", b[:i0-5]))
+			body = append(body, fmt.Sprintf(`gospFmt.Printf("%%s", %q)`+"\n", b[:i0-5]))
 		}
 
 		// Extract Go code into either top or body.
@@ -104,7 +104,7 @@ func GospToGo(s string) string {
 			}
 		case "expr":
 			// A single Go expression.
-			body = append(body, fmt.Sprintf(`fmt.Printf("%%v", %s)`+"\n", code))
+			body = append(body, fmt.Sprintf(`gospFmt.Printf("%%v", %s)`+"\n", code))
 		default:
 			panic("Internal error parsing a Gosp directive")
 		}
@@ -116,7 +116,7 @@ func GospToGo(s string) string {
 	// Concatenate the accumulated strings into a Go program.
 	all := make([]string, 0, len(top)+len(body)+4)
 	all = append(all, "package main\n")
-	all = append(all, `import "fmt"`+"\n")
+	all = append(all, `import gospFmt "fmt"`+"\n")
 	all = append(all, top...)
 	all = append(all, "func main() {\n")
 	all = append(all, body...)
