@@ -4,10 +4,14 @@
 # By Scott Pakin <scott+gosp@pakin.org> #
 #########################################
 
+SOURCES = \
+	gosp2go.go \
+	boilerplate.go
+
 all: gosp2go
 
-gosp2go: gosp2go.go
-	$(GO) build $(GOFLAGS) -o gosp2go gosp2go.go
+gosp2go: $(SOURCES)
+	$(GO) build $(GOFLAGS) -o gosp2go $(SOURCES)
 
 clean:
 	$(RM) gosp2go
