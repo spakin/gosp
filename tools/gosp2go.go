@@ -114,13 +114,19 @@ func GospToGo(s string) string {
 	}
 
 	// Concatenate the accumulated strings into a Go program.
-	all := make([]string, 0, len(top)+len(body)+4)
-	all = append(all, "package main\n")
-	all = append(all, `import gospFmt "fmt"`+"\n")
+	all := make([]string, 0, len(top)+len(body)+10)
+	all = append(all, "package main\n\n")
+	all = append(all, `import gospFmt "fmt"`+"\n\n")
 	all = append(all, top...)
-	all = append(all, "func main() {\n")
+	all = append(all, "\n")
+	all = append(all, "func gospGenerateHTML() {\n")
 	all = append(all, body...)
 	all = append(all, "}\n")
+	all = append(all, `
+func main() {
+  gospGenerateHTML()
+}
+`)
 	return strings.Join(all, "")
 }
 
