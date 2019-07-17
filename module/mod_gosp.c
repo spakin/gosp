@@ -38,9 +38,23 @@ static int validate_cache_dir(request_rec *r)
 
   /* Ensure that the cache directory exists and is a directory. */
   status = apr_stat(&finfo, cache_dir, APR_FINFO_TYPE, r->pool);
-  if (status != APR_SUCCESS)
-    REPORT_ERROR(APLOG_ALERT, status,
-                 "Failed to access Gosp cache directory %s", cache_dir);
+  if (status != APR_SUCCESS) {
+    /* If the directory couldn't be stat'ed, try creating it then stat'ing it
+     * again. */
+    ap_log_error(APLOG_MARK, APLOG_NOTICE, status, r->server,
+                 "Failed to query cache directory %s; creating it", cache_dir);
+    status =
+      apr_dir_make_recursive(cache_dir,
+                             APR_FPROT_UREAD|APR_FPROT_UWRITE|APR_FPROT_UEXECUTE,
+                             r->pool);
+    if (status != APR_SUCCESS)
+      REPORT_ERROR(APLOG_ALERT, status,
+                   "Failed to create cache directory %s", cache_dir);
+    status = apr_stat(&finfo, cache_dir, APR_FINFO_TYPE, r->pool);
+    if (status != APR_SUCCESS)
+      REPORT_ERROR(APLOG_ALERT, status,
+                   "Failed to query cache directory %s", cache_dir);
+  }
   if (finfo.filetype != APR_DIR)
     REPORT_ERROR(APLOG_ALERT, APR_SUCCESS,
                  "Gosp cache directory %s is not a directory", cache_dir);
