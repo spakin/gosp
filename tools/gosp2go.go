@@ -119,10 +119,11 @@ func GospToGo(s string) string {
 	all = append(all, `import gospFmt "fmt"`+"\n\n")
 	all = append(all, top...)
 	all = append(all, "\n")
-	all = append(all, "func gospGenerateHTML() {\n")
+	all = append(all, "func gospGenerateHTML() int {\n")
 	all = append(all, body...)
-	all = append(all, "}\n")
-	all = append(all, `
+	all = append(all, `return 200
+}
+
 func main() {
   gospGenerateHTML()
 }
