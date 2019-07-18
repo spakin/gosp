@@ -5,18 +5,24 @@
 ###############################################
 
 GENFILES = \
+	launch.lo \
+	launch.o \
+	launch.slo \
 	mod_gosp.la \
+	mod_gosp.la \
+	mod_gosp.lai \
 	mod_gosp.lo \
+	mod_gosp.o \
 	mod_gosp.slo \
-	.libs/mod_gosp.lai \
-	.libs/mod_gosp.o \
-	.libs/mod_gosp.so
-
+	mod_gosp.so \
+	utils.lo \
+	utils.o \
+	utils.slo
 
 all: $(GENFILES)
 
-$(GENFILES): mod_gosp.c utils.c gosp.h
-	$(APXS) -I. -c mod_gosp.c utils.c
+$(GENFILES): mod_gosp.c utils.c launch.c gosp.h
+	$(APXS) -I. -c mod_gosp.c utils.c launch.c
 
 clean:
 	$(RM) $(GENFILES)

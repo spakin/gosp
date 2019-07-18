@@ -7,12 +7,15 @@
 #ifndef _GOSP_H
 #define _GOSP_H
 
-/* Include all other header file here. */
+/* Include all required header files here. */
+#include <libgen.h>
+#include <strings.h>
 #include "httpd.h"
 #include "http_config.h"
 #include "http_protocol.h"
 #include "http_log.h"
 #include "ap_config.h"
+#include "apr_strings.h"
 
 /* Define some default directories. */
 #define DEFAULT_CACHE_DIR "/var/cache/apache2/mod_gosp"
@@ -36,7 +39,7 @@ do {									\
 } while (0)
 
 /* Declare functions that will be called cross-file. */
-extern int
-prepare_directory(request_rec *r, const char *dir_type, const char **dir_name, const char *default_name);
+extern int prepare_directory(request_rec *r, const char *dir_type, const char **dir_name, const char *default_name);
+extern char *get_socket_name(request_rec *r, const char *run_dir);
 
 #endif
