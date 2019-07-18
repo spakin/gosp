@@ -34,8 +34,10 @@ static int gosp_handler(request_rec *r)
   if (r->header_only)
     return DECLINED;
 
-  /* Complain if the cache directory is no good. */
-  if (!prepare_cache_dir(&config, r))
+  /* Prepare the cache directory and the run directory. */
+  if (!prepare_directory(r, "cache", &config.cache_dir, DEFAULT_CACHE_DIR))
+    return HTTP_INTERNAL_SERVER_ERROR;
+  if (!prepare_directory(r, "run", &config.run_dir, DEFAULT_RUN_DIR))
     return HTTP_INTERNAL_SERVER_ERROR;
 
   /* Go Server Pages are always expressed in HTML. */

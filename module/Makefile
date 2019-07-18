@@ -15,8 +15,8 @@ GENFILES = \
 
 all: $(GENFILES)
 
-$(GENFILES): mod_gosp.c dirs.c gosp.h
-	$(APXS) -I. -c mod_gosp.c dirs.c
+$(GENFILES): mod_gosp.c utils.c gosp.h
+	$(APXS) -I. -c mod_gosp.c utils.c
 
 clean:
 	$(RM) $(GENFILES)

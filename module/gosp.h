@@ -16,6 +16,7 @@
 
 /* Define some default directories. */
 #define DEFAULT_CACHE_DIR "/var/cache/apache2/mod_gosp"
+#define DEFAULT_RUN_DIR "/tmp/mod_gosp"
 
 /* Declare a type for our configuration options. */
 typedef struct {
@@ -35,6 +36,7 @@ do {									\
 } while (0)
 
 /* Declare functions that will be called cross-file. */
-extern int prepare_cache_dir(config_t *cfg, request_rec *r);
+extern int
+prepare_directory(request_rec *r, const char *dir_type, const char **dir_name, const char *default_name);
 
 #endif
