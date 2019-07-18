@@ -14,6 +14,14 @@
 #include "http_log.h"
 #include "ap_config.h"
 
+/* Define some default directories. */
+#define DEFAULT_CACHE_DIR "/var/cache/apache2/mod_gosp"
+
+/* Declare a type for our configuration options. */
+typedef struct {
+  const char *cache_dir;   /* Cache directory, for storing generated executables */
+  const char *run_dir;     /* Run directory, for storing Unix-domain sockets */
+} config_t;
 
 /* Define a macro that checks an error code and, on error, logs a
  * message and returns 0. */
@@ -25,5 +33,8 @@ do {									\
     ap_log_error(APLOG_MARK, LEVEL, STATUS, r->server, __VA_ARGS__);	\
   return 0;								\
 } while (0)
+
+/* Declare functions that will be called cross-file. */
+extern int prepare_cache_dir(config_t *cfg, request_rec *r);
 
 #endif
