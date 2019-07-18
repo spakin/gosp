@@ -12,7 +12,9 @@ import (
 	gospJson "encoding/json"
 	gospFlag "flag"
 	gospFmt "fmt"
+	gospNet "net"
 	gospOs "os"
+	gospTime "time"
 )
 
 `
@@ -31,33 +33,66 @@ type GospRequest struct {
 	}
 }
 
-func GospRequestFromFile(fn string) (*GospRequest, error) {
+func GospRequestFromFile(fn string) error {
 	f, err := gospOs.Open(fn)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer f.Close()
 	dec := gospJson.NewDecoder(f)
 	var gr GospRequest
 	err = dec.Decode(&gr)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &gr, nil
+	code := gospGenerateHTML(&gr)
+	if code != 200 {
+		return gospFmt.Errorf("HTTP status code %d", code)
+	}
+	return nil
 }
 
-var GospReq *GospRequest
+func GospStartServer(fn string) error {
+	ln, err := gospNet.Listen("unix", fn)
+	if err != nil {
+		return err
+	}
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			return err
+		}
+		go func(conn gospNet.Conn) {
+			defer conn.Close()
+			conn.SetDeadline(gospTime.Now().Add(10 * gospTime.Second))
+			dec := gospJson.NewDecoder(conn)
+			var gr GospRequest
+			err = dec.Decode(&gr)
+			if err != nil {
+				return
+			}
+			code := gospGenerateHTML(&gr)
+			gospFmt.Fprintf(conn, "%d\n", code)
+		}(conn)
+	}
+}
 
 func main() {
+	var err error
+	sock := gospFlag.String("socket", "", "Unix socket (filename) on which to listen for JSON code")
 	file := gospFlag.String("file", "", "File name from which to read JSON code")
 	gospFlag.Parse()
-	if *file != "" {
-		var err error
-		GospReq, err = GospRequestFromFile(*file)
-		if err != nil {
-			panic(err)
-		}
+	switch {
+	case *file != "":
+		err = GospRequestFromFile(*file)
+	case *sock != "":
+		err = GospStartServer(*sock)
+	default:
+		gospGenerateHTML(nil)
 	}
-	gospGenerateHTML()
+	if err != nil {
+		panic(err)
+	}
+	return
 }
 `

@@ -118,7 +118,7 @@ func GospToGo(s string) string {
 	all = append(all, header)
 	all = append(all, top...)
 	all = append(all, "\n")
-	all = append(all, "func gospGenerateHTML() int {\n")
+	all = append(all, "func gospGenerateHTML(gospReq *GospRequest) int {\n")
 	all = append(all, body...)
 	all = append(all, "return 200\n")
 	all = append(all, "}\n")
