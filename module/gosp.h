@@ -15,6 +15,7 @@
 #include "http_protocol.h"
 #include "http_log.h"
 #include "ap_config.h"
+#include "apr_network_io.h"
 #include "apr_strings.h"
 
 /* Define some default directories. */
@@ -40,6 +41,6 @@ do {                                                                    \
 
 /* Declare functions that will be called cross-file. */
 extern int prepare_directory(request_rec *r, const char *dir_type, const char **dir_name, const char *default_name);
-extern char *get_socket_name(request_rec *r, const char *run_dir);
+extern apr_socket_t *create_socket(request_rec *r, const char *run_dir);
 
 #endif
