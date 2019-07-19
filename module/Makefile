@@ -22,7 +22,7 @@ GENFILES = \
 all: $(GENFILES)
 
 $(GENFILES): mod_gosp.c utils.c launch.c gosp.h
-	$(APXS) -I. -c mod_gosp.c utils.c launch.c
+	$(APXS) $(APXSFLAGS) -I. -c mod_gosp.c utils.c launch.c
 
 clean:
 	$(RM) $(GENFILES)
