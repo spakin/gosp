@@ -36,15 +36,15 @@ int prepare_directory(request_rec *r, const char *dir_type, const char **dir_nam
                              APR_FPROT_UREAD|APR_FPROT_UWRITE|APR_FPROT_UEXECUTE,
                              r->pool);
     if (status != APR_SUCCESS)
-      REPORT_ERROR(APLOG_ALERT, status,
+      REPORT_ERROR(0, APLOG_ALERT, status,
                    "Failed to create %s directory %s", dir_type, *dir_name);
     status = apr_stat(&finfo, *dir_name, APR_FINFO_TYPE, r->pool);
     if (status != APR_SUCCESS)
-      REPORT_ERROR(APLOG_ALERT, status,
+      REPORT_ERROR(0, APLOG_ALERT, status,
                    "Failed to query %s directory %s", dir_type, *dir_name);
   }
   if (finfo.filetype != APR_DIR)
-    REPORT_ERROR(APLOG_ALERT, APR_SUCCESS,
+    REPORT_ERROR(0, APLOG_ALERT, APR_SUCCESS,
                  "Gosp %s directory %s is not a directory", dir_type, *dir_name);
 
   /* Everything is okay. */

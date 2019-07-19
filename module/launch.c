@@ -33,11 +33,9 @@ char *get_socket_name(request_rec *r, const char *run_dir)
 
     /* File exists but is not a socket: remove it. */
     status = apr_file_remove(sock_name, r->pool);
-    if (status != APR_SUCCESS) {
-      ap_log_error(APLOG_MARK, APLOG_ALERT, status, r->server,
+    if (status != APR_SUCCESS)
+      REPORT_ERROR(NULL, APLOG_ALERT, status,
 		   "Failed to remove non-socket %s", sock_name);
-      return NULL;
-    }
   }
 
   /* The socket doesn't exist.  Create it. */
@@ -45,10 +43,8 @@ char *get_socket_name(request_rec *r, const char *run_dir)
   status = apr_dir_make_recursive(sock_dir,
 				  APR_FPROT_UREAD|APR_FPROT_UWRITE|APR_FPROT_UEXECUTE,
 				  r->pool);
-  if (status != APR_SUCCESS) {
-    ap_log_error(APLOG_MARK, APLOG_ALERT, status, r->server,
+  if (status != APR_SUCCESS)
+    REPORT_ERROR(NULL, APLOG_ALERT, status,
 		 "Failed to create directory %s", sock_dir);
-    return NULL;
-  }
   return sock_name;
 }
