@@ -41,7 +41,8 @@ do {                                                                    \
 } while (0)
 
 /* Declare functions that will be called cross-file. */
-extern int prepare_directory(request_rec *r, const char *dir_type, const char **dir_name, const char *default_name);
-extern apr_socket_t *create_socket(request_rec *r, const char *run_dir);
+extern int prepare_directory(server_rec *s, apr_pool_t *pool, const char *dir_type,
+			     const char **dir_name, const char *default_name);
+extern char *get_socket_name(request_rec *r, const char *run_dir);
 
 #endif

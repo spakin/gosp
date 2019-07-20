@@ -16,13 +16,34 @@ const char *gosp_set_cache_dir(cmd_parms *cmd, void *cfg, const char *arg)
   return NULL;
 }
 
+/* Assign a value to the run directory. */
+const char *gosp_set_run_dir(cmd_parms *cmd, void *cfg, const char *arg)
+{
+  config.run_dir = arg;
+  return NULL;
+}
+
 /* Define all of the configuration-file directives we accept. */
 static const command_rec gosp_directives[] =
   {
    AP_INIT_TAKE1("GospCacheDir", gosp_set_cache_dir, NULL, RSRC_CONF,
                  "Name of a directory in which to cache generated files"),
+   AP_INIT_TAKE1("GospRunDir", gosp_set_run_dir, NULL, RSRC_CONF,
+                 "Name of a directory in which to keep files needed only during server execution"),
    { NULL }
   };
+
+/* Process configuration options. */
+static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
+			    apr_pool_t *ptemp, server_rec *s)
+{
+  /* Prepare the cache directory and the run directory. */
+  if (!prepare_directory(s, pconf, "cache", &config.cache_dir, DEFAULT_CACHE_DIR))
+    return HTTP_INTERNAL_SERVER_ERROR;
+  if (!prepare_directory(s, pconf, "run", &config.run_dir, DEFAULT_RUN_DIR))
+    return HTTP_INTERNAL_SERVER_ERROR;
+  return OK;
+}
 
 /* Handle requests of type "gosp" by passing them to the gosp2go tool. */
 static int gosp_handler(request_rec *r)
@@ -33,12 +54,6 @@ static int gosp_handler(request_rec *r)
     return DECLINED;
   if (r->header_only)
     return DECLINED;
-
-  /* Prepare the cache directory and the run directory. */
-  if (!prepare_directory(r, "cache", &config.cache_dir, DEFAULT_CACHE_DIR))
-    return HTTP_INTERNAL_SERVER_ERROR;
-  if (!prepare_directory(r, "run", &config.run_dir, DEFAULT_RUN_DIR))
-    return HTTP_INTERNAL_SERVER_ERROR;
 
   /* Go Server Pages are always expressed in HTML. */
   r->content_type = "text/html";
@@ -51,6 +66,7 @@ static int gosp_handler(request_rec *r)
 /* Invoke gosp_handler at the end of every request. */
 static void gosp_register_hooks(apr_pool_t *p)
 {
+  ap_hook_post_config(gosp_post_config, NULL, NULL, APR_HOOK_MIDDLE);
   ap_hook_handler(gosp_handler, NULL, NULL, APR_HOOK_LAST);
 }
 

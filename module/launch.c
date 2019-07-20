@@ -11,15 +11,41 @@
  *
  * 1) Get socket name.
  * 2) Try connecting to socket.
- *    If failure/timeout,
- *  3) Relaunch server.
+ *    If filename error,
+ *  3) Create all subdirectories.
+ *     Try connecting to socket.  Abort on failure.
+ *    Else if failure/timeout,
+ *  4) Relaunch server.
  *     If not found,
- *    4) Build server.  Abort on failure.
- *    5) Launch server.  Abort on failure.
- *  6) Try connecting to socket.  Abort on failure.
+ *    6) Build server.  Abort on failure.
+ *    7) Launch server.  Abort on failure.
+ *  8) Try connecting to socket.  Abort on failure.
  */
 
 #include "gosp.h"
+
+/* Return the name of a socket to use to communicate with the Gosp server
+ * associated with the current URL.  Return NULL on failure, */
+char *get_socket_name(request_rec *r, const char *run_dir)
+{
+  char *sock_name;      /* Socket filename */
+  char *idx;            /* Pointer into a string */
+  apr_status_t status;  /* Status of an APR call */
+
+  /* Construct a socket name from the Gosp filename. */
+  status = apr_filepath_merge(&sock_name, run_dir, r->canonical_filename,
+                              APR_FILEPATH_SECUREROOT|APR_FILEPATH_NOTRELATIVE,
+                              r->pool);
+  if (status != APR_SUCCESS)
+    REPORT_ERROR(NULL, APLOG_ALERT, status,
+                 "Failed to securely merge %s and %s", run_dir, r->canonical_filename);
+  idx = rindex(sock_name, '.');
+  if (idx != NULL)
+    *idx = '\0';
+  sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
+  return sock_name;
+}
+
 
 /* Create a socket to associate with a given Go Server Page.  Create all
  * directories needed along the way.  Return NULL on failure. */
