@@ -15,6 +15,7 @@
 #include "http_protocol.h"
 #include "http_log.h"
 #include "ap_config.h"
+#include "apr_file_info.h"
 #include "apr_network_io.h"
 #include "apr_strings.h"
 

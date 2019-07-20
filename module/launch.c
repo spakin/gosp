@@ -4,6 +4,21 @@
  * By Scott Pakin <scott+gosp@pakin.org>          *
  *************************************************/
 
+/*
+ * TODO
+ *
+ * Flow should be as follows:
+ *
+ * 1) Get socket name.
+ * 2) Try connecting to socket.
+ *    If failure/timeout,
+ *  3) Relaunch server.
+ *     If not found,
+ *    4) Build server.  Abort on failure.
+ *    5) Launch server.  Abort on failure.
+ *  6) Try connecting to socket.  Abort on failure.
+ */
+
 #include "gosp.h"
 
 /* Create a socket to associate with a given Go Server Page.  Create all
@@ -17,7 +32,12 @@ apr_socket_t *create_socket(request_rec *r, const char *run_dir)
   apr_status_t status;  /* Status of an APR call */
 
   /* Construct a socket name from the Gosp filename. */
-  sock_name = apr_pstrcat(r->pool, run_dir, r->canonical_filename, NULL);
+  status = apr_filepath_merge(&sock_name, run_dir, r->canonical_filename,
+                              APR_FILEPATH_SECUREROOT|APR_FILEPATH_NOTRELATIVE,
+                              r->pool);
+  if (status != APR_SUCCESS)
+    REPORT_ERROR(NULL, APLOG_ALERT, status,
+                 "Failed to securely merge %s and %s", run_dir, r->canonical_filename);
   idx = rindex(sock_name, '.');
   if (idx != NULL)
     *idx = '\0';
