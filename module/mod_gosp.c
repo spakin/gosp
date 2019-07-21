@@ -35,7 +35,7 @@ static const command_rec gosp_directives[] =
 
 /* Process configuration options. */
 static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
-			    apr_pool_t *ptemp, server_rec *s)
+                            apr_pool_t *ptemp, server_rec *s)
 {
   /* Prepare the cache directory and the run directory. */
   if (!prepare_directory(s, pconf, "cache", &config.cache_dir, DEFAULT_CACHE_DIR))
@@ -48,12 +48,28 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
 /* Handle requests of type "gosp" by passing them to the gosp2go tool. */
 static int gosp_handler(request_rec *r)
 {
+  apr_status_t status;    /* Status of an APR call */
+  char *sock_name;        /* Name of the Unix-domain socket to connect to */
+  apr_socket_t *sock;     /* The Unix-domain socket proper */
+
   /* We care only about "gosp" requests, and we don't care about HEAD
    * requests. */
   if (strcmp(r->handler, "gosp"))
     return DECLINED;
   if (r->header_only)
     return DECLINED;
+
+  /* Connect to the process that handles the requested Go Server Page. */
+  sock_name = get_socket_name(r, config.run_dir);
+  if (sock_name == NULL)
+    return HTTP_INTERNAL_SERVER_ERROR;
+  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r->server,
+               "Communicating with a Gosp server via socket %s", sock_name);
+  status = connect_socket(&sock, r, sock_name);
+
+  /* Temporary */
+  ap_log_error(APLOG_MARK, APLOG_NOTICE, status, r->server,
+               "Connecting to socket %s returned %d", sock_name, status);
 
   /* Go Server Pages are always expressed in HTML. */
   r->content_type = "text/html";

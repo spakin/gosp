@@ -44,5 +44,6 @@ do {                                                                    \
 extern int prepare_directory(server_rec *s, apr_pool_t *pool, const char *dir_type,
 			     const char **dir_name, const char *default_name);
 extern char *get_socket_name(request_rec *r, const char *run_dir);
+extern apr_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name);
 
 #endif
