@@ -43,9 +43,6 @@ char *get_socket_name(request_rec *r, const char *run_dir)
   if (status != APR_SUCCESS)
     REPORT_ERROR(NULL, APLOG_ALERT, status,
                  "Failed to securely merge %s and %s", run_dir, r->canonical_filename);
-  idx = rindex(sock_name, '.');
-  if (idx != NULL)
-    *idx = '\0';
   sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
   return sock_name;
 }
