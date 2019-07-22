@@ -33,18 +33,6 @@ static const command_rec gosp_directives[] =
    { NULL }
   };
 
-/* Process configuration options. */
-static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
-                            apr_pool_t *ptemp, server_rec *s)
-{
-  /* Prepare the cache directory and the run directory. */
-  if (!prepare_directory(s, pconf, "cache", &config.cache_dir, DEFAULT_CACHE_DIR))
-    return HTTP_INTERNAL_SERVER_ERROR;
-  if (!prepare_directory(s, pconf, "run", &config.run_dir, DEFAULT_RUN_DIR))
-    return HTTP_INTERNAL_SERVER_ERROR;
-  return OK;
-}
-
 /* Handle requests of type "gosp" by passing them to the gosp2go tool. */
 static int gosp_handler(request_rec *r)
 {
@@ -58,6 +46,16 @@ static int gosp_handler(request_rec *r)
     return DECLINED;
   if (r->header_only)
     return DECLINED;
+
+  /* Create and prepare the cache and run directories.  Although it would be
+   * nice to hoist this into the post-config handler, that runs before
+   * switching users while gosp_handler runs after switching users.  Creating
+   * directories in a post-config handler would therefore lead to
+   * permission-denied errors. */
+  if (!prepare_directory(r->server, r->pool, "cache", &config.cache_dir, DEFAULT_CACHE_DIR))
+    return HTTP_INTERNAL_SERVER_ERROR;
+  if (!prepare_directory(r->server, r->pool, "run", &config.run_dir, DEFAULT_RUN_DIR))
+    return HTTP_INTERNAL_SERVER_ERROR;
 
   /* Connect to the process that handles the requested Go Server Page. */
   sock_name = get_socket_name(r, config.run_dir);
@@ -82,7 +80,6 @@ static int gosp_handler(request_rec *r)
 /* Invoke gosp_handler at the end of every request. */
 static void gosp_register_hooks(apr_pool_t *p)
 {
-  ap_hook_post_config(gosp_post_config, NULL, NULL, APR_HOOK_MIDDLE);
   ap_hook_handler(gosp_handler, NULL, NULL, APR_HOOK_LAST);
 }
 

@@ -9,6 +9,7 @@
 
 /* Include all required header files here. */
 #include <libgen.h>
+#include <string.h>
 #include <strings.h>
 #include "httpd.h"
 #include "http_config.h"

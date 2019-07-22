@@ -10,6 +10,7 @@ package main
 
 import (
 	gospJson "encoding/json"
+	gospFilePath "path/filepath"
 	gospFlag "flag"
 	gospFmt "fmt"
 	gospNet "net"
@@ -53,7 +54,12 @@ func GospRequestFromFile(fn string) error {
 }
 
 func GospStartServer(fn string) error {
-	ln, err := gospNet.Listen("unix", fn)
+	dir, sock := gospFilePath.Split(fn)
+	err := gospOs.Chdir(dir)
+	if err != nil {
+		return err
+	}
+	ln, err := gospNet.Listen("unix", sock)
 	if err != nil {
 		return err
 	}
