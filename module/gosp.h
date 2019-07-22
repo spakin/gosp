@@ -22,6 +22,16 @@
 #define DEFAULT_CACHE_DIR "/var/cache/apache2/mod_gosp"
 #define DEFAULT_RUN_DIR "/tmp/mod_gosp"
 
+/* Ensure GOSP2GO is defined, typically on the command line. */
+#ifndef GOSP2GO
+# error GOSP2GO needs to be defined.
+#endif
+
+/* Define some launch error codes. */
+#define GOSP_LAUNCH_OK       0    /* Launch succeeded */
+#define GOSP_LAUNCH_NOTFOUND 1    /* Launch failed because the Gosp executable doesn't exist */
+#define GOSP_LAUNCH_FAIL     2    /* Launch experienced a presumably permanent failure */
+
 /* Declare a type for our configuration options. */
 typedef struct {
   const char *cache_dir;   /* Cache directory, for storing generated executables */
@@ -40,9 +50,12 @@ do {                                                                    \
 } while (0)
 
 /* Declare functions that will be called cross-file. */
-extern int prepare_directory(server_rec *s, apr_pool_t *pool, const char *dir_type,
-			     const char **dir_name, const char *default_name);
+extern int prepare_config_directory(request_rec *r, const char *dir_type,
+				    const char **dir_name, const char *default_name,
+				    const char *config_name);
 extern char *get_socket_name(request_rec *r, const char *run_dir);
 extern apr_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name);
+extern apr_status_t launch_gosp_process(request_rec *r, const char *sock_name);
+extern apr_status_t create_directories_for(request_rec *r, const char *fname);
 
 #endif

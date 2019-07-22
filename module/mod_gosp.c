@@ -37,6 +37,7 @@ static const command_rec gosp_directives[] =
 static int gosp_handler(request_rec *r)
 {
   apr_status_t status;    /* Status of an APR call */
+  int launch_status;      /* Status returned by launch_gosp_process() */
   char *sock_name;        /* Name of the Unix-domain socket to connect to */
   apr_socket_t *sock;     /* The Unix-domain socket proper */
 
@@ -52,9 +53,9 @@ static int gosp_handler(request_rec *r)
    * switching users while gosp_handler runs after switching users.  Creating
    * directories in a post-config handler would therefore lead to
    * permission-denied errors. */
-  if (!prepare_directory(r->server, r->pool, "cache", &config.cache_dir, DEFAULT_CACHE_DIR))
+  if (!prepare_config_directory(r, "cache", &config.cache_dir, DEFAULT_CACHE_DIR, "GospCacheDir"))
     return HTTP_INTERNAL_SERVER_ERROR;
-  if (!prepare_directory(r->server, r->pool, "run", &config.run_dir, DEFAULT_RUN_DIR))
+  if (!prepare_config_directory(r, "run", &config.run_dir, DEFAULT_RUN_DIR, "GospRunDir"))
     return HTTP_INTERNAL_SERVER_ERROR;
 
   /* Connect to the process that handles the requested Go Server Page. */
@@ -68,6 +69,10 @@ static int gosp_handler(request_rec *r)
   /* Temporary */
   ap_log_error(APLOG_MARK, APLOG_NOTICE, status, r->server,
                "Connecting to socket %s returned %d", sock_name, status);
+  launch_status = launch_gosp_process(r, sock_name);
+  if (launch_status != GOSP_LAUNCH_OK)
+    ap_log_error(APLOG_MARK, APLOG_NOTICE, APR_SUCCESS, r->server,
+		 "Failed to launch %s (code %d)", r->canonical_filename, launch_status);
 
   /* Go Server Pages are always expressed in HTML. */
   r->content_type = "text/html";
