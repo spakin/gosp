@@ -24,7 +24,7 @@ var goCmd = "go"
 type Parameters struct {
 	InFileName  string // Name of a file from which to read Go Server Page HTML
 	OutFileName string // Name of a file to which to write the Go or executable or HTML output
-	Compile     bool   // true=compile the generated Go code
+	Build       bool   // true=compile the generated Go code
 	Run         bool   // true=execute the generated Go code
 }
 
@@ -34,16 +34,29 @@ func ParseCommandLine() *Parameters {
 	// Prepare custom usage output.
 	var p Parameters
 	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [options] [input_file.gosp]\n\nThe following options are accepted:\n\n", os.Args[0])
-		flag.PrintDefaults()
+		fmt.Fprintf(flag.CommandLine.Output(), `Usage: %s [options] [input_file.gosp]
+
+The following options are accepted:
+
+  -b, --build  Compile the generated Go code to an executable program
+
+  -r, --run    Both compile and execute the generated Go code
+
+  -o FILE, --output=FILE
+               Write output to file FILE ("-" = standard output); the
+               file type depends on whether --build, --run, or neither
+               is also specified
+`, os.Args[0])
 		os.Exit(1)
 	}
 
 	// Parse the command line.
 	flag.StringVar(&p.OutFileName, "outfile", "-", `Name of output file ("-" = standard output); type depends on the other options specified`)
 	flag.StringVar(&p.OutFileName, "o", "-", "Abbreviation of --outfile")
-	flag.BoolVar(&p.Compile, "compile", false, "Compile the generated Go code to an executable program")
+	flag.BoolVar(&p.Build, "build", false, "Compile the generated Go code to an executable program")
+	flag.BoolVar(&p.Build, "b", false, "Abbreviation of --build")
 	flag.BoolVar(&p.Run, "run", false, "Compile and execute the generated Go code")
+	flag.BoolVar(&p.Run, "r", false, "Abbreviation of --run")
 	flag.Parse()
 
 	// Check the parameters for self-consistency.
@@ -55,12 +68,12 @@ func ParseCommandLine() *Parameters {
 	default:
 		flag.Usage()
 	}
-	if p.Compile && p.Run {
-		fmt.Fprintf(flag.CommandLine.Output(), "%s: --compile and --run are mutually exclusive.\n\n", os.Args[0])
+	if p.Build && p.Run {
+		fmt.Fprintf(flag.CommandLine.Output(), "%s: --build and --run are mutually exclusive.\n\n", os.Args[0])
 		flag.Usage()
 	}
-	if p.Compile && (p.OutFileName == "" || p.OutFileName == "-") {
-		fmt.Fprintf(flag.CommandLine.Output(), "%s: An output filename must be specified when --compile is used.\n\n", os.Args[0])
+	if p.Build && (p.OutFileName == "" || p.OutFileName == "-") {
+		fmt.Fprintf(flag.CommandLine.Output(), "%s: An output filename must be specified when --build is used.\n\n", os.Args[0])
 		flag.Usage()
 	}
 	return &p
@@ -143,9 +156,9 @@ func MakeTempGo(goStr string) string {
 	return goFile.Name()
 }
 
-// Compile compiles the generated Go code to a given filename.  It aborts on
+// Build compiles the generated Go code to a given filename.  It aborts on
 // error.
-func Compile(goStr, exeFn string) {
+func Build(goStr, exeFn string) {
 	goFn := MakeTempGo(goStr)
 	defer os.Remove(goFn)
 	cmd := exec.Command(goCmd, "build", "-o", exeFn, goFn)
@@ -218,7 +231,7 @@ func main() {
 	// Open the output file, unless we're only compiling.  In that case,
 	// "go build" will write the output file itself.
 	var outFile *os.File
-	if !p.Compile {
+	if !p.Build {
 		outFile = SmartOpen(p.OutFileName, true)
 		if p.OutFileName == "-" {
 			defer outFile.Close()
@@ -233,15 +246,15 @@ func main() {
 	goStr := GospToGo(string(in))
 
 	// If Run is true, compile and run the Go program, outputting HTML.
-	// Otherwise, if Compile is true, compile the Go program, outputting an
+	// Otherwise, if Build is true, compile the Go program, outputting an
 	// executable file.  Otherwise, output the Go source code itself.
 	switch {
 	case p.Run:
 		// Run the Go program and output HTML.
 		Run(goStr, outFile)
-	case p.Compile:
+	case p.Build:
 		// Compile the Go program and output an executable file.
-		Compile(goStr, p.OutFileName)
+		Build(goStr, p.OutFileName)
 	default:
 		// Output the Go program itself.
 		fmt.Fprintln(outFile, goStr)
