@@ -16,6 +16,10 @@ import (
 // notify is used to output error messages.
 var notify *log.Logger
 
+// Define the Go compiler command.  This can be overridden with go's
+// -X linker option.
+var goCmd = "go"
+
 // Parameters encapsulates the key program parameters.
 type Parameters struct {
 	InFileName  string // Name of a file from which to read Go Server Page HTML
@@ -144,7 +148,7 @@ func MakeTempGo(goStr string) string {
 func Compile(goStr, exeFn string) {
 	goFn := MakeTempGo(goStr)
 	defer os.Remove(goFn)
-	cmd := exec.Command("go", "build", "-o", exeFn, goFn)
+	cmd := exec.Command(goCmd, "build", "-o", exeFn, goFn)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
@@ -158,7 +162,7 @@ func Compile(goStr, exeFn string) {
 func Run(goStr string, out io.Writer) {
 	goFn := MakeTempGo(goStr)
 	defer os.Remove(goFn)
-	cmd := exec.Command("go", "run", goFn)
+	cmd := exec.Command(goCmd, "run", goFn)
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()

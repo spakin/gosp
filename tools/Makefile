@@ -11,7 +11,7 @@ SOURCES = \
 all: gosp2go
 
 gosp2go: $(SOURCES)
-	$(GO) build $(GOFLAGS) -o gosp2go $(SOURCES)
+	$(GO) build $(GOFLAGS) -ldflags="-X main.goCmd=$(GO)" -o gosp2go $(SOURCES)
 
 clean:
 	$(RM) gosp2go

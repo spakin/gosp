@@ -9,9 +9,11 @@ prefix = /usr/local
 exec_prefix = $(prefix)
 bindir = $(exec_prefix)/bin
 APXS = apxs
-GO = go
 GOFLAGS =
 INSTALL = install
+
+# GO should be defined as the absolute path of the go command.
+GO = $(shell which go)
 
 ###########################################################################
 
