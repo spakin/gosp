@@ -31,6 +31,7 @@ static int gosp_handler(request_rec *r)
   int launch_status;      /* Status returned by launch_gosp_process() */
   char *sock_name;        /* Name of the Unix-domain socket to connect to */
   apr_socket_t *sock;     /* The Unix-domain socket proper */
+  apr_finfo_t finfo;      /* File information for the rquested file */
 
   /* We care only about "gosp" requests, and we don't care about HEAD
    * requests. */
@@ -38,6 +39,11 @@ static int gosp_handler(request_rec *r)
     return DECLINED;
   if (r->header_only)
     return DECLINED;
+
+  /* Issue an HTTP error if the requested Gosp file doesn't exist. */
+  status = apr_stat(&finfo, r->canonical_filename, 0, r->pool);
+  if (status != APR_SUCCESS)
+    return HTTP_NOT_FOUND;
 
   /* Create and prepare the cache work directory.  Although it would be nice to
    * hoist this into the post-config handler, that runs before switching users
