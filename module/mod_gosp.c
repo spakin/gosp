@@ -9,27 +9,18 @@
 /* Define our configuration options. */
 static config_t config;
 
-/* Assign a value to the cache directory. */
-const char *gosp_set_cache_dir(cmd_parms *cmd, void *cfg, const char *arg)
+/* Assign a value to the work directory. */
+const char *gosp_set_work_dir(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  config.cache_dir = arg;
-  return NULL;
-}
-
-/* Assign a value to the run directory. */
-const char *gosp_set_run_dir(cmd_parms *cmd, void *cfg, const char *arg)
-{
-  config.run_dir = arg;
+  config.work_dir = arg;
   return NULL;
 }
 
 /* Define all of the configuration-file directives we accept. */
 static const command_rec gosp_directives[] =
   {
-   AP_INIT_TAKE1("GospCacheDir", gosp_set_cache_dir, NULL, RSRC_CONF,
-                 "Name of a directory in which to cache generated files"),
-   AP_INIT_TAKE1("GospRunDir", gosp_set_run_dir, NULL, RSRC_CONF,
-                 "Name of a directory in which to keep files needed only during server execution"),
+   AP_INIT_TAKE1("GospWorkDir", gosp_set_work_dir, NULL, RSRC_CONF,
+                 "Name of a directory in which Gosp can generate files needed during execution"),
    { NULL }
   };
 
@@ -48,18 +39,15 @@ static int gosp_handler(request_rec *r)
   if (r->header_only)
     return DECLINED;
 
-  /* Create and prepare the cache and run directories.  Although it would be
-   * nice to hoist this into the post-config handler, that runs before
-   * switching users while gosp_handler runs after switching users.  Creating
-   * directories in a post-config handler would therefore lead to
-   * permission-denied errors. */
-  if (!prepare_config_directory(r, "cache", &config.cache_dir, DEFAULT_CACHE_DIR, "GospCacheDir"))
-    return HTTP_INTERNAL_SERVER_ERROR;
-  if (!prepare_config_directory(r, "run", &config.run_dir, DEFAULT_RUN_DIR, "GospRunDir"))
+  /* Create and prepare the cache work directory.  Although it would be nice to
+   * hoist this into the post-config handler, that runs before switching users
+   * while gosp_handler runs after switching users.  Creating a directory in a
+   * post-config handler would therefore lead to permission-denied errors. */
+  if (!prepare_config_directory(r, "work", &config.work_dir, DEFAULT_WORK_DIR, "GospWorkDir"))
     return HTTP_INTERNAL_SERVER_ERROR;
 
   /* Connect to the process that handles the requested Go Server Page. */
-  sock_name = append_filepaths(r, config.run_dir, r->canonical_filename);
+  sock_name = concatenate_filepaths(r, config.work_dir, "sockets", r->canonical_filename, NULL);
   if (sock_name == NULL)
     return HTTP_INTERNAL_SERVER_ERROR;
   sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
@@ -70,10 +58,10 @@ static int gosp_handler(request_rec *r)
   /* Temporary */
   ap_log_error(APLOG_MARK, APLOG_NOTICE, status, r->server,
                "Connecting to socket %s returned %d", sock_name, status);
-  launch_status = launch_gosp_process(r, config.run_dir, sock_name);
+  launch_status = launch_gosp_process(r, config.work_dir, sock_name);
   if (launch_status != GOSP_LAUNCH_OK)
     ap_log_error(APLOG_MARK, APLOG_NOTICE, APR_SUCCESS, r->server,
-		 "Failed to launch %s (code %d)", r->canonical_filename, launch_status);
+                 "Failed to launch %s (code %d)", r->canonical_filename, launch_status);
 
   /* Go Server Pages are always expressed in HTML. */
   r->content_type = "text/html";

@@ -87,20 +87,33 @@ apr_status_t create_directories_for(request_rec *r, const char *fname)
   return APR_SUCCESS;
 }
 
-/* Securely append one filepath to another.  Return the combined path name or
- * NULL on error. */
-char *append_filepaths(request_rec *r, const char *pathA, const char *pathB)
+/* Securely concatenate two or more filepaths.  The final entry must be NULL.
+ * Return the combined path name or NULL on error. */
+char *concatenate_filepaths(request_rec *r, ...)
 {
+  va_list ap;           /* Argument pointer */
   char *merged_name;    /* Path name consisting of pathA followed by pathB */
+  char *next_path;      /* Next filepath component */
   apr_status_t status;  /* Status of an APR call */
 
-  if (pathB[0] == '/')
-    pathB++;   /* APR_FILEPATH_SECUREROOT won't allow merging to an absolute pathname. */
-  status = apr_filepath_merge(&merged_name, pathA, pathB,
-                              APR_FILEPATH_SECUREROOT|APR_FILEPATH_NOTRELATIVE,
-                              r->pool);
-  if (status != APR_SUCCESS)
-    REPORT_ERROR(NULL, APLOG_ALERT, status,
-                 "Failed to securely merge %s and %s", pathA, pathB);
-  return merged_name;
+  /* Process the first argument. */
+  va_start(ap, r);
+  merged_name = va_arg(ap, char *);
+  if (merged_name == NULL)
+    return NULL;
+
+  /* Process all remaining arguments. */
+  while (1) {
+    next_path = va_arg(ap, char *);
+    if (next_path == NULL)
+      return merged_name;
+    if (next_path[0] == '/')
+      next_path++;   /* APR_FILEPATH_SECUREROOT won't allow merging to an absolute pathname. */
+    status = apr_filepath_merge(&merged_name, merged_name, next_path,
+                                APR_FILEPATH_SECUREROOT|APR_FILEPATH_NOTRELATIVE,
+                                r->pool);
+    if (status != APR_SUCCESS)
+      REPORT_ERROR(NULL, APLOG_ALERT, status,
+                   "Failed to securely merge %s and %s", merged_name, next_path);
+  }
 }

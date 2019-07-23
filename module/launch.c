@@ -62,7 +62,7 @@ apr_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *soc
  * GOSP_LAUNCH_OK on success, GOSP_LAUNCH_NOTFOUND if the executable wasn't
  * found (and presumably need to be built), and GOSP_LAUNCH_FAIL if an
  * unexpected error occurred (and the request needs to be aborted). */
-int launch_gosp_process(request_rec *r, const char *run_dir, const char *sock_name)
+int launch_gosp_process(request_rec *r, const char *work_dir, const char *sock_name)
 {
   char *server_name;      /* Name of the Gosp server executable */
   apr_proc_t proc;        /* Launched process */
@@ -86,7 +86,7 @@ int launch_gosp_process(request_rec *r, const char *run_dir, const char *sock_na
 
   /* Prefix the Gosp page name with the run directory to produce the name of
    * the Gosp server. */
-  server_name = append_filepaths(r, run_dir, r->canonical_filename);
+  server_name = concatenate_filepaths(r, work_dir, "bin", r->canonical_filename, NULL);
   if (server_name == NULL)
     return GOSP_LAUNCH_FAIL;
 

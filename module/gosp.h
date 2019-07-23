@@ -9,6 +9,7 @@
 
 /* Include all required header files here. */
 #include <libgen.h>
+#include <stdarg.h>
 #include "httpd.h"
 #include "http_config.h"
 #include "http_protocol.h"
@@ -18,9 +19,8 @@
 #include "apr_network_io.h"
 #include "apr_strings.h"
 
-/* Define some default directories. */
-#define DEFAULT_CACHE_DIR "/var/cache/apache2/mod_gosp"
-#define DEFAULT_RUN_DIR "/tmp/mod_gosp"
+/* Define our default work directory. */
+#define DEFAULT_WORK_DIR "/var/cache/apache2/mod_gosp"
 
 /* Ensure GOSP2GO is defined, typically on the command line. */
 #ifndef GOSP2GO
@@ -34,8 +34,7 @@
 
 /* Declare a type for our configuration options. */
 typedef struct {
-  const char *cache_dir;   /* Cache directory, for storing generated executables */
-  const char *run_dir;     /* Run directory, for storing Unix-domain sockets */
+  const char *work_dir;    /* Work directory, for storing Gosp-generated files */
 } config_t;
 
 /* Define a macro that checks an error code and, on error, logs a
@@ -56,6 +55,6 @@ extern int prepare_config_directory(request_rec *r, const char *dir_type,
 extern apr_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name);
 extern apr_status_t launch_gosp_process(request_rec *r, const char *run_dir, const char *sock_name);
 extern apr_status_t create_directories_for(request_rec *r, const char *fname);
-extern char *append_filepaths(request_rec *r, const char *pathA, const char *pathB);
+extern char *concatenate_filepaths(request_rec *r, ...);
 
 #endif
