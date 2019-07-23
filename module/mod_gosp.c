@@ -59,9 +59,10 @@ static int gosp_handler(request_rec *r)
     return HTTP_INTERNAL_SERVER_ERROR;
 
   /* Connect to the process that handles the requested Go Server Page. */
-  sock_name = get_socket_name(r, config.run_dir);
+  sock_name = append_filepaths(r, config.run_dir, r->canonical_filename);
   if (sock_name == NULL)
     return HTTP_INTERNAL_SERVER_ERROR;
+  sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
   ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r->server,
                "Communicating with a Gosp server via socket %s", sock_name);
   status = connect_socket(&sock, r, sock_name);
@@ -69,7 +70,7 @@ static int gosp_handler(request_rec *r)
   /* Temporary */
   ap_log_error(APLOG_MARK, APLOG_NOTICE, status, r->server,
                "Connecting to socket %s returned %d", sock_name, status);
-  launch_status = launch_gosp_process(r, sock_name);
+  launch_status = launch_gosp_process(r, config.run_dir, sock_name);
   if (launch_status != GOSP_LAUNCH_OK)
     ap_log_error(APLOG_MARK, APLOG_NOTICE, APR_SUCCESS, r->server,
 		 "Failed to launch %s (code %d)", r->canonical_filename, launch_status);

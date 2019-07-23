@@ -86,3 +86,21 @@ apr_status_t create_directories_for(request_rec *r, const char *fname)
   /* Everything is okay. */
   return APR_SUCCESS;
 }
+
+/* Securely append one filepath to another.  Return the combined path name or
+ * NULL on error. */
+char *append_filepaths(request_rec *r, const char *pathA, const char *pathB)
+{
+  char *merged_name;    /* Path name consisting of pathA followed by pathB */
+  apr_status_t status;  /* Status of an APR call */
+
+  if (pathB[0] == '/')
+    pathB++;   /* APR_FILEPATH_SECUREROOT won't allow merging to an absolute pathname. */
+  status = apr_filepath_merge(&merged_name, pathA, pathB,
+                              APR_FILEPATH_SECUREROOT|APR_FILEPATH_NOTRELATIVE,
+                              r->pool);
+  if (status != APR_SUCCESS)
+    REPORT_ERROR(NULL, APLOG_ALERT, status,
+                 "Failed to securely merge %s and %s", pathA, pathB);
+  return merged_name;
+}
