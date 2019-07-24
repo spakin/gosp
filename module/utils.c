@@ -117,3 +117,28 @@ char *concatenate_filepaths(request_rec *r, ...)
                    "Failed to securely merge %s and %s", merged_name, next_path);
   }
 }
+
+/* Return 1 if the first file named is newer than the second or the second
+ * doesn't exist.  It is assumed that the first first exists.  Return -1 on
+ * error.*/
+int is_newer_than(request_rec *r, const char *first, const char *second)
+{
+  apr_finfo_t finfo1;   /* File information for the first file */
+  apr_finfo_t finfo2;   /* File information for the second file */
+  apr_status_t status;  /* Status of an APR call */
+
+  /* Query the second file's metadata. */
+  status = apr_stat(&finfo2, second, APR_FINFO_MTIME, r->pool);
+  if (APR_STATUS_IS_ENOENT(status))
+    return 1;
+  if (status != APR_SUCCESS)
+    return -1;
+
+  /* Query the first file's metadata. */
+  status = apr_stat(&finfo1, first, APR_FINFO_MTIME, r->pool);
+  if (status != APR_SUCCESS)
+    return -1;
+
+  /* Return 1 if the first file is newer, 0 otherwise. */
+  return finfo1.mtime > finfo2.mtime;
+}
