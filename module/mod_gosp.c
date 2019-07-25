@@ -62,12 +62,20 @@ static int gosp_handler(request_rec *r)
   status = connect_socket(&sock, r, sock_name);
 
   /* Temporary */
+  /*
   ap_log_error(APLOG_MARK, APLOG_NOTICE, status, r->server,
                "Connecting to socket %s returned %d", sock_name, status);
+  */
+  launch_status = compile_gosp_server(r, config.work_dir);
+  if (launch_status != GOSP_LAUNCH_OK)
+    ap_log_error(APLOG_MARK, APLOG_NOTICE, APR_SUCCESS, r->server,
+                 "Failed to compile %s (code %d)", r->canonical_filename, launch_status);
+  /*
   launch_status = launch_gosp_process(r, config.work_dir, sock_name);
   if (launch_status != GOSP_LAUNCH_OK)
     ap_log_error(APLOG_MARK, APLOG_NOTICE, APR_SUCCESS, r->server,
                  "Failed to launch %s (code %d)", r->canonical_filename, launch_status);
+  */
 
   /* Go Server Pages are always expressed in HTML. */
   r->content_type = "text/html";

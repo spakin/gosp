@@ -15,6 +15,7 @@
 #include "http_protocol.h"
 #include "http_log.h"
 #include "ap_config.h"
+#include "apr_env.h"
 #include "apr_file_info.h"
 #include "apr_network_io.h"
 #include "apr_strings.h"
@@ -57,5 +58,6 @@ extern apr_status_t launch_gosp_process(request_rec *r, const char *run_dir, con
 extern apr_status_t create_directories_for(request_rec *r, const char *fname);
 extern char *concatenate_filepaths(request_rec *r, ...);
 extern int is_newer_than(request_rec *r, const char *first, const char *second);
+extern int compile_gosp_server(request_rec *r, const char *work_dir);
 
 #endif
