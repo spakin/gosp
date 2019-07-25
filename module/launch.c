@@ -86,7 +86,9 @@ int launch_gosp_process(request_rec *r, const char *work_dir, const char *sock_n
 
   /* Prefix the Gosp page name with the run directory to produce the name of
    * the Gosp server. */
-  server_name = concatenate_filepaths(r, work_dir, "bin", r->canonical_filename, NULL);
+  server_name = concatenate_filepaths(r, work_dir, "bin",
+                                      apr_pstrcat(r->pool, r->canonical_filename, ".exe", NULL),
+                                      NULL);
   if (server_name == NULL)
     return GOSP_LAUNCH_FAIL;
 
@@ -109,7 +111,7 @@ int launch_gosp_process(request_rec *r, const char *work_dir, const char *sock_n
 int compile_gosp_server(request_rec *r, const char *work_dir)
 {
   apr_procattr_t *attr;     /* Process attributes */
-  char *gosp_exe;           /* Gosp executable filename */
+  char *server_name;        /* Gosp executable filename */
   apr_proc_t proc;          /* Launched process */
   const char **args;        /* Process command-line arguments */
   int exit_code;            /* gosp2go return code */
@@ -118,11 +120,13 @@ int compile_gosp_server(request_rec *r, const char *work_dir)
   apr_status_t status;      /* Status of an APR call */
 
   /* Ensure we have a place to write the executable. */
-  gosp_exe = concatenate_filepaths(r, work_dir, "bin", r->canonical_filename, NULL);
-  if (gosp_exe == NULL)
+  server_name = concatenate_filepaths(r, work_dir, "bin",
+                                   apr_pstrcat(r->pool, r->canonical_filename, ".exe", NULL),
+                                   NULL);
+  if (server_name == NULL)
     return GOSP_LAUNCH_FAIL;
-  LAUNCH_CALL(create_directories_for(r, gosp_exe),
-              "Creating a directory in which to write %s", gosp_exe);
+  LAUNCH_CALL(create_directories_for(r, server_name),
+              "Creating a directory in which to write %s", server_name);
 
   /* Prepare a Go build cache. */
   go_cache = concatenate_filepaths(r, work_dir, "go-build", NULL);
@@ -144,7 +148,7 @@ int compile_gosp_server(request_rec *r, const char *work_dir)
   args[0] = GOSP2GO;
   args[1] = "--build";
   args[2] = "-o";
-  args[3] = gosp_exe;
+  args[3] = server_name;
   args[4] = r->canonical_filename;
   args[5] = NULL;
   status = apr_proc_create(&proc, args[0], args, NULL, attr, r->pool);
@@ -160,10 +164,10 @@ int compile_gosp_server(request_rec *r, const char *work_dir)
   if (exit_why != APR_PROC_EXIT)
     REPORT_ERROR(GOSP_LAUNCH_FAIL, APLOG_ALERT, APR_SUCCESS,
                  "Abnormal exit from %s --build -o %s %s",
-                 GOSP2GO, gosp_exe, r->canonical_filename);
+                 GOSP2GO, server_name, r->canonical_filename);
   if (exit_code != 0 && exit_code != APR_ENOTIMPL)
     REPORT_ERROR(GOSP_LAUNCH_FAIL, APLOG_ALERT, APR_SUCCESS,
                  "Nonzero exit code (%d) from %s --build -o %s %s",
-                 exit_code, GOSP2GO, gosp_exe, r->canonical_filename);
+                 exit_code, GOSP2GO, server_name, r->canonical_filename);
   return GOSP_LAUNCH_OK;
 }
