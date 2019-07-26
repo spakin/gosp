@@ -21,7 +21,7 @@ GENFILES = \
 
 all: $(GENFILES)
 
-$(GENFILES): mod_gosp.c utils.c launch.c gosp.h
+$(GENFILES): mod_gosp.c utils.c launch.c comm.c gosp.h
 	$(APXS) $(APXSFLAGS) -DGOSP2GO='\"$(bindir)/gosp2go\"' -I. -c mod_gosp.c utils.c launch.c
 
 clean:
