@@ -1,9 +1,12 @@
+module/.libs/comm.o
 module/.libs/launch.o
 module/.libs/mod_gosp.la
 module/.libs/mod_gosp.lai
 module/.libs/mod_gosp.o
 module/.libs/mod_gosp.so
 module/.libs/utils.o
+module/comm.lo
+module/comm.slo
 module/launch.lo
 module/launch.o
 module/launch.slo

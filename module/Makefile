@@ -5,6 +5,8 @@
 ###############################################
 
 GENFILES = \
+	comm.lo \
+	comm.slo \
 	launch.lo \
 	launch.o \
 	launch.slo \
