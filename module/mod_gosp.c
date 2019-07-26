@@ -49,7 +49,7 @@ static int gosp_handler(request_rec *r)
    * hoist this into the post-config handler, that runs before switching users
    * while gosp_handler runs after switching users.  Creating a directory in a
    * post-config handler would therefore lead to permission-denied errors. */
-  if (!prepare_config_directory(r, "work", &config.work_dir, DEFAULT_WORK_DIR, "GospWorkDir"))
+  if (prepare_config_directory(r, "work", &config.work_dir, DEFAULT_WORK_DIR, "GospWorkDir") != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
 
   /* Connect to the process that handles the requested Go Server Page. */
