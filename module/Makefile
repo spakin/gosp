@@ -19,9 +19,9 @@ GENFILES = \
 	utils.o \
 	utils.slo
 
-all: $(GENFILES)
+all: mod_gosp.la
 
-$(GENFILES): mod_gosp.c utils.c launch.c comm.c gosp.h
+mod_gosp.la: mod_gosp.c utils.c launch.c comm.c gosp.h
 	$(APXS) $(APXSFLAGS) -DGOSP2GO='\"$(bindir)/gosp2go\"' -I. -c mod_gosp.c utils.c launch.c
 
 clean:
