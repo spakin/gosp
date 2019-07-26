@@ -25,21 +25,21 @@
 #include "gosp.h"
 
 /* Invoke an APR call as part of process launch.  On failure, log an error
- * message and return GOSP_LAUNCH_FAIL. */
+ * message and return GOSP_STATUS_FAIL. */
 #define LAUNCH_CALL(FCALL, ...)                                            \
 do {                                                                       \
   status = FCALL;                                                          \
   if (status != APR_SUCCESS) {                                             \
     ap_log_error(APLOG_MARK, APLOG_ALERT, status, r->server, __VA_ARGS__); \
-    return GOSP_LAUNCH_FAIL;                                               \
+    return GOSP_STATUS_FAIL;                                               \
   }                                                                        \
 } while (0)
 
 /* Launch a Go Server Page process to handle the current page.  Return
- * GOSP_LAUNCH_OK on success, GOSP_LAUNCH_NOTFOUND if the executable wasn't
- * found (and presumably need to be built), and GOSP_LAUNCH_FAIL if an
+ * GOSP_STATUS_OK on success, GOSP_STATUS_NOTFOUND if the executable wasn't
+ * found (and presumably need to be built), and GOSP_STATUS_FAIL if an
  * unexpected error occurred (and the request needs to be aborted). */
-int launch_gosp_process(request_rec *r, const char *work_dir, const char *sock_name)
+gosp_status_t launch_gosp_process(request_rec *r, const char *work_dir, const char *sock_name)
 {
   char *server_name;      /* Name of the Gosp server executable */
   apr_proc_t proc;        /* Launched process */
@@ -67,7 +67,7 @@ int launch_gosp_process(request_rec *r, const char *work_dir, const char *sock_n
                                       apr_pstrcat(r->pool, r->canonical_filename, ".exe", NULL),
                                       NULL);
   if (server_name == NULL)
-    return GOSP_LAUNCH_FAIL;
+    return GOSP_STATUS_FAIL;
 
   /* Spawn the Gosp process. */
   args = (const char **) apr_palloc(r->pool, 4*sizeof(char *));
@@ -77,10 +77,10 @@ int launch_gosp_process(request_rec *r, const char *work_dir, const char *sock_n
   args[3] = NULL;
   status = apr_proc_create(&proc, server_name, args, NULL, attr, r->pool);
   if (status == APR_SUCCESS)
-    return GOSP_LAUNCH_OK;
+    return GOSP_STATUS_OK;
   if (APR_STATUS_IS_ENOENT(status))
-    return GOSP_LAUNCH_NOTFOUND;
-  REPORT_ERROR(GOSP_LAUNCH_FAIL, APLOG_ALERT, status,
+    return GOSP_STATUS_NOTFOUND;
+  REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                "Failed to run %s", server_name);
 }
 
@@ -101,14 +101,14 @@ int compile_gosp_server(request_rec *r, const char *work_dir)
                                    apr_pstrcat(r->pool, r->canonical_filename, ".exe", NULL),
                                    NULL);
   if (server_name == NULL)
-    return GOSP_LAUNCH_FAIL;
+    return GOSP_STATUS_FAIL;
   LAUNCH_CALL(create_directories_for(r, server_name),
               "Creating a directory in which to write %s", server_name);
 
   /* Prepare a Go build cache. */
   go_cache = concatenate_filepaths(r, work_dir, "go-build", NULL);
   if (go_cache == NULL)
-    return GOSP_LAUNCH_FAIL;
+    return GOSP_STATUS_FAIL;
   LAUNCH_CALL(apr_env_set("GOCACHE", go_cache, r->pool),
               "Setting GOCACHE=%s failed", go_cache);
 
@@ -130,21 +130,21 @@ int compile_gosp_server(request_rec *r, const char *work_dir)
   args[5] = NULL;
   status = apr_proc_create(&proc, args[0], args, NULL, attr, r->pool);
   if (status != APR_SUCCESS)
-    REPORT_ERROR(GOSP_LAUNCH_FAIL, APLOG_ALERT, status,
+    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                  "Failed to run " GOSP2GO);
 
   /* Wait for gosp2go to finish its execution. */
   status = apr_proc_wait(&proc, &exit_code, &exit_why, APR_WAIT);
   if (status != APR_CHILD_DONE)
-    REPORT_ERROR(GOSP_LAUNCH_FAIL, APLOG_ALERT, APR_SUCCESS,
+    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, APR_SUCCESS,
                  "%s was supposed to finish but didn't", GOSP2GO);
   if (exit_why != APR_PROC_EXIT)
-    REPORT_ERROR(GOSP_LAUNCH_FAIL, APLOG_ALERT, APR_SUCCESS,
+    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, APR_SUCCESS,
                  "Abnormal exit from %s --build -o %s %s",
                  GOSP2GO, server_name, r->canonical_filename);
   if (exit_code != 0 && exit_code != APR_ENOTIMPL)
-    REPORT_ERROR(GOSP_LAUNCH_FAIL, APLOG_ALERT, APR_SUCCESS,
+    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, APR_SUCCESS,
                  "Nonzero exit code (%d) from %s --build -o %s %s",
                  exit_code, GOSP2GO, server_name, r->canonical_filename);
-  return GOSP_LAUNCH_OK;
+  return GOSP_STATUS_OK;
 }

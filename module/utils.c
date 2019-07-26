@@ -7,12 +7,13 @@
 
 #include "gosp.h"
 
-/* Return 1 if a given directory, named in the Apache configuration file, is
- * valid, creating it if necessary.  Otherwise, log an error message and return
- * 0.  If the directory name is NULL, assign it a default value. */
-int prepare_config_directory(request_rec *r, const char *dir_type,
-                             const char **dir_name, const char *default_name,
-                             const char *config_name)
+/* Return GOSP_STATUS_OK if a given directory, named in the Apache
+ * configuration file, is valid, creating it if necessary.  Otherwise, log an
+ * error message and return GOSP_STATUS_FAIL.  If the directory name is NULL,
+ * assign it a default value. */
+gosp_status_t prepare_config_directory(request_rec *r, const char *dir_type,
+				       const char **dir_name, const char *default_name,
+				       const char *config_name)
 {
   apr_finfo_t finfo;    /* File information for the directory */
   apr_status_t status;  /* Return value from a file operation */
@@ -39,19 +40,19 @@ int prepare_config_directory(request_rec *r, const char *dir_type,
                              APR_FPROT_UREAD|APR_FPROT_UWRITE|APR_FPROT_UEXECUTE,
                              r->pool);
     if (status != APR_SUCCESS)
-      REPORT_ERROR(0, APLOG_ALERT, status,
+      REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                    "Failed to create %s directory %s", dir_type, *dir_name);
     status = apr_stat(&finfo, *dir_name, APR_FINFO_TYPE, r->pool);
     if (status != APR_SUCCESS)
-      REPORT_ERROR(0, APLOG_ALERT, status,
+      REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                    "Failed to query %s directory %s", dir_type, *dir_name);
   }
   if (finfo.filetype != APR_DIR)
-    REPORT_ERROR(0, APLOG_ALERT, status,
+    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                  "Gosp %s directory %s is not a directory", dir_type, *dir_name);
 
   /* Everything is okay. */
-  return 1;
+  return GOSP_STATUS_OK;
 }
 
 /* Create a directory hierarchy in which to store the given file.

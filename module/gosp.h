@@ -28,10 +28,13 @@
 # error GOSP2GO needs to be defined.
 #endif
 
-/* Define some launch error codes. */
-#define GOSP_LAUNCH_OK       0    /* Launch succeeded */
-#define GOSP_LAUNCH_NOTFOUND 1    /* Launch failed because the Gosp executable doesn't exist */
-#define GOSP_LAUNCH_FAIL     2    /* Launch experienced a presumably permanent failure */
+/* Define some status codes for the functions we define. */
+#define GOSP_STATUS_OK       0    /* Function succeeded */
+#define GOSP_STATUS_NOTFOUND 1    /* Function failed because a file doesn't exist, but it can be created */
+#define GOSP_STATUS_FAIL     2    /* Function experienced a presumably permanent failure */
+
+/* Define a type corresponding the above. */
+typedef int gosp_status_t;
 
 /* Declare a type for our configuration options. */
 typedef struct {
@@ -50,14 +53,14 @@ do {                                                                    \
 } while (0)
 
 /* Declare functions that will be called cross-file. */
-extern int prepare_config_directory(request_rec *r, const char *dir_type,
-                                    const char **dir_name, const char *default_name,
-                                    const char *config_name);
+extern gosp_status_t prepare_config_directory(request_rec *r, const char *dir_type,
+					      const char **dir_name, const char *default_name,
+					      const char *config_name);
 extern apr_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name);
 extern apr_status_t launch_gosp_process(request_rec *r, const char *run_dir, const char *sock_name);
 extern apr_status_t create_directories_for(request_rec *r, const char *fname);
 extern char *concatenate_filepaths(request_rec *r, ...);
 extern int is_newer_than(request_rec *r, const char *first, const char *second);
-extern int compile_gosp_server(request_rec *r, const char *work_dir);
+extern gosp_status_t compile_gosp_server(request_rec *r, const char *work_dir);
 
 #endif
