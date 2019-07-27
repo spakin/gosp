@@ -12,8 +12,8 @@
  * error message and return GOSP_STATUS_FAIL.  If the directory name is NULL,
  * assign it a default value. */
 gosp_status_t prepare_config_directory(request_rec *r, const char *dir_type,
-				       const char **dir_name, const char *default_name,
-				       const char *config_name)
+                                       const char **dir_name, const char *default_name,
+                                       const char *config_name)
 {
   apr_finfo_t finfo;    /* File information for the directory */
   apr_status_t status;  /* Return value from a file operation */
@@ -55,9 +55,8 @@ gosp_status_t prepare_config_directory(request_rec *r, const char *dir_type,
   return GOSP_STATUS_OK;
 }
 
-/* Create a directory hierarchy in which to store the given file.
- * Return an APR status code. */
-apr_status_t create_directories_for(request_rec *r, const char *fname)
+/* Create a directory hierarchy in which to store the given file. */
+gosp_status_t create_directories_for(request_rec *r, const char *fname)
 {
   char *dir_name;       /* Directory containing fname */
   apr_finfo_t finfo;    /* File information for the directory */
@@ -76,16 +75,19 @@ apr_status_t create_directories_for(request_rec *r, const char *fname)
                              APR_FPROT_UREAD|APR_FPROT_UWRITE|APR_FPROT_UEXECUTE,
                              r->pool);
     if (status != APR_SUCCESS)
-      return status;
+      REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                   "Failed to create directory %s", dir_name);
     status = apr_stat(&finfo, dir_name, APR_FINFO_TYPE, r->pool);
     if (status != APR_SUCCESS)
-      return status;
+      REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                   "Failed to query directory %s", dir_name);
   }
   if (finfo.filetype != APR_DIR)
-    return APR_ENOTDIR;
+    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                 "Failed to create directory %s because it already exists as a non-directory", dir_name);
 
   /* Everything is okay. */
-  return APR_SUCCESS;
+  return GOSP_STATUS_OK;
 }
 
 /* Securely concatenate two or more filepaths.  The final entry must be NULL.
