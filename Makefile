@@ -19,20 +19,22 @@ GO = $(shell which go)
 ###########################################################################
 
 SHELL = /bin/sh
-SUBDIRS = tools module
 export
 
 all:
-	for s in $(SUBDIRS) ; do $(MAKE) -C $$s all ; done
+	$(MAKE) -C tools
+	$(MAKE) -C module
 
 clean:
-	for s in $(SUBDIRS) ; do $(MAKE) -C $$s clean ; done
+	$(MAKE) -C tools clean
+	$(MAKE) -C module clean
 
 # WARNING: "make install" does not honor prefix or DESTDIR when installing the
 # Apache module.  It always installs the module into the current Apache modules
 # directory.
 install: all
-	for s in $(SUBDIRS) ; do $(MAKE) -C $$s install ; done
+	$(MAKE) -C tools install
+	$(MAKE) -C module install
 
 # Due the the awkwardness warned about above, "make install-no-module" installs
 # everything except the Apache module.

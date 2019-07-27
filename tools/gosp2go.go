@@ -26,6 +26,7 @@ type Parameters struct {
 	OutFileName string // Name of a file to which to write the Go or executable or HTML output
 	Build       bool   // true=compile the generated Go code
 	Run         bool   // true=execute the generated Go code
+	MaxTop      uint   // Maximum number of go:top blocks allowed per page
 }
 
 // ParseCommandLine parses the command line and returns a set of
@@ -42,10 +43,15 @@ The following options are accepted:
 
   -r, --run    Both compile and execute the generated Go code
 
+  -t NUM, --max-top=NUM
+               Allow at most NUM <?go:top ... ?> blocks per file
+               [default: 1]
+
   -o FILE, --output=FILE
-               Write output to file FILE ("-" = standard output); the
-               file type depends on whether --build, --run, or neither
-               is also specified
+               Write output to file FILE ("-" = standard output, the
+               default); the file type depends on whether --build,
+               --run, or neither is also specified
+
 `, os.Args[0])
 		os.Exit(1)
 	}
@@ -57,6 +63,8 @@ The following options are accepted:
 	flag.BoolVar(&p.Build, "b", false, "Abbreviation of --build")
 	flag.BoolVar(&p.Run, "run", false, "Compile and execute the generated Go code")
 	flag.BoolVar(&p.Run, "r", false, "Abbreviation of --run")
+	flag.UintVar(&p.MaxTop, "max-top", 1, "Maximum number of go:top blocks per file")
+	flag.UintVar(&p.MaxTop, "t", 1, "Abbreviation of --max-top")
 	flag.Parse()
 
 	// Check the parameters for self-consistency.
@@ -80,7 +88,7 @@ The following options are accepted:
 }
 
 // GospToGo converts a string representing a Go server page to a Go program.
-func GospToGo(s string) string {
+func GospToGo(p *Parameters, s string) string {
 	// Parse each Gosp directive in turn.
 	top := make([]string, 0, 1)   // Top-level Go code
 	body := make([]string, 0, 16) // Main body Go code
@@ -128,6 +136,12 @@ func GospToGo(s string) string {
 
 		// Continue with the text following the Gosp directive.
 		b = b[idxs[1]:]
+	}
+
+	// Ensure we haven't violated the max-top constraint.
+	if uint(len(top)) > p.MaxTop {
+		notify.Fatalf("Too many go:top blocks (%d versus a maximum of %d)",
+			len(top), p.MaxTop)
 	}
 
 	// Concatenate the accumulated strings into a Go program.
@@ -243,7 +257,7 @@ func main() {
 	if err != nil {
 		notify.Fatal(err)
 	}
-	goStr := GospToGo(string(in))
+	goStr := GospToGo(p, string(in))
 
 	// If Run is true, compile and run the Go program, outputting HTML.
 	// Otherwise, if Build is true, compile the Go program, outputting an
