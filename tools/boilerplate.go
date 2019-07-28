@@ -32,10 +32,16 @@ var bodyBegin = `func GospGenerateHTML(gospReq *GospRequest, gospResp chan<- Gos
 		gospResp <- GospKeyValue{Key: "http-status", Value: gospHttpStatus}
 		close(gospResp)
 	}()
-	gospHeartbeat := func() {
+	GospSetHttpStatus := func(s int) {
+		gospHttpStatus = gospFmt.Sprintf("%d", s)
+	}
+	GospSetMimeType := func(mt string) {
+		gospMimeType = mt
+	}
+	GospHeartbeat := func() {
 		gospResp <- GospKeyValue{Key: "keep-alive", Value: ""}
 	}
-	_ = gospHeartbeat
+	_, _, _ = GospSetHttpStatus, GospSetMimeType, GospHeartbeat
 
 `
 
