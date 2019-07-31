@@ -56,10 +56,6 @@ func GospGenerateHTML(gospReq *GospRequest, gospOut gospIo.Writer, gospMeta chan
 
 // trailer is included at the end of every generated Go file.
 var trailer = `
-// GospTimeout is the length of time GospGenerateHTML is allowed to run without
-// generating any metadata.
-const GospTimeout = 5 * gospTime.Second
-
 // GospLaunchHTMLGenerator starts GospGenerateHTML in a separate goroutine and
 // waits for it to finish.
 func GospLaunchHTMLGenerator(gospOut gospIo.Writer, gospReq *GospRequest) {
@@ -69,41 +65,18 @@ func GospLaunchHTMLGenerator(gospOut gospIo.Writer, gospReq *GospRequest) {
 	meta := make(chan GospKeyValue, 5)
 	go GospGenerateHTML(gospReq, html, meta)
 
-	// Read metadata from GospGenerateHTML until no more remains or until a
-	// timeout elapses.
-	to := gospTime.NewTimer(GospTimeout)
+	// Read metadata from GospGenerateHTML until no more remains.
 	okStr := gospFmt.Sprint(gospHttp.StatusOK)
 	status := okStr
-AwaitCompletion:
-	for {
-		select {
-		case kv, ok := <-meta:
-			// Forward known metadata and ignore unknown metadata.
-			if !ok {
-				break AwaitCompletion
-			}
-			switch kv.Key {
-			case "mime-type", "http-status", "keep-alive":
-				gospFmt.Fprintf(gospOut, "%s %s\n", kv.Key, kv.Value)
-			}
+	for kv := range meta {
+		switch kv.Key {
+		case "mime-type", "http-status", "keep-alive":
+			gospFmt.Fprintf(gospOut, "%s %s\n", kv.Key, kv.Value)
+		}
 
-			// Keep track of the current HTTP status code.
-			if kv.Key == "http-status" {
-				status = kv.Value
-			}
-
-			// Reset the timer upon receiving any metadata.
-			if !to.Stop() {
-				<-to.C
-			}
-			to.Reset(GospTimeout)
-
-		case <-to.C:
-			// The page hasn't responded in GospTimeout time.  Fail
-			// with an HTTP gateway-timeout error.
-			status = gospFmt.Sprint(gospHttp.StatusGatewayTimeout)
-			gospFmt.Fprintf(gospOut, "http-status %s\n", status)
-			break AwaitCompletion
+		// Keep track of the current HTTP status code.
+		if kv.Key == "http-status" {
+			status = kv.Value
 		}
 	}
 	gospFmt.Fprintln(gospOut, "end-header")
