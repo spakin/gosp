@@ -10,10 +10,12 @@
 /* Include all required header files here. */
 #include <libgen.h>
 #include <stdarg.h>
+#include <sys/uio.h>
 #include "httpd.h"
 #include "http_config.h"
-#include "http_protocol.h"
+#include "http_core.h"
 #include "http_log.h"
+#include "http_protocol.h"
 #include "ap_config.h"
 #include "apr_env.h"
 #include "apr_file_info.h"
@@ -32,6 +34,10 @@
 #define GOSP_STATUS_OK       0    /* Function succeeded */
 #define GOSP_STATUS_NOTFOUND 1    /* Function failed because a file doesn't exist, but it can be created */
 #define GOSP_STATUS_FAIL     2    /* Function experienced a presumably permanent failure */
+
+/* Define a time in microseconds we're willing to wait to receive a
+ * chunk of data from a Gosp server. */
+#define GOSP_RESPONSE_TIMEOUT 5000000
 
 /* Define a type corresponding the above. */
 typedef int gosp_status_t;
@@ -62,5 +68,7 @@ extern gosp_status_t create_directories_for(request_rec *r, const char *fname);
 extern char *concatenate_filepaths(request_rec *r, ...);
 extern int is_newer_than(request_rec *r, const char *first, const char *second);
 extern gosp_status_t compile_gosp_server(request_rec *r, const char *work_dir);
+extern gosp_status_t send_request(apr_socket_t *sock, request_rec *r);
+extern gosp_status_t process_response(apr_socket_t *sock, request_rec *r);
 
 #endif
