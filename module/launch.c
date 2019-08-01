@@ -36,7 +36,7 @@ do {                                                                       \
 } while (0)
 
 /* Launch a Go Server Page process to handle the current page.  Return
- * GOSP_STATUS_OK on success, GOSP_STATUS_NOTFOUND if the executable wasn't
+ * GOSP_STATUS_OK on success, GOSP_STATUS_NEED_ACTION if the executable wasn't
  * found (and presumably need to be built), and GOSP_STATUS_FAIL if an
  * unexpected error occurred (and the request needs to be aborted). */
 gosp_status_t launch_gosp_process(request_rec *r, const char *work_dir, const char *sock_name)
@@ -79,7 +79,7 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *work_dir, const ch
   if (status == APR_SUCCESS)
     return GOSP_STATUS_OK;
   if (APR_STATUS_IS_ENOENT(status))
-    return GOSP_STATUS_NOTFOUND;
+    return GOSP_STATUS_NEED_ACTION;
   REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                "Failed to run %s", server_name);
 }

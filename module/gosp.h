@@ -31,9 +31,9 @@
 #endif
 
 /* Define some status codes for the functions we define. */
-#define GOSP_STATUS_OK       0    /* Function succeeded */
-#define GOSP_STATUS_NOTFOUND 1    /* Function failed because a file doesn't exist, but it can be created */
-#define GOSP_STATUS_FAIL     2    /* Function experienced a presumably permanent failure */
+#define GOSP_STATUS_OK          0    /* Function succeeded */
+#define GOSP_STATUS_NEED_ACTION 1    /* Function failed but may succeed if the caller takes some action and retries */
+#define GOSP_STATUS_FAIL        2    /* Function experienced a presumably permanent failure */
 
 /* Define a time in microseconds we're willing to wait to receive a
  * chunk of data from a Gosp server. */
@@ -60,8 +60,8 @@ do {                                                                    \
 
 /* Declare functions that will be called cross-file. */
 extern gosp_status_t prepare_config_directory(request_rec *r, const char *dir_type,
-					      const char **dir_name, const char *default_name,
-					      const char *config_name);
+                                              const char **dir_name, const char *default_name,
+                                              const char *config_name);
 extern gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name);
 extern gosp_status_t launch_gosp_process(request_rec *r, const char *run_dir, const char *sock_name);
 extern gosp_status_t create_directories_for(request_rec *r, const char *fname);

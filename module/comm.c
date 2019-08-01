@@ -115,7 +115,9 @@ static gosp_status_t process_response_helper(request_rec *r, char *response, siz
   return GOSP_STATUS_OK;
 }
 
-/* Receive a response from the Gosp server and process it. */
+/* Receive a response from the Gosp server and process it.  Return
+ * GOSP_STATUS_NEED_ACTION if the server timed out and ought to be killed and
+ * relaunched. */
 gosp_status_t process_response(apr_socket_t *sock, request_rec *r)
 {
   apr_status_t status;    /* Status of an APR call */
@@ -147,7 +149,7 @@ gosp_status_t process_response(apr_socket_t *sock, request_rec *r)
 
     case APR_TIMEUP:
       /* Timeout occurred */
-      return GOSP_STATUS_NOTFOUND;
+      return GOSP_STATUS_NEED_ACTION;
       break;
 
     default:
