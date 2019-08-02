@@ -64,6 +64,18 @@ gosp_status_t send_request(apr_socket_t *sock, request_rec *r)
   return GOSP_STATUS_OK;
 }
 
+/* Ask a Gosp server to shut down cleanly.  The termination command must be
+ * kept up-to-date with the GospRequest struct in boilerplate.go. */
+gosp_status_t send_termination_request(apr_socket_t *sock, request_rec *r)
+{
+  apr_status_t status;    /* Status of an APR call */
+
+  SEND_STRING("{\n");
+  SEND_STRING("  \"ExitNow\": \"true\"\n");
+  SEND_STRING("}\n");
+  return GOSP_STATUS_OK;
+}
+
 /* Split a response string into metadata and data.  Process the metadata.
  * Output the data.  Return GOSP_STATUS_OK if this procedure succeeded (even if
  * it corresponds to a Gosp-server error condition) or GOSP_STATUS_FAIL if

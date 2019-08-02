@@ -69,6 +69,7 @@ extern char *concatenate_filepaths(request_rec *r, ...);
 extern int is_newer_than(request_rec *r, const char *first, const char *second);
 extern gosp_status_t compile_gosp_server(request_rec *r, const char *work_dir);
 extern gosp_status_t send_request(apr_socket_t *sock, request_rec *r);
+extern gosp_status_t send_termination_request(apr_socket_t *sock, request_rec *r);
 extern gosp_status_t process_response(apr_socket_t *sock, request_rec *r);
 
 #endif
