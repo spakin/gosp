@@ -27,11 +27,13 @@ static const command_rec gosp_directives[] =
 /* Handle requests of type "gosp" by passing them to the gosp2go tool. */
 static int gosp_handler(request_rec *r)
 {
-  apr_status_t status;    /* Status of an APR call */
-  int launch_status;      /* Status returned by launch_gosp_process() */
-  char *sock_name;        /* Name of the Unix-domain socket to connect to */
-  apr_socket_t *sock;     /* The Unix-domain socket proper */
-  apr_finfo_t finfo;      /* File information for the rquested file */
+  apr_status_t status;       /* Status of an APR call */
+  int launch_status;         /* Status returned by launch_gosp_process() */
+  char *sock_name;           /* Name of the Unix-domain socket to connect to */
+  apr_socket_t *sock;        /* The Unix-domain socket proper */
+  apr_finfo_t finfo;         /* File information for the rquested file */
+  char *lock_name;           /* Name of a lock file associated with the request */
+  apr_global_mutex_t *lock;  /* Lock associated with the request */
 
   /* We care only about "gosp" requests, and we don't care about HEAD
    * requests. */
@@ -51,6 +53,20 @@ static int gosp_handler(request_rec *r)
    * post-config handler would therefore lead to permission-denied errors. */
   if (prepare_config_directory(r, "work", &config.work_dir, DEFAULT_WORK_DIR, "GospWorkDir") != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
+
+  /* Associate a lock file with the Go Server Page. */
+  lock_name = concatenate_filepaths(r, config.work_dir, "locks", r->canonical_filename, NULL);
+  if (lock_name == NULL)
+    return HTTP_INTERNAL_SERVER_ERROR;
+  lock_name = apr_pstrcat(r->pool, lock_name, ".lock", NULL);
+  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r->server,
+               "Using %s as the lock file", lock_name);
+  if (create_directories_for(r, lock_name) != GOSP_STATUS_OK)
+    return HTTP_INTERNAL_SERVER_ERROR;
+  status = apr_global_mutex_create(&lock, lock_name, APR_LOCK_DEFAULT, r->pool);
+  if (status != APR_SUCCESS)
+    REPORT_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
+                 "Failed to create lock file %s", lock_name);
 
   /* Connect to the process that handles the requested Go Server Page. */
   sock_name = concatenate_filepaths(r, config.work_dir, "sockets", r->canonical_filename, NULL);
