@@ -45,6 +45,8 @@ typedef int gosp_status_t;
 /* Declare a type for our configuration options. */
 typedef struct {
   const char *work_dir;    /* Work directory, for storing Gosp-generated files */
+  apr_uid_t user_id;       /* User ID when server answers requests */
+  apr_gid_t group_id;      /* Group ID when server answers requests */
 } config_t;
 
 /* Define access permissions for any directories we create. */

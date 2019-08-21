@@ -16,11 +16,58 @@ const char *gosp_set_work_dir(cmd_parms *cmd, void *cfg, const char *arg)
   return NULL;
 }
 
+/* Map a user name to a user ID. */
+const char *gosp_set_user_id(cmd_parms *cmd, void *cfg, const char *arg)
+{
+  apr_uid_t user_id;         /* User ID encountered */
+  apr_gid_t group_id;        /* Group ID encountered */
+  apr_status_t status;       /* Status of an APR call */
+
+  if (arg[0] == '#') {
+    /* Hash followed by a user ID: convert the ID from a string to an
+     * integer. */
+    config.user_id = (apr_uid_t) apr_atoi64(arg + 1);
+  }
+  else {
+    /* User name: look up the corresponding user ID. */
+    status = apr_uid_get(&user_id, &group_id, arg, cmd->temp_pool);
+    if (status != APR_SUCCESS)
+      return "Failed to map configuration option User to a user ID";
+    config.user_id = user_id;
+  }
+  return NULL;
+}
+
+/* Map a group name to a group ID. */
+const char *gosp_set_group_id(cmd_parms *cmd, void *cfg, const char *arg)
+{
+  apr_gid_t group_id;        /* Group ID encountered */
+  apr_status_t status;       /* Status of an APR call */
+
+  if (arg[0] == '#') {
+    /* Hash followed by a group ID: convert the ID from a string to an
+     * integer. */
+    config.group_id = (apr_uid_t) apr_atoi64(arg + 1);
+  }
+  else {
+    /* Group name: look up the corresponding group ID. */
+    status = apr_gid_get(&group_id, arg, cmd->temp_pool);
+    if (status != APR_SUCCESS)
+      return "Failed to map configuration option Group to a group ID";
+    config.group_id = group_id;
+  }
+  return NULL;
+}
+
 /* Define all of the configuration-file directives we accept. */
 static const command_rec gosp_directives[] =
   {
-   AP_INIT_TAKE1("GospWorkDir", gosp_set_work_dir, NULL, RSRC_CONF,
+   AP_INIT_TAKE1("GospWorkDir", gosp_set_work_dir, NULL, RSRC_CONF|ACCESS_CONF,
                  "Name of a directory in which Gosp can generate files needed during execution"),
+   AP_INIT_TAKE1("User", gosp_set_user_id, NULL, RSRC_CONF|ACCESS_CONF,
+                 "The user under which the server will answer requests"),
+   AP_INIT_TAKE1("Group", gosp_set_group_id, NULL, RSRC_CONF|ACCESS_CONF,
+                 "The group under which the server will answer requests"),
    { NULL }
   };
 
