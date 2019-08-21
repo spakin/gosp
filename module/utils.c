@@ -36,9 +36,7 @@ gosp_status_t prepare_config_directory(request_rec *r, const char *dir_type,
     ap_log_error(APLOG_MARK, APLOG_NOTICE, status, r->server,
                  "Failed to query %s directory %s; creating it", dir_type, *dir_name);
     status =
-      apr_dir_make_recursive(*dir_name,
-                             APR_FPROT_UREAD|APR_FPROT_UWRITE|APR_FPROT_UEXECUTE,
-                             r->pool);
+      apr_dir_make_recursive(*dir_name, GOSP_DIR_PERMS, r->pool);
     if (status != APR_SUCCESS)
       REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                    "Failed to create %s directory %s", dir_type, *dir_name);
@@ -71,9 +69,7 @@ gosp_status_t create_directories_for(request_rec *r, const char *fname)
     ap_log_error(APLOG_MARK, APLOG_DEBUG, status, r->server,
                  "Failed to query directory %s; creating it", dir_name);
     status =
-      apr_dir_make_recursive(dir_name,
-                             APR_FPROT_UREAD|APR_FPROT_UWRITE|APR_FPROT_UEXECUTE,
-                             r->pool);
+      apr_dir_make_recursive(dir_name, GOSP_DIR_PERMS, r->pool);
     if (status != APR_SUCCESS)
       REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                    "Failed to create directory %s", dir_name);

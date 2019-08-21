@@ -47,6 +47,12 @@ typedef struct {
   const char *work_dir;    /* Work directory, for storing Gosp-generated files */
 } config_t;
 
+/* Define access permissions for any directories we create. */
+#define GOSP_DIR_PERMS                                  \
+  APR_FPROT_UREAD|APR_FPROT_UWRITE|APR_FPROT_UEXECUTE | \
+  APR_FPROT_GREAD|APR_FPROT_GEXECUTE |                  \
+  APR_FPROT_WREAD|APR_FPROT_WEXECUTE
+
 /* Define a macro that checks an error code and, on error, logs a
  * message and returns 0. */
 #define REPORT_ERROR(RETVAL, LEVEL, STATUS, ...)                        \
