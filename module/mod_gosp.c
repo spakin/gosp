@@ -126,7 +126,9 @@ static int gosp_handler(request_rec *r)
    * hoist this into the post-config handler, that runs before switching users
    * while gosp_handler runs after switching users.  Creating a directory in a
    * post-config handler would therefore lead to permission-denied errors. */
-  if (prepare_config_directory(r, config->work_dir) != GOSP_STATUS_OK)
+  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r->server,
+               "Using %s as Gosp's work directory", config->work_dir);
+  if (create_directories_for(r, config->work_dir, 1) != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
 
 #ifdef XYZZY

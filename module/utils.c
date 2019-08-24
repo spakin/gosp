@@ -7,51 +7,19 @@
 
 #include "gosp.h"
 
-/* Return GOSP_STATUS_OK if a given directory, named in the Apache
- * configuration file, is valid, creating it if necessary.  Otherwise, log an
- * error message and return GOSP_STATUS_FAIL.  If the directory name is NULL,
- * assign it a default value. */
-gosp_status_t prepare_config_directory(request_rec *r, const char *dir_name)
+/* Create a directory hierarchy in which to store the given file.  If is_dir =
+ * 1, the last component of the file path is itself a directory. */
+gosp_status_t create_directories_for(request_rec *r, const char *fname, int is_dir)
 {
-  apr_finfo_t finfo;    /* File information for the directory */
-  apr_status_t status;  /* Return value from a file operation */
-
-  /* Ensure that the directory exists and is a directory. */
-  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r->server,
-               "Using %s as Gosp's work directory", dir_name);
-  status = apr_stat(&finfo, dir_name, APR_FINFO_TYPE, r->pool);
-  if (status != APR_SUCCESS) {
-    /* If the directory couldn't be stat'ed, try creating it then stat'ing it
-     * again. */
-    ap_log_error(APLOG_MARK, APLOG_NOTICE, status, r->server,
-                 "Failed to query work directory %s; creating it", dir_name);
-    status =
-      apr_dir_make_recursive(dir_name, GOSP_DIR_PERMS, r->pool);
-    if (status != APR_SUCCESS)
-      REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                   "Failed to create work directory %s", dir_name);
-    status = apr_stat(&finfo, dir_name, APR_FINFO_TYPE, r->pool);
-    if (status != APR_SUCCESS)
-      REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                   "Failed to query work directory %s", dir_name);
-  }
-  if (finfo.filetype != APR_DIR)
-    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                 "Gosp work directory %s is not a directory", dir_name);
-
-  /* Everything is okay. */
-  return GOSP_STATUS_OK;
-}
-
-/* Create a directory hierarchy in which to store the given file. */
-gosp_status_t create_directories_for(request_rec *r, const char *fname)
-{
-  char *dir_name;       /* Directory containing fname */
-  apr_finfo_t finfo;    /* File information for the directory */
-  apr_status_t status;  /* Return value from an APR operation */
+  const char *dir_name;  /* Directory containing fname */
+  apr_finfo_t finfo;     /* File information for the directory */
+  apr_status_t status;   /* Return value from an APR operation */
 
   /* Check if the directory exists and is a directory. */
-  dir_name = dirname(apr_pstrdup(r->pool, fname));
+  if (is_dir)
+    dir_name = fname;
+  else
+    dir_name = dirname(apr_pstrdup(r->pool, fname));
   status = apr_stat(&finfo, dir_name, APR_FINFO_TYPE, r->pool);
   if (status != APR_SUCCESS) {
     /* If the directory couldn't be stat'ed, try creating it then stat'ing it
