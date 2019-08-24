@@ -11,43 +11,33 @@
  * configuration file, is valid, creating it if necessary.  Otherwise, log an
  * error message and return GOSP_STATUS_FAIL.  If the directory name is NULL,
  * assign it a default value. */
-gosp_status_t prepare_config_directory(request_rec *r, const char *dir_type,
-                                       const char **dir_name, const char *default_name,
-                                       const char *config_name)
+gosp_status_t prepare_config_directory(request_rec *r, const char *dir_name)
 {
   apr_finfo_t finfo;    /* File information for the directory */
   apr_status_t status;  /* Return value from a file operation */
 
-  /* If the directory wasn't specified in the configuration file, use a default
-   * directory. */
-  if (*dir_name == NULL) {
-    ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r->server,
-                 "The Apache configuration file does not specify %s", config_name);
-    ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r->server,
-                 "Using %s as Gosp's %s directory", default_name, dir_type);
-    *dir_name = default_name;
-  }
-
   /* Ensure that the directory exists and is a directory. */
-  status = apr_stat(&finfo, *dir_name, APR_FINFO_TYPE, r->pool);
+  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r->server,
+               "Using %s as Gosp's work directory", dir_name);
+  status = apr_stat(&finfo, dir_name, APR_FINFO_TYPE, r->pool);
   if (status != APR_SUCCESS) {
     /* If the directory couldn't be stat'ed, try creating it then stat'ing it
      * again. */
     ap_log_error(APLOG_MARK, APLOG_NOTICE, status, r->server,
-                 "Failed to query %s directory %s; creating it", dir_type, *dir_name);
+                 "Failed to query work directory %s; creating it", dir_name);
     status =
-      apr_dir_make_recursive(*dir_name, GOSP_DIR_PERMS, r->pool);
+      apr_dir_make_recursive(dir_name, GOSP_DIR_PERMS, r->pool);
     if (status != APR_SUCCESS)
       REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                   "Failed to create %s directory %s", dir_type, *dir_name);
-    status = apr_stat(&finfo, *dir_name, APR_FINFO_TYPE, r->pool);
+                   "Failed to create work directory %s", dir_name);
+    status = apr_stat(&finfo, dir_name, APR_FINFO_TYPE, r->pool);
     if (status != APR_SUCCESS)
       REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                   "Failed to query %s directory %s", dir_type, *dir_name);
+                   "Failed to query work directory %s", dir_name);
   }
   if (finfo.filetype != APR_DIR)
     REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                 "Gosp %s directory %s is not a directory", dir_type, *dir_name);
+                 "Gosp work directory %s is not a directory", dir_name);
 
   /* Everything is okay. */
   return GOSP_STATUS_OK;

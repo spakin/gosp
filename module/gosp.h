@@ -67,9 +67,7 @@ do {                                                                    \
 } while (0)
 
 /* Declare functions that will be called cross-file. */
-extern gosp_status_t prepare_config_directory(request_rec *r, const char *dir_type,
-                                              const char **dir_name, const char *default_name,
-                                              const char *config_name);
+extern gosp_status_t prepare_config_directory(request_rec *r, const char *dir_name);
 extern gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name);
 extern gosp_status_t launch_gosp_process(request_rec *r, const char *run_dir, const char *sock_name);
 extern gosp_status_t create_directories_for(request_rec *r, const char *fname);

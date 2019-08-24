@@ -13,7 +13,7 @@ module AP_MODULE_DECLARE_DATA gosp_module;
 const char *gosp_set_work_dir(cmd_parms *cmd, void *cfg, const char *arg)
 {
   gosp_config_t *config = cfg; /* Server configuration */
-  config->work_dir = arg;
+  config->work_dir = apr_pstrdup(cmd->pool, arg);
   return NULL;
 }
 
@@ -119,17 +119,17 @@ static int gosp_handler(request_rec *r)
   if (status != APR_SUCCESS)
     return HTTP_NOT_FOUND;
 
-#ifdef XYZZY
   /* Acquire access to our configuration information. */
-  config = ap_get_module_config(r->server->module_config, &gosp_module);
+  config = ap_get_module_config(r->per_dir_config, &gosp_module);
 
   /* Create and prepare the cache work directory.  Although it would be nice to
    * hoist this into the post-config handler, that runs before switching users
    * while gosp_handler runs after switching users.  Creating a directory in a
    * post-config handler would therefore lead to permission-denied errors. */
-  if (prepare_config_directory(r, "work", &config->work_dir, DEFAULT_WORK_DIR, "GospWorkDir") != GOSP_STATUS_OK)
+  if (prepare_config_directory(r, config->work_dir) != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
 
+#ifdef XYZZY
   /* Associate a lock file with the Go Server Page. */
   lock_name = concatenate_filepaths(r, config->work_dir, "locks", r->canonical_filename, NULL);
   if (lock_name == NULL)
