@@ -6,34 +6,36 @@
 
 #include "gosp.h"
 
-/* Define our configuration options. */
-static config_t config;
+/* Forward-declare our module. */
+module AP_MODULE_DECLARE_DATA gosp_module;
 
 /* Assign a value to the work directory. */
 const char *gosp_set_work_dir(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  config.work_dir = arg;
+  gosp_config_t *config = cfg; /* Server configuration */
+  config->work_dir = arg;
   return NULL;
 }
 
 /* Map a user name to a user ID. */
 const char *gosp_set_user_id(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  apr_uid_t user_id;         /* User ID encountered */
-  apr_gid_t group_id;        /* Group ID encountered */
-  apr_status_t status;       /* Status of an APR call */
+  gosp_config_t *config = cfg; /* Server configuration */
+  apr_uid_t user_id;           /* User ID encountered */
+  apr_gid_t group_id;          /* Group ID encountered */
+  apr_status_t status;         /* Status of an APR call */
 
   if (arg[0] == '#') {
     /* Hash followed by a user ID: convert the ID from a string to an
      * integer. */
-    config.user_id = (apr_uid_t) apr_atoi64(arg + 1);
+    config->user_id = (apr_uid_t) apr_atoi64(arg + 1);
   }
   else {
     /* User name: look up the corresponding user ID. */
     status = apr_uid_get(&user_id, &group_id, arg, cmd->temp_pool);
     if (status != APR_SUCCESS)
       return "Failed to map configuration option User to a user ID";
-    config.user_id = user_id;
+    config->user_id = user_id;
   }
   return NULL;
 }
@@ -41,20 +43,21 @@ const char *gosp_set_user_id(cmd_parms *cmd, void *cfg, const char *arg)
 /* Map a group name to a group ID. */
 const char *gosp_set_group_id(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  apr_gid_t group_id;        /* Group ID encountered */
-  apr_status_t status;       /* Status of an APR call */
+  gosp_config_t *config = cfg; /* Server configuration */
+  apr_gid_t group_id;          /* Group ID encountered */
+  apr_status_t status;         /* Status of an APR call */
 
   if (arg[0] == '#') {
     /* Hash followed by a group ID: convert the ID from a string to an
      * integer. */
-    config.group_id = (apr_uid_t) apr_atoi64(arg + 1);
+    config->group_id = (apr_uid_t) apr_atoi64(arg + 1);
   }
   else {
     /* Group name: look up the corresponding group ID. */
     status = apr_gid_get(&group_id, arg, cmd->temp_pool);
     if (status != APR_SUCCESS)
       return "Failed to map configuration option Group to a group ID";
-    config.group_id = group_id;
+    config->group_id = group_id;
   }
   return NULL;
 }
@@ -71,6 +74,27 @@ static const command_rec gosp_directives[] =
    { NULL }
   };
 
+/* Allocate and initialize a configuration data structure. */
+static void *gosp_allocate_dir_config(apr_pool_t *p, char *path)
+{
+  gosp_config_t *config;
+
+  config = apr_palloc(p, sizeof(gosp_config_t));
+  config->work_dir = ap_server_root_relative(p, DEFAULT_WORK_DIR);
+  config->user_id = 0;
+  config->group_id = 0;
+  return (void *) config;
+}
+
+/* Run after the configuration file has been processed but before lowering
+ * privileges. */
+static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
+                            apr_pool_t *ptemp, server_rec *s)
+{
+  /* TODO: Create a lock file. */
+  return OK;
+}
+
 /* Handle requests of type "gosp" by passing them to the gosp2go tool. */
 static int gosp_handler(request_rec *r)
 {
@@ -81,6 +105,7 @@ static int gosp_handler(request_rec *r)
   apr_finfo_t finfo;         /* File information for the rquested file */
   char *lock_name;           /* Name of a lock file associated with the request */
   apr_global_mutex_t *lock;  /* Lock associated with the request */
+  gosp_config_t *config;     /* Server configuration */
 
   /* We care only about "gosp" requests, and we don't care about HEAD
    * requests. */
@@ -94,15 +119,19 @@ static int gosp_handler(request_rec *r)
   if (status != APR_SUCCESS)
     return HTTP_NOT_FOUND;
 
+#ifdef XYZZY
+  /* Acquire access to our configuration information. */
+  config = ap_get_module_config(r->server->module_config, &gosp_module);
+
   /* Create and prepare the cache work directory.  Although it would be nice to
    * hoist this into the post-config handler, that runs before switching users
    * while gosp_handler runs after switching users.  Creating a directory in a
    * post-config handler would therefore lead to permission-denied errors. */
-  if (prepare_config_directory(r, "work", &config.work_dir, DEFAULT_WORK_DIR, "GospWorkDir") != GOSP_STATUS_OK)
+  if (prepare_config_directory(r, "work", &config->work_dir, DEFAULT_WORK_DIR, "GospWorkDir") != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
 
   /* Associate a lock file with the Go Server Page. */
-  lock_name = concatenate_filepaths(r, config.work_dir, "locks", r->canonical_filename, NULL);
+  lock_name = concatenate_filepaths(r, config->work_dir, "locks", r->canonical_filename, NULL);
   if (lock_name == NULL)
     return HTTP_INTERNAL_SERVER_ERROR;
   lock_name = apr_pstrcat(r->pool, lock_name, ".lock", NULL);
@@ -116,7 +145,7 @@ static int gosp_handler(request_rec *r)
                  "Failed to create lock file %s", lock_name);
 
   /* Connect to the process that handles the requested Go Server Page. */
-  sock_name = concatenate_filepaths(r, config.work_dir, "sockets", r->canonical_filename, NULL);
+  sock_name = concatenate_filepaths(r, config->work_dir, "sockets", r->canonical_filename, NULL);
   if (sock_name == NULL)
     return HTTP_INTERNAL_SERVER_ERROR;
   sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
@@ -129,16 +158,17 @@ static int gosp_handler(request_rec *r)
   ap_log_error(APLOG_MARK, APLOG_NOTICE, status, r->server,
                "Connecting to socket %s returned %d", sock_name, status);
   */
-  launch_status = compile_gosp_server(r, config.work_dir);
+  launch_status = compile_gosp_server(r, config->work_dir);
   if (launch_status != GOSP_STATUS_OK)
     ap_log_error(APLOG_MARK, APLOG_NOTICE, APR_SUCCESS, r->server,
                  "Failed to compile %s (code %d)", r->canonical_filename, launch_status);
   /*
-  launch_status = launch_gosp_process(r, config.work_dir, sock_name);
+  launch_status = launch_gosp_process(r, config->work_dir, sock_name);
   if (launch_status != GOSP_STATUS_OK)
     ap_log_error(APLOG_MARK, APLOG_NOTICE, APR_SUCCESS, r->server,
                  "Failed to launch %s (code %d)", r->canonical_filename, launch_status);
   */
+#endif
 
   /* Go Server Pages are always expressed in HTML. */
   r->content_type = "text/html";
@@ -151,6 +181,7 @@ static int gosp_handler(request_rec *r)
 /* Invoke gosp_handler at the end of every request. */
 static void gosp_register_hooks(apr_pool_t *p)
 {
+  ap_hook_post_config(gosp_post_config, NULL, NULL, APR_HOOK_REALLY_FIRST);
   ap_hook_handler(gosp_handler, NULL, NULL, APR_HOOK_LAST);
 }
 
@@ -158,10 +189,10 @@ static void gosp_register_hooks(apr_pool_t *p)
 module AP_MODULE_DECLARE_DATA gosp_module =
   {
    STANDARD20_MODULE_STUFF,
-   NULL,                /* Per-directory configuration handler */
-   NULL,                /* Merge handler for per-directory configurations */
-   NULL,                /* Per-server configuration handler */
-   NULL,                /* Merge handler for per-server configurations */
-   gosp_directives,     /* Any directives we may have for httpd */
-   gosp_register_hooks  /* Register Gosp hooks */
+   gosp_allocate_dir_config,  /* Allocate per-server configuration */
+   NULL,                      /* Merge per-server configurations */
+   NULL,                      /* Allocate per-server configuration */
+   NULL,                      /* Merge per-server configurations */
+   gosp_directives,           /* Define our configuration directives */
+   gosp_register_hooks        /* Register Gosp hooks */
   };

@@ -47,7 +47,7 @@ typedef struct {
   const char *work_dir;    /* Work directory, for storing Gosp-generated files */
   apr_uid_t user_id;       /* User ID when server answers requests */
   apr_gid_t group_id;      /* Group ID when server answers requests */
-} config_t;
+} gosp_config_t;
 
 /* Define access permissions for any directories we create. */
 #define GOSP_DIR_PERMS                                  \
