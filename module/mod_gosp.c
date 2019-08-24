@@ -131,47 +131,6 @@ static int gosp_handler(request_rec *r)
   if (create_directories_for(r, config->work_dir, 1) != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
 
-#ifdef XYZZY
-  /* Associate a lock file with the Go Server Page. */
-  lock_name = concatenate_filepaths(r, config->work_dir, "locks", r->canonical_filename, NULL);
-  if (lock_name == NULL)
-    return HTTP_INTERNAL_SERVER_ERROR;
-  lock_name = apr_pstrcat(r->pool, lock_name, ".lock", NULL);
-  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r->server,
-               "Using %s as the lock file", lock_name);
-  if (create_directories_for(r, lock_name) != GOSP_STATUS_OK)
-    return HTTP_INTERNAL_SERVER_ERROR;
-  status = apr_global_mutex_create(&lock, lock_name, APR_LOCK_DEFAULT, r->pool);
-  if (status != APR_SUCCESS)
-    REPORT_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
-                 "Failed to create lock file %s", lock_name);
-
-  /* Connect to the process that handles the requested Go Server Page. */
-  sock_name = concatenate_filepaths(r, config->work_dir, "sockets", r->canonical_filename, NULL);
-  if (sock_name == NULL)
-    return HTTP_INTERNAL_SERVER_ERROR;
-  sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
-  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r->server,
-               "Communicating with a Gosp server via socket %s", sock_name);
-  status = connect_socket(&sock, r, sock_name);
-
-  /* Temporary */
-  /*
-  ap_log_error(APLOG_MARK, APLOG_NOTICE, status, r->server,
-               "Connecting to socket %s returned %d", sock_name, status);
-  */
-  launch_status = compile_gosp_server(r, config->work_dir);
-  if (launch_status != GOSP_STATUS_OK)
-    ap_log_error(APLOG_MARK, APLOG_NOTICE, APR_SUCCESS, r->server,
-                 "Failed to compile %s (code %d)", r->canonical_filename, launch_status);
-  /*
-  launch_status = launch_gosp_process(r, config->work_dir, sock_name);
-  if (launch_status != GOSP_STATUS_OK)
-    ap_log_error(APLOG_MARK, APLOG_NOTICE, APR_SUCCESS, r->server,
-                 "Failed to launch %s (code %d)", r->canonical_filename, launch_status);
-  */
-#endif
-
   /* Go Server Pages are always expressed in HTML. */
   r->content_type = "text/html";
 
