@@ -49,7 +49,7 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *work_dir, const ch
   apr_status_t status;        /* Status of an APR call */
 
   /* Ensure we have a place to write the socket. */
-  if (create_directories_for(r, sock_name, 0) != GOSP_STATUS_OK)
+  if (create_directories_for(s, r->pool, sock_name, 0) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
 
   /* Prepare the process attributes. */
@@ -104,7 +104,7 @@ int compile_gosp_server(request_rec *r, const char *work_dir)
                                    NULL);
   if (server_name == NULL)
     return GOSP_STATUS_FAIL;
-  if (create_directories_for(r, server_name, 0) != GOSP_STATUS_OK)
+  if (create_directories_for(s, r->pool, server_name, 0) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
 
   /* Prepare a Go build cache. */

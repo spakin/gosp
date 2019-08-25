@@ -68,7 +68,7 @@ do {                                                                       \
 /* Declare functions that will be called cross-file. */
 extern gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name);
 extern gosp_status_t launch_gosp_process(request_rec *r, const char *run_dir, const char *sock_name);
-extern gosp_status_t create_directories_for(request_rec *r, const char *fname, int is_dir);
+extern gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char *fname, int is_dir);
 extern char *concatenate_filepaths(server_rec *s, apr_pool_t *pool, ...);
 extern int is_newer_than(request_rec *r, const char *first, const char *second);
 extern gosp_status_t compile_gosp_server(request_rec *r, const char *work_dir);

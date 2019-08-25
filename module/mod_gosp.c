@@ -150,7 +150,7 @@ static int gosp_handler(request_rec *r)
    * post-config handler would therefore lead to permission-denied errors. */
   ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r->server,
                "Using %s as Gosp's work directory", config->work_dir);
-  if (create_directories_for(r, config->work_dir, 1) != GOSP_STATUS_OK)
+  if (create_directories_for(r->server, r->pool, config->work_dir, 1) != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
 
   /* Go Server Pages are always expressed in HTML. */

@@ -9,30 +9,29 @@
 
 /* Create a directory hierarchy in which to store the given file.  If is_dir =
  * 1, the last component of the file path is itself a directory. */
-gosp_status_t create_directories_for(request_rec *r, const char *fname, int is_dir)
+gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char *fname, int is_dir)
 {
   const char *dir_name;       /* Directory containing fname */
   apr_finfo_t finfo;          /* File information for the directory */
-  server_rec *s = r->server;  /* Server handling the request */
   apr_status_t status;        /* Return value from an APR operation */
 
   /* Check if the directory exists and is a directory. */
   if (is_dir)
     dir_name = fname;
   else
-    dir_name = dirname(apr_pstrdup(r->pool, fname));
-  status = apr_stat(&finfo, dir_name, APR_FINFO_TYPE, r->pool);
+    dir_name = dirname(apr_pstrdup(pool, fname));
+  status = apr_stat(&finfo, dir_name, APR_FINFO_TYPE, pool);
   if (status != APR_SUCCESS) {
     /* If the directory couldn't be stat'ed, try creating it then stat'ing it
      * again. */
-    ap_log_error(APLOG_MARK, APLOG_DEBUG, status, r->server,
+    ap_log_error(APLOG_MARK, APLOG_DEBUG, status, s,
                  "Failed to query directory %s; creating it", dir_name);
     status =
-      apr_dir_make_recursive(dir_name, GOSP_DIR_PERMS, r->pool);
+      apr_dir_make_recursive(dir_name, GOSP_DIR_PERMS, pool);
     if (status != APR_SUCCESS)
       REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                    "Failed to create directory %s", dir_name);
-    status = apr_stat(&finfo, dir_name, APR_FINFO_TYPE, r->pool);
+    status = apr_stat(&finfo, dir_name, APR_FINFO_TYPE, pool);
     if (status != APR_SUCCESS)
       REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                    "Failed to query directory %s", dir_name);
