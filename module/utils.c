@@ -11,9 +11,10 @@
  * 1, the last component of the file path is itself a directory. */
 gosp_status_t create_directories_for(request_rec *r, const char *fname, int is_dir)
 {
-  const char *dir_name;  /* Directory containing fname */
-  apr_finfo_t finfo;     /* File information for the directory */
-  apr_status_t status;   /* Return value from an APR operation */
+  const char *dir_name;       /* Directory containing fname */
+  apr_finfo_t finfo;          /* File information for the directory */
+  server_rec *s = r->server;  /* Server handling the request */
+  apr_status_t status;        /* Return value from an APR operation */
 
   /* Check if the directory exists and is a directory. */
   if (is_dir)

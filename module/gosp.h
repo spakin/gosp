@@ -55,15 +55,14 @@ typedef struct {
   APR_FPROT_GREAD|APR_FPROT_GEXECUTE |                  \
   APR_FPROT_WREAD|APR_FPROT_WEXECUTE
 
-/* Define a macro that checks an error code and, on error, logs a
- * message and returns 0. */
-#define REPORT_ERROR(RETVAL, LEVEL, STATUS, ...)                        \
-do {                                                                    \
-  if (STATUS == APR_SUCCESS)                                            \
-    ap_log_error(APLOG_MARK, APLOG_NOERRNO|LEVEL, STATUS, r->server, __VA_ARGS__); \
-  else                                                                  \
-    ap_log_error(APLOG_MARK, LEVEL, STATUS, r->server, __VA_ARGS__);    \
-  return RETVAL;                                                        \
+/* Define a macro that logs an error message and returns a given return value. */
+#define REPORT_ERROR(RETVAL, LEVEL, STATUS, ...)                           \
+do {                                                                       \
+  if (STATUS == APR_SUCCESS)                                               \
+    ap_log_error(APLOG_MARK, APLOG_NOERRNO|LEVEL, STATUS, s, __VA_ARGS__); \
+  else                                                                     \
+    ap_log_error(APLOG_MARK, LEVEL, STATUS, s, __VA_ARGS__);               \
+  return RETVAL;                                                           \
 } while (0)
 
 /* Declare functions that will be called cross-file. */

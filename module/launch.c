@@ -41,11 +41,12 @@ do {                                                                       \
  * unexpected error occurred (and the request needs to be aborted). */
 gosp_status_t launch_gosp_process(request_rec *r, const char *work_dir, const char *sock_name)
 {
-  char *server_name;      /* Name of the Gosp server executable */
-  apr_proc_t proc;        /* Launched process */
-  apr_procattr_t *attr;   /* Process attributes */
-  const char **args;      /* Process command-line arguments */
-  apr_status_t status;    /* Status of an APR call */
+  char *server_name;          /* Name of the Gosp server executable */
+  apr_proc_t proc;            /* Launched process */
+  apr_procattr_t *attr;       /* Process attributes */
+  const char **args;          /* Process command-line arguments */
+  server_rec *s = r->server;  /* Server handling the request */
+  apr_status_t status;        /* Status of an APR call */
 
   /* Ensure we have a place to write the socket. */
   if (create_directories_for(r, sock_name, 0) != GOSP_STATUS_OK)
@@ -87,14 +88,15 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *work_dir, const ch
 /* Use gosp2go to compile a Go Server Page into an executable program. */
 int compile_gosp_server(request_rec *r, const char *work_dir)
 {
-  apr_procattr_t *attr;     /* Process attributes */
-  char *server_name;        /* Gosp executable filename */
-  apr_proc_t proc;          /* Launched process */
-  const char **args;        /* Process command-line arguments */
-  int exit_code;            /* gosp2go return code */
-  apr_exit_why_e exit_why;  /* Condition under which gosp2go exited */
-  char *go_cache;           /* Directory for the Go build cache */
-  apr_status_t status;      /* Status of an APR call */
+  apr_procattr_t *attr;       /* Process attributes */
+  char *server_name;          /* Gosp executable filename */
+  apr_proc_t proc;            /* Launched process */
+  const char **args;          /* Process command-line arguments */
+  int exit_code;              /* gosp2go return code */
+  apr_exit_why_e exit_why;    /* Condition under which gosp2go exited */
+  char *go_cache;             /* Directory for the Go build cache */
+  server_rec *s = r->server;  /* Server handling the request */
+  apr_status_t status;        /* Status of an APR call */
 
   /* Ensure we have a place to write the executable. */
   server_name = concatenate_filepaths(r->server, r->pool, work_dir, "bin",

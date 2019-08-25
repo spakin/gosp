@@ -24,8 +24,9 @@ while (0)
 /* Connect to a Unix-domain stream socket. */
 gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name)
 {
-  apr_status_t status;    /* Status of an APR call */
-  apr_sockaddr_t *sa;     /* Socket address corresponding to sock_name */
+  apr_sockaddr_t *sa;         /* Socket address corresponding to sock_name */
+  server_rec *s = r->server;  /* Server handling the request */
+  apr_status_t status;        /* Status of an APR call */
 
   /* Construct a socket address. */
   status = apr_sockaddr_info_get(&sa, sock_name, APR_UNIX, 0, 0, r->pool);
@@ -51,7 +52,8 @@ gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *so
  * must be kept up-to-date with the GospRequest struct in boilerplate.go. */
 gosp_status_t send_request(apr_socket_t *sock, request_rec *r)
 {
-  apr_status_t status;    /* Status of an APR call */
+  server_rec *s = r->server;  /* Server handling the request */
+  apr_status_t status;        /* Status of an APR call */
 
   SEND_STRING("{\n");
   SEND_STRING("  \"LocalHostname\": \"%s\"\n", r->hostname);
@@ -68,7 +70,8 @@ gosp_status_t send_request(apr_socket_t *sock, request_rec *r)
  * kept up-to-date with the GospRequest struct in boilerplate.go. */
 gosp_status_t send_termination_request(apr_socket_t *sock, request_rec *r)
 {
-  apr_status_t status;    /* Status of an APR call */
+  server_rec *s = r->server;  /* Server handling the request */
+  apr_status_t status;        /* Status of an APR call */
 
   SEND_STRING("{\n");
   SEND_STRING("  \"ExitNow\": \"true\"\n");
@@ -132,10 +135,11 @@ static gosp_status_t process_response_helper(request_rec *r, char *response, siz
  * relaunched. */
 gosp_status_t process_response(apr_socket_t *sock, request_rec *r)
 {
-  apr_status_t status;    /* Status of an APR call */
-  char *chunk;            /* One chunk of data read from the socket */
+  char *chunk;                /* One chunk of data read from the socket */
   const size_t chunk_size = 1000000;   /* Amount of data to read at once */
-  struct iovec iov[2];    /* Pairs of chunks to merge */
+  struct iovec iov[2];        /* Pairs of chunks to merge */
+  server_rec *s = r->server;  /* Server handling the request */
+  apr_status_t status;        /* Status of an APR call */
 
   /* Prepare to read from the socket. */
   status = apr_socket_timeout_set(sock, GOSP_RESPONSE_TIMEOUT);
