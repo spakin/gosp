@@ -119,18 +119,23 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
   status = ap_unixd_set_global_mutex_perms(config->mutex);
   if (status != APR_SUCCESS)
     REPORT_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
-                 "Failed to set permissions on %s", config->lock_name);
+                 "Failed to set permissions on lock file %s", config->lock_name);
 #endif
-
-  /* Temporary */
-  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
-               "Configuration pointer = 0x%08lx", (uintptr_t)config);
-  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
-               "Work dir = %s", config->work_dir);
-  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
-               "Lock file = %s", config->lock_name);
-
   return OK;
+}
+
+/* Perform per-child initialization. */
+static void gosp_child_init(apr_pool_t *pool, server_rec *s)
+{
+  gosp_config_t *config;     /* Server configuration */
+  apr_status_t status;       /* Status of an APR call */
+
+  /* Reconnect to the global mutex. */
+  config = ap_get_module_config(s->module_config, &gosp_module);
+  status = apr_global_mutex_child_init(&config->mutex, config->lock_name, pool);
+  if (status != APR_SUCCESS)
+    ap_log_error(APLOG_MARK, APLOG_ALERT, status, s,
+                 "Failed to reconnect to lock file %s", config->lock_name);
 }
 
 /* Handle requests of type "gosp" by passing them to the gosp2go tool. */
@@ -141,8 +146,6 @@ static int gosp_handler(request_rec *r)
   char *sock_name;           /* Name of the Unix-domain socket to connect to */
   apr_socket_t *sock;        /* The Unix-domain socket proper */
   apr_finfo_t finfo;         /* File information for the rquested file */
-  char *lock_name;           /* Name of a lock file associated with the request */
-  apr_global_mutex_t *lock;  /* Lock associated with the request */
   gosp_config_t *config;     /* Server configuration */
 
   /* We care only about "gosp" requests, and we don't care about HEAD
@@ -171,7 +174,8 @@ static int gosp_handler(request_rec *r)
 /* Invoke gosp_handler at the end of every request. */
 static void gosp_register_hooks(apr_pool_t *p)
 {
-  ap_hook_post_config(gosp_post_config, NULL, NULL, APR_HOOK_REALLY_FIRST);
+  ap_hook_post_config(gosp_post_config, NULL, NULL, APR_HOOK_LAST);
+  ap_hook_child_init(gosp_child_init, NULL, NULL, APR_HOOK_LAST);
   ap_hook_handler(gosp_handler, NULL, NULL, APR_HOOK_LAST);
 }
 
