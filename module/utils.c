@@ -13,9 +13,10 @@ gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char
 {
   const char *dir_name;       /* Directory containing fname */
   apr_finfo_t finfo;          /* File information for the directory */
+  gosp_config_t *config;      /* Server configuration */
   apr_status_t status;        /* Return value from an APR operation */
 
-  /* Check if the directory exists and is a directory. */
+  /* Check if the directory exists.  If it doesn't exist, create it. */
   if (is_dir)
     dir_name = fname;
   else
@@ -36,9 +37,19 @@ gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char
       REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                    "Failed to query directory %s", dir_name);
   }
+
+  /* The directory exists.  Ensure that it really is a directory. */
   if (finfo.filetype != APR_DIR)
     REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                  "Failed to create directory %s because it already exists as a non-directory", dir_name);
+
+  /* Set the permissions to those with which requests are handled. */
+  config = ap_get_module_config(s->module_config, &gosp_module);
+  if (chown(dir_name, (uid_t)config->user_id, (gid_t)config->group_id) == -1) {
+    status = APR_FROM_OS_ERROR(errno);
+    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                 "Failed to change ownership of directory, %s", dir_name);
+  }
 
   /* Everything is okay. */
   return GOSP_STATUS_OK;

@@ -98,17 +98,12 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
   char *lock_name;            /* Name of top-level lock file */
   apr_status_t status;        /* Status of an APR call */
 
-  /* Create and prepare the cache work directory. */
+  /* Create our work directory. */
   config = ap_get_module_config(s->module_config, &gosp_module);
   ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
                "Using %s as Gosp's work directory", config->work_dir);
   if (create_directories_for(s, ptemp, config->work_dir, 1) != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
-  if (chown(config->work_dir, (uid_t)config->user_id, (gid_t)config->group_id) == -1) {
-    status = APR_FROM_OS_ERROR(errno);
-    REPORT_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_CRIT, status,
-		 "Failed to change ownership of Gosp's work directory, %s", config->work_dir);
-  }
 
   /* TODO: Create a lock file. */
 

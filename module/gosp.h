@@ -66,7 +66,8 @@ do {                                                                       \
   return RETVAL;                                                           \
 } while (0)
 
-/* Declare functions that will be called cross-file. */
+/* Declare variables and functions that will be accessed cross-file. */
+extern module AP_MODULE_DECLARE_DATA gosp_module;
 extern gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name);
 extern gosp_status_t launch_gosp_process(request_rec *r, const char *run_dir, const char *sock_name);
 extern gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char *fname, int is_dir);
