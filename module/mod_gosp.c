@@ -115,6 +115,12 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
   if (status != APR_SUCCESS)
     REPORT_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
                  "Failed to create lock file %s", config->lock_name);
+#ifdef AP_NEED_SET_MUTEX_PERMS
+  status = ap_unixd_set_global_mutex_perms(config->mutex);
+  if (status != APR_SUCCESS)
+    REPORT_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
+                 "Failed to set permissions on %s", config->lock_name);
+#endif
 
   /* Temporary */
   ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,

@@ -22,6 +22,9 @@
 #include "apr_file_info.h"
 #include "apr_network_io.h"
 #include "apr_strings.h"
+#if AP_NEED_SET_MUTEX_PERMS
+# include "unixd.h"
+#endif
 
 /* Define our default work directory. */
 #define DEFAULT_WORK_DIR "/var/cache/apache2/mod_gosp"
