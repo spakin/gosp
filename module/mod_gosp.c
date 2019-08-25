@@ -94,11 +94,23 @@ static void *gosp_allocate_server_config(apr_pool_t *p, server_rec *s)
 static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
                             apr_pool_t *ptemp, server_rec *s)
 {
-  gosp_config_t *config;     /* Server configuration */
-  char *lock_name;           /* Name of top-level lock file */
+  gosp_config_t *config;      /* Server configuration */
+  char *lock_name;            /* Name of top-level lock file */
+  apr_status_t status;        /* Status of an APR call */
+
+  /* Create and prepare the cache work directory. */
+  config = ap_get_module_config(s->module_config, &gosp_module);
+  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
+               "Using %s as Gosp's work directory", config->work_dir);
+  if (create_directories_for(s, ptemp, config->work_dir, 1) != GOSP_STATUS_OK)
+    return HTTP_INTERNAL_SERVER_ERROR;
+  if (chown(config->work_dir, (uid_t)config->user_id, (gid_t)config->group_id) == -1) {
+    status = APR_FROM_OS_ERROR(errno);
+    REPORT_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_CRIT, status,
+		 "Failed to change ownership of Gosp's work directory, %s", config->work_dir);
+  }
 
   /* TODO: Create a lock file. */
-  config = ap_get_module_config(s->module_config, &gosp_module);
 
   /* Temporary */
   ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
@@ -143,15 +155,6 @@ static int gosp_handler(request_rec *r)
 
   /* Acquire access to our configuration information. */
   config = ap_get_module_config(r->server->module_config, &gosp_module);
-
-  /* Create and prepare the cache work directory.  Although it would be nice to
-   * hoist this into the post-config handler, that runs before switching users
-   * while gosp_handler runs after switching users.  Creating a directory in a
-   * post-config handler would therefore lead to permission-denied errors. */
-  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r->server,
-               "Using %s as Gosp's work directory", config->work_dir);
-  if (create_directories_for(r->server, r->pool, config->work_dir, 1) != GOSP_STATUS_OK)
-    return HTTP_INTERNAL_SERVER_ERROR;
 
   /* Go Server Pages are always expressed in HTML. */
   r->content_type = "text/html";

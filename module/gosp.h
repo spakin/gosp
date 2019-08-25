@@ -11,6 +11,7 @@
 #include <libgen.h>
 #include <stdarg.h>
 #include <sys/uio.h>
+#include <unistd.h>
 #include "httpd.h"
 #include "http_config.h"
 #include "http_core.h"
