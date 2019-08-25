@@ -46,7 +46,7 @@ gosp_status_t create_directories_for(request_rec *r, const char *fname, int is_d
 
 /* Securely concatenate two or more filepaths.  The final entry must be NULL.
  * Return the combined path name or NULL on error. */
-char *concatenate_filepaths(request_rec *r, ...)
+char *concatenate_filepaths(server_rec *s, apr_pool_t *pool, ...)
 {
   va_list ap;           /* Argument pointer */
   char *merged_name;    /* Path name consisting of pathA followed by pathB */
@@ -54,7 +54,7 @@ char *concatenate_filepaths(request_rec *r, ...)
   apr_status_t status;  /* Status of an APR call */
 
   /* Process the first argument. */
-  va_start(ap, r);
+  va_start(ap, pool);
   merged_name = va_arg(ap, char *);
   if (merged_name == NULL)
     return NULL;
@@ -68,10 +68,12 @@ char *concatenate_filepaths(request_rec *r, ...)
       next_path++;   /* APR_FILEPATH_SECUREROOT won't allow merging to an absolute pathname. */
     status = apr_filepath_merge(&merged_name, merged_name, next_path,
                                 APR_FILEPATH_SECUREROOT|APR_FILEPATH_NOTRELATIVE,
-                                r->pool);
-    if (status != APR_SUCCESS)
-      REPORT_ERROR(NULL, APLOG_ALERT, status,
+                                pool);
+    if (status != APR_SUCCESS) {
+      ap_log_error(APLOG_MARK, APLOG_ALERT, status, s,
                    "Failed to securely merge %s and %s", merged_name, next_path);
+      return NULL;
+    }
   }
 }
 

@@ -63,7 +63,7 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *work_dir, const ch
 
   /* Prefix the Gosp page name with the run directory to produce the name of
    * the Gosp server. */
-  server_name = concatenate_filepaths(r, work_dir, "bin",
+  server_name = concatenate_filepaths(r->server, r->pool, work_dir, "bin",
                                       apr_pstrcat(r->pool, r->canonical_filename, ".exe", NULL),
                                       NULL);
   if (server_name == NULL)
@@ -97,7 +97,7 @@ int compile_gosp_server(request_rec *r, const char *work_dir)
   apr_status_t status;      /* Status of an APR call */
 
   /* Ensure we have a place to write the executable. */
-  server_name = concatenate_filepaths(r, work_dir, "bin",
+  server_name = concatenate_filepaths(r->server, r->pool, work_dir, "bin",
                                    apr_pstrcat(r->pool, r->canonical_filename, ".exe", NULL),
                                    NULL);
   if (server_name == NULL)
@@ -106,7 +106,7 @@ int compile_gosp_server(request_rec *r, const char *work_dir)
     return GOSP_STATUS_FAIL;
 
   /* Prepare a Go build cache. */
-  go_cache = concatenate_filepaths(r, work_dir, "go-build", NULL);
+  go_cache = concatenate_filepaths(r->server, r->pool, work_dir, "go-build", NULL);
   if (go_cache == NULL)
     return GOSP_STATUS_FAIL;
   LAUNCH_CALL(apr_env_set("GOCACHE", go_cache, r->pool),

@@ -14,7 +14,7 @@ const char *gosp_set_work_dir(cmd_parms *cmd, void *cfg, const char *arg)
 {
   gosp_config_t *config;    /* Server configuration */
   config = ap_get_module_config(cmd->server->module_config, &gosp_module);
-  config->work_dir = apr_pstrdup(cmd->pool, arg);
+  config->work_dir = ap_server_root_relative(cmd->pool, arg);
   return NULL;
 }
 
@@ -95,6 +95,7 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
                             apr_pool_t *ptemp, server_rec *s)
 {
   gosp_config_t *config;     /* Server configuration */
+  char *lock_name;           /* Name of top-level lock file */
 
   /* TODO: Create a lock file. */
   config = ap_get_module_config(s->module_config, &gosp_module);
@@ -104,6 +105,14 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
                "Configuration pointer = 0x%08lx", (uintptr_t)config);
   ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
                "Work dir = %s", config->work_dir);
+
+  lock_name = concatenate_filepaths(s, ptemp, config->work_dir, "global.lock", NULL);
+  if (lock_name == NULL)
+    return HTTP_INTERNAL_SERVER_ERROR;
+
+  /* Temporary */
+  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
+               "Lock file = %s", lock_name);
 
   return OK;
 }
