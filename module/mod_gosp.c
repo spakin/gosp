@@ -95,7 +95,6 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
                             apr_pool_t *ptemp, server_rec *s)
 {
   gosp_config_t *config;      /* Server configuration */
-  char *lock_name;            /* Name of top-level lock file */
   apr_status_t status;        /* Status of an APR call */
 
   /* Create our work directory. */
@@ -105,21 +104,25 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
   if (create_directories_for(s, ptemp, config->work_dir, 1) != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
 
-  /* TODO: Create a lock file. */
+  /* Create a global lock.  Store the mutex structure and name of the
+   * underlying file in our configuration structure. */
+  config->lock_name = concatenate_filepaths(s, pconf, config->work_dir,
+                                            "global.lock", NULL);
+  if (config->lock_name == NULL)
+    return HTTP_INTERNAL_SERVER_ERROR;
+  status = apr_global_mutex_create(&config->mutex, config->lock_name,
+                                   APR_LOCK_DEFAULT, pconf);
+  if (status != APR_SUCCESS)
+    REPORT_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
+                 "Failed to create lock file %s", config->lock_name);
 
   /* Temporary */
   ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
                "Configuration pointer = 0x%08lx", (uintptr_t)config);
   ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
                "Work dir = %s", config->work_dir);
-
-  lock_name = concatenate_filepaths(s, ptemp, config->work_dir, "global.lock", NULL);
-  if (lock_name == NULL)
-    return HTTP_INTERNAL_SERVER_ERROR;
-
-  /* Temporary */
   ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
-               "Lock file = %s", lock_name);
+               "Lock file = %s", config->lock_name);
 
   return OK;
 }
