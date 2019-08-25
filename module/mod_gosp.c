@@ -12,7 +12,8 @@ module AP_MODULE_DECLARE_DATA gosp_module;
 /* Assign a value to the work directory. */
 const char *gosp_set_work_dir(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  gosp_config_t *config = cfg; /* Server configuration */
+  gosp_config_t *config;    /* Server configuration */
+  config = ap_get_module_config(cmd->server->module_config, &gosp_module);
   config->work_dir = apr_pstrdup(cmd->pool, arg);
   return NULL;
 }
@@ -20,11 +21,12 @@ const char *gosp_set_work_dir(cmd_parms *cmd, void *cfg, const char *arg)
 /* Map a user name to a user ID. */
 const char *gosp_set_user_id(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  gosp_config_t *config = cfg; /* Server configuration */
+  gosp_config_t *config;       /* Server configuration */
   apr_uid_t user_id;           /* User ID encountered */
   apr_gid_t group_id;          /* Group ID encountered */
   apr_status_t status;         /* Status of an APR call */
 
+  config = ap_get_module_config(cmd->server->module_config, &gosp_module);
   if (arg[0] == '#') {
     /* Hash followed by a user ID: convert the ID from a string to an
      * integer. */
@@ -43,10 +45,11 @@ const char *gosp_set_user_id(cmd_parms *cmd, void *cfg, const char *arg)
 /* Map a group name to a group ID. */
 const char *gosp_set_group_id(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  gosp_config_t *config = cfg; /* Server configuration */
+  gosp_config_t *config;       /* Server configuration */
   apr_gid_t group_id;          /* Group ID encountered */
   apr_status_t status;         /* Status of an APR call */
 
+  config = ap_get_module_config(cmd->server->module_config, &gosp_module);
   if (arg[0] == '#') {
     /* Hash followed by a group ID: convert the ID from a string to an
      * integer. */
@@ -65,17 +68,17 @@ const char *gosp_set_group_id(cmd_parms *cmd, void *cfg, const char *arg)
 /* Define all of the configuration-file directives we accept. */
 static const command_rec gosp_directives[] =
   {
-   AP_INIT_TAKE1("GospWorkDir", gosp_set_work_dir, NULL, RSRC_CONF|ACCESS_CONF,
+   AP_INIT_TAKE1("GospWorkDir", gosp_set_work_dir, NULL, OR_ALL,
                  "Name of a directory in which Gosp can generate files needed during execution"),
-   AP_INIT_TAKE1("User", gosp_set_user_id, NULL, RSRC_CONF|ACCESS_CONF,
+   AP_INIT_TAKE1("User", gosp_set_user_id, NULL, OR_ALL,
                  "The user under which the server will answer requests"),
-   AP_INIT_TAKE1("Group", gosp_set_group_id, NULL, RSRC_CONF|ACCESS_CONF,
+   AP_INIT_TAKE1("Group", gosp_set_group_id, NULL, OR_ALL,
                  "The group under which the server will answer requests"),
    { NULL }
   };
 
 /* Allocate and initialize a configuration data structure. */
-static void *gosp_allocate_dir_config(apr_pool_t *p, char *path)
+static void *gosp_allocate_server_config(apr_pool_t *p, server_rec *s)
 {
   gosp_config_t *config;
 
@@ -91,7 +94,17 @@ static void *gosp_allocate_dir_config(apr_pool_t *p, char *path)
 static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
                             apr_pool_t *ptemp, server_rec *s)
 {
+  gosp_config_t *config;     /* Server configuration */
+
   /* TODO: Create a lock file. */
+  config = ap_get_module_config(s->module_config, &gosp_module);
+
+  /* Temporary */
+  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
+               "Configuration pointer = 0x%08lx", (uintptr_t)config);
+  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
+               "Work dir = %s", config->work_dir);
+
   return OK;
 }
 
@@ -120,7 +133,7 @@ static int gosp_handler(request_rec *r)
     return HTTP_NOT_FOUND;
 
   /* Acquire access to our configuration information. */
-  config = ap_get_module_config(r->per_dir_config, &gosp_module);
+  config = ap_get_module_config(r->server->module_config, &gosp_module);
 
   /* Create and prepare the cache work directory.  Although it would be nice to
    * hoist this into the post-config handler, that runs before switching users
@@ -150,10 +163,10 @@ static void gosp_register_hooks(apr_pool_t *p)
 module AP_MODULE_DECLARE_DATA gosp_module =
   {
    STANDARD20_MODULE_STUFF,
-   gosp_allocate_dir_config,  /* Allocate per-server configuration */
-   NULL,                      /* Merge per-server configurations */
-   NULL,                      /* Allocate per-server configuration */
-   NULL,                      /* Merge per-server configurations */
-   gosp_directives,           /* Define our configuration directives */
-   gosp_register_hooks        /* Register Gosp hooks */
+   NULL,                         /* Allocate per-server configuration */
+   NULL,                         /* Merge per-server configurations */
+   gosp_allocate_server_config,  /* Allocate per-server configuration */
+   NULL,                         /* Merge per-server configurations */
+   gosp_directives,              /* Define our configuration directives */
+   gosp_register_hooks           /* Register Gosp hooks */
   };
