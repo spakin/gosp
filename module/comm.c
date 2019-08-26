@@ -21,7 +21,9 @@ do {                                                                    \
  }                                                                      \
 while (0)
 
-/* Connect to a Unix-domain stream socket. */
+/* Connect to a Unix-domain stream socket.  Return GOSP_STATUS_FAIL if we fail
+ * to create any local data structures.  Return GOSP_STATUS_NEED_ACTION if we
+ * fail to connect to the socket.  Return GOSP_STATUS_OK on success. */
 gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name)
 {
   apr_sockaddr_t *sa;         /* Socket address corresponding to sock_name */
@@ -43,7 +45,7 @@ gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *so
   /* Connect to the socket we just created. */
   status = apr_socket_connect(*sock, sa);
   if (status != APR_SUCCESS)
-    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+    REPORT_ERROR(GOSP_STATUS_NEED_ACTION, APLOG_NOTICE, status,
                  "Failed to connect to socket %s", sock_name);
   return GOSP_STATUS_OK;
 }
@@ -181,4 +183,40 @@ gosp_status_t process_response(apr_socket_t *sock, request_rec *r)
     iov[0].iov_len = (size_t) len;
   }
   return process_response_helper(r, iov[0].iov_base, iov[0].iov_len);
+}
+
+/* Send a request to the Gosp server and process its response.  If the server
+ * is not currently running, return GOSP_STATUS_NEED_ACTION.  This function is
+ * intended to represent the common case in processing HTTP requests to Gosp
+ * pages. */
+gosp_status_t simple_request_response(request_rec *r)
+{
+  const char *sock_name;      /* Socket name for communicating with a Gosp server */
+  apr_socket_t *sock;         /* The Unix-domain socket proper */
+   gosp_config_t *config;     /* Server configuration */
+  server_rec *s = r->server;  /* Server handling the request */
+  apr_status_t status;        /* Status of an APR call */
+  gosp_status_t gstatus;      /* Status of an internal Gosp call */
+
+  /* Acquire access to our configuration information. */
+  config = ap_get_module_config(s->module_config, &gosp_module);
+
+  /* Connect to the process that handles the requested Go Server Page. */
+  sock_name = concatenate_filepaths(s, r->pool, config->work_dir,
+				    "sockets", r->canonical_filename, NULL);
+  if (sock_name == NULL)
+    return GOSP_STATUS_FAIL;
+  sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
+  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r->server,
+               "Asking the Gosp server listening on socket %s to handle URI %s",
+               sock_name, r->uri);
+  gstatus = connect_socket(&sock, r, sock_name);
+  if (gstatus != GOSP_STATUS_OK)
+    return gstatus;
+
+  /* Send the Gosp server a request and process its response. */
+  gstatus = process_response(sock, r);
+  if (gstatus != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
+  return GOSP_STATUS_OK;
 }

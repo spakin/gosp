@@ -146,13 +146,10 @@ static void gosp_child_init(apr_pool_t *pool, server_rec *s)
 /* Handle requests of type "gosp" by passing them to the gosp2go tool. */
 static int gosp_handler(request_rec *r)
 {
-  apr_status_t status;        /* Status of an APR call */
-  int launch_status;          /* Status returned by launch_gosp_process() */
-  char *sock_name;            /* Name of the Unix-domain socket to connect to */
-  apr_socket_t *sock;         /* The Unix-domain socket proper */
   apr_finfo_t finfo;          /* File information for the rquested file */
-  gosp_config_t *config;      /* Server configuration */
   server_rec *s = r->server;  /* Server handling the request */
+  apr_status_t status;        /* Status of an APR call */
+  gosp_status_t gstatus;      /* Status of an internal Gosp call */
 
   /* We care only about "gosp" requests, and we don't care about HEAD
    * requests. */
@@ -166,24 +163,16 @@ static int gosp_handler(request_rec *r)
   if (status != APR_SUCCESS)
     return HTTP_NOT_FOUND;
 
-  /* Acquire access to our configuration information. */
-  config = ap_get_module_config(r->server->module_config, &gosp_module);
-
-  /* Temporary */
-  if (acquire_global_lock(s) != GOSP_STATUS_OK)
+  /* Attempt to let the appropriate Gosp server handle the request. */
+  gstatus = simple_request_response(r);
+  if (gstatus == GOSP_STATUS_OK)
+    return OK;
+  if (gstatus == GOSP_STATUS_FAIL)
     return HTTP_INTERNAL_SERVER_ERROR;
-  ap_log_error(APLOG_MARK, APLOG_ALERT, status, s,
-               "Acquired a lock on %s", config->lock_name);
-  if (release_global_lock(s) != GOSP_STATUS_OK)
-    return HTTP_INTERNAL_SERVER_ERROR;
-  ap_log_error(APLOG_MARK, APLOG_ALERT, status, s,
-               "Released the lock on %s", config->lock_name);
-
-  /* Go Server Pages are always expressed in HTML. */
-  r->content_type = "text/html";
 
   /* Temporary placeholder */
-  ap_rprintf(r, "Translating %s\n", r->filename);
+  r->content_type = "text/html";
+  ap_rprintf(r, "We need to compile an executable for %s\n", r->filename);
   return OK;
 }
 
