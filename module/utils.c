@@ -112,3 +112,47 @@ int is_newer_than(request_rec *r, const char *first, const char *second)
   /* Return 1 if the first file is newer, 0 otherwise. */
   return finfo1.mtime > finfo2.mtime;
 }
+
+/* Acquire the global lock.  Return GOSP_STATUS_OK on success or
+ * GOSP_STATUS_FAIL on failure. */
+gosp_status_t acquire_global_lock(server_rec *s)
+{
+  gosp_config_t *config;   /* Server configuration */
+  apr_status_t status;     /* Status of an APR call */
+
+  /* Acquire access to our configuration information. */
+  config = ap_get_module_config(s->module_config, &gosp_module);
+
+  /* Impose a timeout if supported. */
+#ifdef APR_LOCK_DEFAULT_TIMED
+  status = apr_global_mutex_timedlock(config->mutex, GOSP_LOCK_WAIT_TIME);
+  if (status != APR_SUCCESS)
+    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                 "Failed to acquire a lock on %s within %d microseconds",
+                 config->lock_name, GOSP_LOCK_WAIT_TIME);
+#else
+  status = apr_global_mutex_trylock(config->mutex);
+  if (status != APR_SUCCESS)
+    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                 "Failed to acquire a lock on %s", config->lock_name);
+#endif
+  return GOSP_STATUS_OK;
+}
+
+/* Release the global lock.  Return GOSP_STATUS_OK on success or
+ * GOSP_STATUS_FAIL on failure. */
+gosp_status_t release_global_lock(server_rec *s)
+{
+  gosp_config_t *config;   /* Server configuration */
+  apr_status_t status;     /* Status of an APR call */
+
+  /* Acquire access to our configuration information. */
+  config = ap_get_module_config(s->module_config, &gosp_module);
+
+  /* Release the lock. */
+  status = apr_global_mutex_unlock(config->mutex);
+  if (status != APR_SUCCESS)
+    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                 "Failed to release the lock on %s", config->lock_name);
+  return GOSP_STATUS_OK;
+}

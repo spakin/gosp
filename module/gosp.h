@@ -20,6 +20,7 @@
 #include "ap_config.h"
 #include "apr_env.h"
 #include "apr_file_info.h"
+#include "apr_global_mutex.h"
 #include "apr_network_io.h"
 #include "apr_strings.h"
 #if AP_NEED_SET_MUTEX_PERMS
@@ -42,6 +43,9 @@
 /* Define a time in microseconds we're willing to wait to receive a
  * chunk of data from a Gosp server. */
 #define GOSP_RESPONSE_TIMEOUT 5000000
+
+/* Define a time in microseconds we're willing to wait to acquire a lock. */
+#define GOSP_LOCK_WAIT_TIME 3000000
 
 /* Define a type corresponding the above. */
 typedef int gosp_status_t;
@@ -82,5 +86,7 @@ extern gosp_status_t compile_gosp_server(request_rec *r, const char *work_dir);
 extern gosp_status_t send_request(apr_socket_t *sock, request_rec *r);
 extern gosp_status_t send_termination_request(apr_socket_t *sock, request_rec *r);
 extern gosp_status_t process_response(apr_socket_t *sock, request_rec *r);
+extern gosp_status_t acquire_global_lock(server_rec *s);
+extern gosp_status_t release_global_lock(server_rec *s);
 
 #endif

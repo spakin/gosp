@@ -110,8 +110,13 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
                                             "global.lock", NULL);
   if (config->lock_name == NULL)
     return HTTP_INTERNAL_SERVER_ERROR;
+#ifdef APR_LOCK_DEFAULT_TIMED
+  status = apr_global_mutex_create(&config->mutex, config->lock_name,
+                                   APR_LOCK_DEFAULT_TIMED, pconf);
+#else
   status = apr_global_mutex_create(&config->mutex, config->lock_name,
                                    APR_LOCK_DEFAULT, pconf);
+#endif
   if (status != APR_SUCCESS)
     REPORT_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
                  "Failed to create lock file %s", config->lock_name);
@@ -141,12 +146,13 @@ static void gosp_child_init(apr_pool_t *pool, server_rec *s)
 /* Handle requests of type "gosp" by passing them to the gosp2go tool. */
 static int gosp_handler(request_rec *r)
 {
-  apr_status_t status;       /* Status of an APR call */
-  int launch_status;         /* Status returned by launch_gosp_process() */
-  char *sock_name;           /* Name of the Unix-domain socket to connect to */
-  apr_socket_t *sock;        /* The Unix-domain socket proper */
-  apr_finfo_t finfo;         /* File information for the rquested file */
-  gosp_config_t *config;     /* Server configuration */
+  apr_status_t status;        /* Status of an APR call */
+  int launch_status;          /* Status returned by launch_gosp_process() */
+  char *sock_name;            /* Name of the Unix-domain socket to connect to */
+  apr_socket_t *sock;         /* The Unix-domain socket proper */
+  apr_finfo_t finfo;          /* File information for the rquested file */
+  gosp_config_t *config;      /* Server configuration */
+  server_rec *s = r->server;  /* Server handling the request */
 
   /* We care only about "gosp" requests, and we don't care about HEAD
    * requests. */
@@ -162,6 +168,16 @@ static int gosp_handler(request_rec *r)
 
   /* Acquire access to our configuration information. */
   config = ap_get_module_config(r->server->module_config, &gosp_module);
+
+  /* Temporary */
+  if (acquire_global_lock(s) != GOSP_STATUS_OK)
+    return HTTP_INTERNAL_SERVER_ERROR;
+  ap_log_error(APLOG_MARK, APLOG_ALERT, status, s,
+               "Acquired a lock on %s", config->lock_name);
+  if (release_global_lock(s) != GOSP_STATUS_OK)
+    return HTTP_INTERNAL_SERVER_ERROR;
+  ap_log_error(APLOG_MARK, APLOG_ALERT, status, s,
+               "Released the lock on %s", config->lock_name);
 
   /* Go Server Pages are always expressed in HTML. */
   r->content_type = "text/html";
