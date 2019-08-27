@@ -18,6 +18,7 @@ import (
 	gospHttp "net/http"
 	gospOs "os"
 	gospFilePath "path/filepath"
+	gospSync "sync"
 	gospAtomic "sync/atomic"
 	gospTime "time"
 )
@@ -143,13 +144,16 @@ func GospStartServer(fn string) error {
 
 	// Process connections until we're told to stop.
 	var done int32
+	var wg gospSync.WaitGroup
 	for gospAtomic.LoadInt32(&done) == 0 {
 		// Spawn a goroutine to handle the incoming connection.
 		conn, err := ln.Accept()
 		if err != nil {
 			return err
 		}
+		wg.Add(1)
 		go func(conn gospNet.Conn) {
+			defer wg.Done()
 			defer conn.Close()
 			conn.SetDeadline(gospTime.Now().Add(10 * gospTime.Second))
 			dec := gospJson.NewDecoder(conn)
@@ -170,6 +174,9 @@ func GospStartServer(fn string) error {
 			GospLaunchHTMLGenerator(conn, &gr)
 		}(conn)
 	}
+
+	// Wait until all existing requests complete before we return.
+	wg.Wait()
 	return nil
 }
 
