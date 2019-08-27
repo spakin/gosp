@@ -118,13 +118,13 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
                                    APR_LOCK_DEFAULT, pconf);
 #endif
   if (status != APR_SUCCESS)
-    REPORT_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
-                 "Failed to create lock file %s", config->lock_name);
+    REPORT_SERVER_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
+			"Failed to create lock file %s", config->lock_name);
 #ifdef AP_NEED_SET_MUTEX_PERMS
   status = ap_unixd_set_global_mutex_perms(config->mutex);
   if (status != APR_SUCCESS)
-    REPORT_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
-                 "Failed to set permissions on lock file %s", config->lock_name);
+    REPORT_SERVER_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
+			"Failed to set permissions on lock file %s", config->lock_name);
 #endif
   return OK;
 }
@@ -147,7 +147,6 @@ static void gosp_child_init(apr_pool_t *pool, server_rec *s)
 static int gosp_handler(request_rec *r)
 {
   apr_finfo_t finfo;          /* File information for the rquested file */
-  server_rec *s = r->server;  /* Server handling the request */
   apr_status_t status;        /* Status of an APR call */
   gosp_status_t gstatus;      /* Status of an internal Gosp call */
 

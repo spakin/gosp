@@ -30,25 +30,25 @@ gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char
     status =
       apr_dir_make_recursive(dir_name, GOSP_DIR_PERMS, pool);
     if (status != APR_SUCCESS)
-      REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                   "Failed to create directory %s", dir_name);
+      REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                          "Failed to create directory %s", dir_name);
     status = apr_stat(&finfo, dir_name, APR_FINFO_TYPE, pool);
     if (status != APR_SUCCESS)
-      REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                   "Failed to query directory %s", dir_name);
+      REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                          "Failed to query directory %s", dir_name);
   }
 
   /* The directory exists.  Ensure that it really is a directory. */
   if (finfo.filetype != APR_DIR)
-    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                 "Failed to create directory %s because it already exists as a non-directory", dir_name);
+    REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                        "Failed to create directory %s because it already exists as a non-directory", dir_name);
 
   /* Set the permissions to those with which requests are handled. */
   config = ap_get_module_config(s->module_config, &gosp_module);
   if (chown(dir_name, (uid_t)config->user_id, (gid_t)config->group_id) == -1) {
     status = APR_FROM_OS_ERROR(errno);
-    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                 "Failed to change ownership of directory, %s", dir_name);
+    REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                        "Failed to change ownership of directory, %s", dir_name);
   }
 
   /* Everything is okay. */
@@ -127,14 +127,14 @@ gosp_status_t acquire_global_lock(server_rec *s)
 #ifdef APR_LOCK_DEFAULT_TIMED
   status = apr_global_mutex_timedlock(config->mutex, GOSP_LOCK_WAIT_TIME);
   if (status != APR_SUCCESS)
-    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                 "Failed to acquire a lock on %s within %d microseconds",
-                 config->lock_name, GOSP_LOCK_WAIT_TIME);
+    REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                        "Failed to acquire a lock on %s within %d microseconds",
+                        config->lock_name, GOSP_LOCK_WAIT_TIME);
 #else
   status = apr_global_mutex_trylock(config->mutex);
   if (status != APR_SUCCESS)
-    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                 "Failed to acquire a lock on %s", config->lock_name);
+    REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                        "Failed to acquire a lock on %s", config->lock_name);
 #endif
   return GOSP_STATUS_OK;
 }
@@ -152,7 +152,7 @@ gosp_status_t release_global_lock(server_rec *s)
   /* Release the lock. */
   status = apr_global_mutex_unlock(config->mutex);
   if (status != APR_SUCCESS)
-    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                 "Failed to release the lock on %s", config->lock_name);
+    REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                        "Failed to release the lock on %s", config->lock_name);
   return GOSP_STATUS_OK;
 }

@@ -9,17 +9,17 @@
 /* Send a string to the socket.  Log a message and return GOSP_STATUS_FAIL on
  * error. */
 #define SEND_STRING(...)                                                \
-do {                                                                    \
-  const char *str = apr_psprintf(r->pool, __VA_ARGS__);                 \
-  apr_size_t exp_len = (apr_size_t) strlen(str);                        \
-  apr_size_t len = exp_len;                                             \
+  do {                                                                  \
+    const char *str = apr_psprintf(r->pool, __VA_ARGS__);               \
+    apr_size_t exp_len = (apr_size_t) strlen(str);                      \
+    apr_size_t len = exp_len;                                           \
                                                                         \
-  status = apr_socket_send(sock, str, &len);                            \
-  if (status != APR_SUCCESS || len != exp_len)                          \
-    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,                 \
-                 "Failed to send %lu bytes to the Gosp server", (unsigned long)exp_len); \
- }                                                                      \
-while (0)
+    status = apr_socket_send(sock, str, &len);                          \
+    if (status != APR_SUCCESS || len != exp_len)                        \
+      REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,       \
+                          "Failed to send %lu bytes to the Gosp server", (unsigned long)exp_len); \
+  }                                                                     \
+  while (0)
 
 /* Connect to a Unix-domain stream socket.  Return GOSP_STATUS_FAIL if we fail
  * to create any local data structures.  Return GOSP_STATUS_NEED_ACTION if we
@@ -27,26 +27,25 @@ while (0)
 gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name)
 {
   apr_sockaddr_t *sa;         /* Socket address corresponding to sock_name */
-  server_rec *s = r->server;  /* Server handling the request */
   apr_status_t status;        /* Status of an APR call */
 
   /* Construct a socket address. */
   status = apr_sockaddr_info_get(&sa, sock_name, APR_UNIX, 0, 0, r->pool);
   if (status != APR_SUCCESS)
-    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                 "Failed to construct a Unix-domain socket address from %s", sock_name);
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+			 "Failed to construct a Unix-domain socket address from %s", sock_name);
 
   /* Create a Unix-domain stream socket. */
   status = apr_socket_create(sock, APR_UNIX, SOCK_STREAM, APR_PROTO_TCP, r->pool);
   if (status != APR_SUCCESS)
-    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                 "Failed to create socket %s", sock_name);
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+			 "Failed to create socket %s", sock_name);
 
   /* Connect to the socket we just created. */
   status = apr_socket_connect(*sock, sa);
   if (status != APR_SUCCESS)
-    REPORT_ERROR(GOSP_STATUS_NEED_ACTION, APLOG_NOTICE, status,
-                 "Failed to connect to socket %s", sock_name);
+    REPORT_REQUEST_ERROR(GOSP_STATUS_NEED_ACTION, APLOG_NOTICE, status,
+			 "Failed to connect to socket %s", sock_name);
   return GOSP_STATUS_OK;
 }
 
@@ -54,7 +53,6 @@ gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *so
  * must be kept up-to-date with the GospRequest struct in boilerplate.go. */
 gosp_status_t send_request(apr_socket_t *sock, request_rec *r)
 {
-  server_rec *s = r->server;  /* Server handling the request */
   apr_status_t status;        /* Status of an APR call */
 
   SEND_STRING("{\n");
@@ -76,7 +74,6 @@ gosp_status_t send_termination_request(apr_socket_t *sock, request_rec *r)
   size_t resp_len;            /* Length of response string */
   apr_proc_t proc;            /* Gosp server process */
   apr_time_t begin_time;      /* Time at which we began waiting for the server to terminate */
-  server_rec *s = r->server;  /* Server handling the request */
   gosp_status_t gstatus;      /* Status of an internal Gosp call */
   apr_status_t status;        /* Status of an APR call */
 
@@ -171,14 +168,13 @@ gosp_status_t receive_response(apr_socket_t *sock, request_rec *r, char **respon
   char *chunk;                /* One chunk of data read from the socket */
   const size_t chunk_size = 1000000;   /* Amount of data to read at once */
   struct iovec iov[2];        /* Pairs of chunks to merge */
-  server_rec *s = r->server;  /* Server handling the request */
   apr_status_t status;        /* Status of an APR call */
 
   /* Prepare to read from the socket. */
   status = apr_socket_timeout_set(sock, GOSP_RESPONSE_TIMEOUT);
   if (status != APR_SUCCESS)
-    REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                 "Failed to set a socket timeout");
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                         "Failed to set a socket timeout");
   chunk = apr_palloc(r->pool, chunk_size);
   iov[0].iov_base = "";
   iov[0].iov_len = 0;
@@ -203,8 +199,8 @@ gosp_status_t receive_response(apr_socket_t *sock, request_rec *r, char **respon
 
     default:
       /* Other error */
-      REPORT_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                   "Failed to receive data from the Gosp server");
+      REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                           "Failed to receive data from the Gosp server");
       break;
     }
 
@@ -231,20 +227,19 @@ gosp_status_t simple_request_response(request_rec *r)
   char *response;             /* Response string */
   size_t resp_len;            /* Length of response string */
   gosp_config_t *config;      /* Server configuration */
-  server_rec *s = r->server;  /* Server handling the request */
   apr_status_t status;        /* Status of an APR call */
   gosp_status_t gstatus;      /* Status of an internal Gosp call */
 
   /* Acquire access to our configuration information. */
-  config = ap_get_module_config(s->module_config, &gosp_module);
+  config = ap_get_module_config(r->server->module_config, &gosp_module);
 
   /* Connect to the process that handles the requested Go Server Page. */
-  sock_name = concatenate_filepaths(s, r->pool, config->work_dir,
+  sock_name = concatenate_filepaths(r->server, r->pool, config->work_dir,
                                     "sockets", r->canonical_filename, NULL);
   if (sock_name == NULL)
     return GOSP_STATUS_FAIL;
   sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
-  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r->server,
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r,
                "Asking the Gosp server listening on socket %s to handle URI %s",
                sock_name, r->uri);
   gstatus = connect_socket(&sock, r, sock_name);
