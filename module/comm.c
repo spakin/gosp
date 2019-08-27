@@ -72,12 +72,43 @@ gosp_status_t send_request(apr_socket_t *sock, request_rec *r)
  * kept up-to-date with the GospRequest struct in boilerplate.go. */
 gosp_status_t send_termination_request(apr_socket_t *sock, request_rec *r)
 {
+  char *response;             /* Response string */
+  size_t resp_len;            /* Length of response string */
+  apr_proc_t proc;            /* Gosp server process */
+  apr_time_t begin_time;      /* Time at which we began waiting for the server to terminate */
   server_rec *s = r->server;  /* Server handling the request */
+  gosp_status_t gstatus;      /* Status of an internal Gosp call */
   apr_status_t status;        /* Status of an APR call */
 
+  /* Ask the server to terminate. */
   SEND_STRING("{\n");
   SEND_STRING("  \"ExitNow\": \"true\"\n");
   SEND_STRING("}\n");
+
+  /* Receive a process ID in response. */
+  gstatus = receive_response(sock, r, &response, &resp_len);
+  if (gstatus != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
+  if (strncmp(response, "gosp-pid ", 9) != 0)
+    return GOSP_STATUS_FAIL;
+  proc.pid = atoi(response + 9);
+  if (proc.pid <= 0)
+    return GOSP_STATUS_FAIL;
+
+  /* Wait for a short time for the process to exit by itself. */
+  begin_time = apr_time_now();
+  while (apr_time_now() - begin_time < GOSP_EXIT_WAIT_TIME) {
+    /* Ping the process.  If it's not found, it must have exited on its own. */
+    status = apr_proc_kill(&proc, 0);
+    if (APR_TO_OS_ERROR(status) == ESRCH)
+      return GOSP_STATUS_OK;
+    apr_sleep(1000);
+  }
+
+  /* The process did not exist by itself.  Kill it. */
+  status = apr_proc_kill(&proc, SIGKILL);
+  if (status != APR_SUCCESS)
+    return GOSP_STATUS_FAIL;
   return GOSP_STATUS_OK;
 }
 
@@ -85,7 +116,7 @@ gosp_status_t send_termination_request(apr_socket_t *sock, request_rec *r)
  * Output the data.  Return GOSP_STATUS_OK if this procedure succeeded (even if
  * it corresponds to a Gosp-server error condition) or GOSP_STATUS_FAIL if
  * not. */
-static gosp_status_t process_response_helper(request_rec *r, char *response, size_t resp_len)
+static gosp_status_t process_response(request_rec *r, char *response, size_t resp_len)
 {
   char *last;      /* Internal apr_strtok() state */
   char *line;      /* One line of metadata */
@@ -132,10 +163,10 @@ static gosp_status_t process_response_helper(request_rec *r, char *response, siz
   return GOSP_STATUS_OK;
 }
 
-/* Receive a response from the Gosp server and process it.  Return
+/* Receive a response from the Gosp server and return it.  Return
  * GOSP_STATUS_NEED_ACTION if the server timed out and ought to be killed and
  * relaunched. */
-gosp_status_t process_response(apr_socket_t *sock, request_rec *r)
+gosp_status_t receive_response(apr_socket_t *sock, request_rec *r, char **response, size_t *resp_len)
 {
   char *chunk;                /* One chunk of data read from the socket */
   const size_t chunk_size = 1000000;   /* Amount of data to read at once */
@@ -182,7 +213,11 @@ gosp_status_t process_response(apr_socket_t *sock, request_rec *r)
     iov[0].iov_base = apr_pstrcatv(r->pool, iov, 2, &len);
     iov[0].iov_len = (size_t) len;
   }
-  return process_response_helper(r, iov[0].iov_base, iov[0].iov_len);
+
+  /* Return the string and its length. */
+  *response = iov[0].iov_base;
+  *resp_len = iov[0].iov_len;
+  return GOSP_STATUS_OK;
 }
 
 /* Send a request to the Gosp server and process its response.  If the server
@@ -193,7 +228,9 @@ gosp_status_t simple_request_response(request_rec *r)
 {
   const char *sock_name;      /* Socket name for communicating with a Gosp server */
   apr_socket_t *sock;         /* The Unix-domain socket proper */
-   gosp_config_t *config;     /* Server configuration */
+  char *response;             /* Response string */
+  size_t resp_len;            /* Length of response string */
+  gosp_config_t *config;      /* Server configuration */
   server_rec *s = r->server;  /* Server handling the request */
   apr_status_t status;        /* Status of an APR call */
   gosp_status_t gstatus;      /* Status of an internal Gosp call */
@@ -203,7 +240,7 @@ gosp_status_t simple_request_response(request_rec *r)
 
   /* Connect to the process that handles the requested Go Server Page. */
   sock_name = concatenate_filepaths(s, r->pool, config->work_dir,
-				    "sockets", r->canonical_filename, NULL);
+                                    "sockets", r->canonical_filename, NULL);
   if (sock_name == NULL)
     return GOSP_STATUS_FAIL;
   sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
@@ -215,8 +252,8 @@ gosp_status_t simple_request_response(request_rec *r)
     return gstatus;
 
   /* Send the Gosp server a request and process its response. */
-  gstatus = process_response(sock, r);
+  gstatus = receive_response(sock, r, &response, &resp_len);
   if (gstatus != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
-  return GOSP_STATUS_OK;
+  return process_response(r, response, resp_len);
 }

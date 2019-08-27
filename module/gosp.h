@@ -47,6 +47,9 @@
 /* Define a time in microseconds we're willing to wait to acquire a lock. */
 #define GOSP_LOCK_WAIT_TIME 3000000
 
+/* Define a time in microseconds we're willing to wait for a Gosp server to exit. */
+#define GOSP_EXIT_WAIT_TIME 100000
+
 /* Define a type corresponding the above. */
 typedef int gosp_status_t;
 
@@ -85,7 +88,7 @@ extern int is_newer_than(request_rec *r, const char *first, const char *second);
 extern gosp_status_t compile_gosp_server(request_rec *r, const char *work_dir);
 extern gosp_status_t send_request(apr_socket_t *sock, request_rec *r);
 extern gosp_status_t send_termination_request(apr_socket_t *sock, request_rec *r);
-extern gosp_status_t process_response(apr_socket_t *sock, request_rec *r);
+extern gosp_status_t receive_response(apr_socket_t *sock, request_rec *r, char **response, size_t *resp_len);
 extern gosp_status_t acquire_global_lock(server_rec *s);
 extern gosp_status_t release_global_lock(server_rec *s);
 extern gosp_status_t simple_request_response(request_rec *r);
