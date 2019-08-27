@@ -159,6 +159,7 @@ func GospStartServer(fn string) error {
 				return
 			}
 			if gr.ExitNow {
+				gospFmt.Fprintf(conn, "gosp-pid %d\n", gospOs.Getpid())
 				gospAtomic.StoreInt32(&done, 1)
 				c, err := gospNet.Dial("unix", sock)
 				if err == nil {

@@ -4,24 +4,6 @@
  * By Scott Pakin <scott+gosp@pakin.org>       *
  **********************************************/
 
-/*
- * TODO
- *
- * Flow should be as follows:
- *
- * 1) Get socket name.
- * 2) Try connecting to socket.
- *    If filename error,
- *  3) Create all subdirectories.
- *     Try connecting to socket.  Abort on failure.
- *    Else if failure/timeout,
- *  4) Relaunch server.
- *     If not found,
- *    6) Build server.  Abort on failure.
- *    7) Launch server.  Abort on failure.
- *  8) Try connecting to socket.  Abort on failure.
- */
-
 #include "gosp.h"
 
 /* Invoke an APR call as part of process launch.  On failure, log an error
@@ -37,7 +19,7 @@ do {                                                                       \
 
 /* Launch a Go Server Page process to handle the current page.  Return
  * GOSP_STATUS_OK on success, GOSP_STATUS_NEED_ACTION if the executable wasn't
- * found (and presumably need to be built), and GOSP_STATUS_FAIL if an
+ * found (and presumably needs to be built), and GOSP_STATUS_FAIL if an
  * unexpected error occurred (and the request needs to be aborted). */
 gosp_status_t launch_gosp_process(request_rec *r, const char *work_dir, const char *sock_name)
 {
