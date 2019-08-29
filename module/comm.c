@@ -33,19 +33,19 @@ gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *so
   status = apr_sockaddr_info_get(&sa, sock_name, APR_UNIX, 0, 0, r->pool);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-			 "Failed to construct a Unix-domain socket address from %s", sock_name);
+                         "Failed to construct a Unix-domain socket address from %s", sock_name);
 
   /* Create a Unix-domain stream socket. */
   status = apr_socket_create(sock, APR_UNIX, SOCK_STREAM, APR_PROTO_TCP, r->pool);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-			 "Failed to create socket %s", sock_name);
+                         "Failed to create socket %s", sock_name);
 
   /* Connect to the socket we just created. */
   status = apr_socket_connect(*sock, sa);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(GOSP_STATUS_NEED_ACTION, APLOG_NOTICE, status,
-			 "Failed to connect to socket %s", sock_name);
+                         "Failed to connect to socket %s", sock_name);
   return GOSP_STATUS_OK;
 }
 
@@ -68,14 +68,23 @@ gosp_status_t send_request(apr_socket_t *sock, request_rec *r)
 
 /* Ask a Gosp server to shut down cleanly.  The termination command must be
  * kept up-to-date with the GospRequest struct in boilerplate.go. */
-gosp_status_t send_termination_request(apr_socket_t *sock, request_rec *r)
+gosp_status_t send_termination_request(request_rec *r, const char *sock_name)
 {
   char *response;             /* Response string */
   size_t resp_len;            /* Length of response string */
   apr_proc_t proc;            /* Gosp server process */
   apr_time_t begin_time;      /* Time at which we began waiting for the server to terminate */
+  apr_socket_t *sock;         /* Socket with which to communicate with the Gosp server */
   gosp_status_t gstatus;      /* Status of an internal Gosp call */
   apr_status_t status;        /* Status of an APR call */
+
+  /* Connect to the process that handles the requested Go Server Page. */
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r,
+               "Asking the Gosp server listening on socket %s to terminate",
+               sock_name);
+  gstatus = connect_socket(&sock, r, sock_name);
+  if (gstatus != GOSP_STATUS_OK)
+    return GOSP_STATUS_NEED_ACTION;
 
   /* Ask the server to terminate. */
   SEND_STRING("{\n");
@@ -90,6 +99,11 @@ gosp_status_t send_termination_request(apr_socket_t *sock, request_rec *r)
     return GOSP_STATUS_FAIL;
   proc.pid = atoi(response + 9);
   if (proc.pid <= 0)
+    return GOSP_STATUS_FAIL;
+
+  /* We no longer need the socket. */
+  status = apr_socket_close(sock);
+  if (status != APR_SUCCESS)
     return GOSP_STATUS_FAIL;
 
   /* Wait for a short time for the process to exit by itself. */
@@ -220,9 +234,8 @@ gosp_status_t receive_response(apr_socket_t *sock, request_rec *r, char **respon
  * is not currently running, return GOSP_STATUS_NEED_ACTION.  This function is
  * intended to represent the common case in processing HTTP requests to Gosp
  * pages. */
-gosp_status_t simple_request_response(request_rec *r)
+gosp_status_t simple_request_response(request_rec *r, const char *sock_name)
 {
-  const char *sock_name;      /* Socket name for communicating with a Gosp server */
   apr_socket_t *sock;         /* The Unix-domain socket proper */
   char *response;             /* Response string */
   size_t resp_len;            /* Length of response string */
@@ -234,11 +247,6 @@ gosp_status_t simple_request_response(request_rec *r)
   config = ap_get_module_config(r->server->module_config, &gosp_module);
 
   /* Connect to the process that handles the requested Go Server Page. */
-  sock_name = concatenate_filepaths(r->server, r->pool, config->work_dir,
-                                    "sockets", r->canonical_filename, NULL);
-  if (sock_name == NULL)
-    return GOSP_STATUS_FAIL;
-  sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r,
                "Asking the Gosp server listening on socket %s to handle URI %s",
                sock_name, r->uri);
@@ -249,6 +257,9 @@ gosp_status_t simple_request_response(request_rec *r)
   /* Send the Gosp server a request and process its response. */
   gstatus = receive_response(sock, r, &response, &resp_len);
   if (gstatus != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
+  status = apr_socket_close(sock);
+  if (status != APR_SUCCESS)
     return GOSP_STATUS_FAIL;
   return process_response(r, response, resp_len);
 }

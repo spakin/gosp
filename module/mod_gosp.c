@@ -119,12 +119,12 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
 #endif
   if (status != APR_SUCCESS)
     REPORT_SERVER_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
-			"Failed to create lock file %s", config->lock_name);
+                        "Failed to create lock file %s", config->lock_name);
 #ifdef AP_NEED_SET_MUTEX_PERMS
   status = ap_unixd_set_global_mutex_perms(config->mutex);
   if (status != APR_SUCCESS)
     REPORT_SERVER_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
-			"Failed to set permissions on lock file %s", config->lock_name);
+                        "Failed to set permissions on lock file %s", config->lock_name);
 #endif
   return OK;
 }
@@ -147,6 +147,8 @@ static void gosp_child_init(apr_pool_t *pool, server_rec *s)
 static int gosp_handler(request_rec *r)
 {
   apr_finfo_t finfo;          /* File information for the rquested file */
+  char *sock_name;            /* Name of the socket on which the Gosp server is listening */
+  gosp_config_t *config;      /* Server configuration */
   apr_status_t status;        /* Status of an APR call */
   gosp_status_t gstatus;      /* Status of an internal Gosp call */
 
@@ -162,12 +164,48 @@ static int gosp_handler(request_rec *r)
   if (status != APR_SUCCESS)
     return HTTP_NOT_FOUND;
 
-  /* Attempt to let the appropriate Gosp server handle the request. */
-  gstatus = simple_request_response(r);
-  if (gstatus == GOSP_STATUS_OK)
-    return OK;
-  if (gstatus == GOSP_STATUS_FAIL)
+  /* Gain access to our configuration information. */
+  config = ap_get_module_config(r->server->module_config, &gosp_module);
+
+  /* Identify the name of the socket to use to communicate with the Gosp
+   * server. */
+  sock_name = concatenate_filepaths(r->server, r->pool, config->work_dir, "sockets", r->canonical_filename, NULL);
+  if (sock_name == NULL)
     return HTTP_INTERNAL_SERVER_ERROR;
+  sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
+
+  /* If the Gosp file is newer than the Gosp server, terminate the Gosp server.
+   * It will be recompiled and rebuilt below. */
+  switch (is_newer_than(r, r->canonical_filename, sock_name)) {
+  case 0:
+    /* Not newer (common case) -- let the Gosp server handle the request. */
+    gstatus = simple_request_response(r, sock_name);
+    if (gstatus == GOSP_STATUS_OK)
+      return OK;
+    if (gstatus == GOSP_STATUS_FAIL)
+      return HTTP_INTERNAL_SERVER_ERROR;
+    break;
+
+  case 1:
+    /* Newer -- kill the Gosp server.  We do this within a critical section to
+     * ensure the server is killed exactly once. */
+    if (acquire_global_lock(r->server) != GOSP_STATUS_OK)
+      return HTTP_INTERNAL_SERVER_ERROR;
+    if (is_newer_than(r, r->canonical_filename, sock_name) == 1) {
+      gstatus = send_termination_request(r, sock_name);
+      if (gstatus == GOSP_STATUS_FAIL)
+        return HTTP_INTERNAL_SERVER_ERROR;
+    }
+    if (release_global_lock(r->server) != GOSP_STATUS_OK)
+      return HTTP_INTERNAL_SERVER_ERROR;
+    break;
+
+  case -1:
+    /* Error -- ignore; we may simply need to launch the Gosp server */
+    break;
+  }
+
+  /* If we get here, we were unable to communicate with the Gosp server. */
 
   /* Temporary placeholder */
   r->content_type = "text/html";
