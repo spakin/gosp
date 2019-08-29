@@ -88,9 +88,9 @@ char *concatenate_filepaths(server_rec *s, apr_pool_t *pool, ...)
   }
 }
 
-/* Return 1 if the first file named is newer than the second or the second
- * doesn't exist.  It is assumed that the first first exists.  Return -1 on
- * error.*/
+/* Return 1 if the first file named is newer than the second.  Return 0 if the
+ * first file is not newer than the second or the second does not exist.  (It
+ * is assumed that the first first exists.)  Return -1 on error.*/
 int is_newer_than(request_rec *r, const char *first, const char *second)
 {
   apr_finfo_t finfo1;   /* File information for the first file */
@@ -100,7 +100,7 @@ int is_newer_than(request_rec *r, const char *first, const char *second)
   /* Query the second file's metadata. */
   status = apr_stat(&finfo2, second, APR_FINFO_MTIME, r->pool);
   if (APR_STATUS_IS_ENOENT(status))
-    return 1;
+    return 0;
   if (status != APR_SUCCESS)
     return -1;
 

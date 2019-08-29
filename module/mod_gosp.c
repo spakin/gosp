@@ -148,6 +148,7 @@ static int gosp_handler(request_rec *r)
 {
   apr_finfo_t finfo;          /* File information for the rquested file */
   char *sock_name;            /* Name of the socket on which the Gosp server is listening */
+  char *server_name;          /* Name of the Gosp server executable */
   gosp_config_t *config;      /* Server configuration */
   apr_status_t status;        /* Status of an APR call */
   gosp_status_t gstatus;      /* Status of an internal Gosp call */
@@ -171,8 +172,17 @@ static int gosp_handler(request_rec *r)
    * server. */
   sock_name = concatenate_filepaths(r->server, r->pool, config->work_dir, "sockets", r->canonical_filename, NULL);
   if (sock_name == NULL)
-    return HTTP_INTERNAL_SERVER_ERROR;
+    REPORT_REQUEST_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, APR_SUCCESS,
+                         "Failed to construct a socket name");
   sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
+
+  /* Identify the name of the Gosp server executable. */
+  server_name = concatenate_filepaths(r->server, r->pool, config->work_dir, "bin",
+                                      apr_pstrcat(r->pool, r->canonical_filename, ".exe", NULL),
+                                      NULL);
+  if (server_name == NULL)
+    REPORT_REQUEST_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, APR_SUCCESS,
+                         "Failed to construct the name of the Gosp server");
 
   /* If the Gosp file is newer than the Gosp server, terminate the Gosp server.
    * It will be recompiled and rebuilt below. */
@@ -189,15 +199,39 @@ static int gosp_handler(request_rec *r)
   case 1:
     /* Newer -- kill the Gosp server.  We do this within a critical section to
      * ensure the server is killed exactly once. */
-    if (acquire_global_lock(r->server) != GOSP_STATUS_OK)
-      return HTTP_INTERNAL_SERVER_ERROR;
-    if (is_newer_than(r, r->canonical_filename, sock_name) == 1) {
-      gstatus = send_termination_request(r, sock_name);
-      if (gstatus == GOSP_STATUS_FAIL)
+    {
+      apr_status_t errcode = APR_SUCCESS;  /* Error code to return or APR_SUCCESS if we should keep going */
+
+      if (acquire_global_lock(r->server) != GOSP_STATUS_OK)
+        return HTTP_INTERNAL_SERVER_ERROR;
+      do {
+        /* On any error, first release the lock. */
+        if (is_newer_than(r, r->canonical_filename, sock_name) == 1) {
+          gstatus = send_termination_request(r, sock_name);
+          if (gstatus == GOSP_STATUS_FAIL) {
+            errcode = HTTP_INTERNAL_SERVER_ERROR;
+            break;
+          }
+        }
+        status = apr_file_remove(sock_name, r->pool);
+        if (status != APR_SUCCESS) {
+          ap_log_rerror(APLOG_MARK, APLOG_ALERT, status, r,
+                        "Failed to remove socket %s", sock_name);
+          errcode = status;
+          break;
+        }
+        status = apr_file_remove(server_name, r->pool);
+        if (status != APR_SUCCESS) {
+          ap_log_rerror(APLOG_MARK, APLOG_ALERT, status, r,
+                        "Failed to remove Gosp server %s", server_name);
+          errcode = status;
+          break;
+        }
+      }
+      while (0);
+      if (release_global_lock(r->server) != GOSP_STATUS_OK)
         return HTTP_INTERNAL_SERVER_ERROR;
     }
-    if (release_global_lock(r->server) != GOSP_STATUS_OK)
-      return HTTP_INTERNAL_SERVER_ERROR;
     break;
 
   case -1:
