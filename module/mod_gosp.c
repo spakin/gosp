@@ -197,41 +197,10 @@ static int gosp_handler(request_rec *r)
     break;
 
   case 1:
-    /* Newer -- kill the Gosp server.  We do this within a critical section to
-     * ensure the server is killed exactly once. */
-    {
-      apr_status_t errcode = APR_SUCCESS;  /* Error code to return or APR_SUCCESS if we should keep going */
-
-      if (acquire_global_lock(r->server) != GOSP_STATUS_OK)
-        return HTTP_INTERNAL_SERVER_ERROR;
-      do {
-        /* On any error, first release the lock. */
-        if (is_newer_than(r, r->canonical_filename, sock_name) == 1) {
-          gstatus = send_termination_request(r, sock_name);
-          if (gstatus == GOSP_STATUS_FAIL) {
-            errcode = HTTP_INTERNAL_SERVER_ERROR;
-            break;
-          }
-        }
-        status = apr_file_remove(sock_name, r->pool);
-        if (status != APR_SUCCESS) {
-          ap_log_rerror(APLOG_MARK, APLOG_ALERT, status, r,
-                        "Failed to remove socket %s", sock_name);
-          errcode = status;
-          break;
-        }
-        status = apr_file_remove(server_name, r->pool);
-        if (status != APR_SUCCESS) {
-          ap_log_rerror(APLOG_MARK, APLOG_ALERT, status, r,
-                        "Failed to remove Gosp server %s", server_name);
-          errcode = status;
-          break;
-        }
-      }
-      while (0);
-      if (release_global_lock(r->server) != GOSP_STATUS_OK)
-        return HTTP_INTERNAL_SERVER_ERROR;
-    }
+    /* Newer -- kill the Gosp server. */
+    gstatus = kill_gosp_server(r, sock_name, server_name);
+    if (gstatus != GOSP_STATUS_OK)
+      return HTTP_INTERNAL_SERVER_ERROR;
     break;
 
   case -1:

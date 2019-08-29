@@ -104,5 +104,6 @@ extern gosp_status_t acquire_global_lock(server_rec *s);
 extern gosp_status_t release_global_lock(server_rec *s);
 extern gosp_status_t simple_request_response(request_rec *r, const char *sock_name);
 extern gosp_status_t send_termination_request(request_rec *r, const char *sock_name);
+extern gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char *server_name);
 
 #endif

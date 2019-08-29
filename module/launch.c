@@ -113,20 +113,69 @@ int compile_gosp_server(request_rec *r, const char *work_dir)
   status = apr_proc_create(&proc, args[0], args, NULL, attr, r->pool);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-			 "Failed to run " GOSP2GO);
+                         "Failed to run " GOSP2GO);
 
   /* Wait for gosp2go to finish its execution. */
   status = apr_proc_wait(&proc, &exit_code, &exit_why, APR_WAIT);
   if (status != APR_CHILD_DONE)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, APR_SUCCESS,
-			 "%s was supposed to finish but didn't", GOSP2GO);
+                         "%s was supposed to finish but didn't", GOSP2GO);
   if (exit_why != APR_PROC_EXIT)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, APR_SUCCESS,
-			 "Abnormal exit from %s --build -o %s %s",
-			 GOSP2GO, server_name, r->canonical_filename);
+                         "Abnormal exit from %s --build -o %s %s",
+                         GOSP2GO, server_name, r->canonical_filename);
   if (exit_code != 0 && exit_code != APR_ENOTIMPL)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, APR_SUCCESS,
-			 "Nonzero exit code (%d) from %s --build -o %s %s",
-			 exit_code, GOSP2GO, server_name, r->canonical_filename);
+                         "Nonzero exit code (%d) from %s --build -o %s %s",
+                         exit_code, GOSP2GO, server_name, r->canonical_filename);
+  return GOSP_STATUS_OK;
+}
+
+/* Kill a running Gosp server. */
+gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char *server_name)
+{
+  apr_status_t errcode = APR_SUCCESS;  /* Error code to return or APR_SUCCESS if we should keep going */
+  apr_status_t status;        /* Status of an APR call */
+  gosp_status_t gstatus;      /* Status of an internal Gosp call */
+
+  /* Work within a critical section to ensure the Gosp server is killed exactly
+   * once. */
+  if (acquire_global_lock(r->server) != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
+
+  /* On any error, first release the lock. */
+  do {
+    /* Check that the server was not already recompiled by another process. */
+    if (is_newer_than(r, r->canonical_filename, sock_name) == 1) {
+      gstatus = send_termination_request(r, sock_name);
+      if (gstatus == GOSP_STATUS_FAIL) {
+        errcode = HTTP_INTERNAL_SERVER_ERROR;
+        break;
+      }
+    }
+
+    /* Remove the socket. */
+    status = apr_file_remove(sock_name, r->pool);
+    if (status != APR_SUCCESS) {
+      ap_log_rerror(APLOG_MARK, APLOG_ALERT, status, r,
+                    "Failed to remove socket %s", sock_name);
+      errcode = status;
+      break;
+    }
+
+    /* Remove the server executable. */
+    status = apr_file_remove(server_name, r->pool);
+    if (status != APR_SUCCESS) {
+      ap_log_rerror(APLOG_MARK, APLOG_ALERT, status, r,
+                    "Failed to remove Gosp server %s", server_name);
+      errcode = status;
+      break;
+    }
+  }
+  while (0);
+
+  /* Release the lock and return. */
+  if (release_global_lock(r->server) != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
   return GOSP_STATUS_OK;
 }
