@@ -50,21 +50,46 @@ gosp_status_t connect_socket(request_rec *r, const char *sock_name, apr_socket_t
   return GOSP_STATUS_OK;
 }
 
+/* Escape a string for JSON. */
+static char *escape_for_json(request_rec *r, const char *str)
+{
+  char *quoted;    /* Quoted version of str */
+  const char *sp;  /* Pointer into str */
+  char *qp;        /* Pointer into quoted */
+
+  if (str == NULL)
+    return apr_pstrdup(r->pool, "");
+  quoted = apr_palloc(r->pool, strlen(str)*2 + 1);  /* Worst-case allocation */
+  for (qp = quoted, sp = str; *sp != '\0'; qp++, sp++)
+    switch (*sp) {
+    case '\\':
+    case '"':
+      *qp++ = '\\';
+      *qp = *sp;
+      break;
+
+    default:
+      *qp = *sp;
+      break;
+    }
+  *qp = '\0';
+  return quoted;
+}
+
 /* Send HTTP connection information to a socket.  The connection information
  * must be kept up-to-date with the GospRequest struct in boilerplate.go. */
 gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
 {
   apr_status_t status;        /* Status of an APR call */
+  const char *rhost;          /* Name of remote host */
 
+  rhost = ap_get_remote_host(r->connection, r->per_dir_config, REMOTE_NAME, NULL);
   SEND_STRING("{\n");
-  SEND_STRING("  \"LocalHostname\": \"%s\",\n", r->hostname);
-  if (r->args)
-    SEND_STRING("  \"QueryArgs\": \"%s\",\n", r->args);
-  if (r->path_info)
-    SEND_STRING("  \"PathInfo\": \"%s\",\n", r->path_info);
-  SEND_STRING("  \"Uri\": \"%s\",\n", r->uri);
-  SEND_STRING("  \"RemoteHostname\": \"%s\"\n",
-              ap_get_remote_host(r->connection, r->per_dir_config, REMOTE_NAME, NULL));
+  SEND_STRING("  \"LocalHostname\": \"%s\",\n", escape_for_json(r, r->hostname));
+  SEND_STRING("  \"QueryArgs\": \"%s\",\n", escape_for_json(r, r->args));
+  SEND_STRING("  \"PathInfo\": \"%s\",\n", escape_for_json(r, r->path_info));
+  SEND_STRING("  \"Uri\": \"%s\",\n", escape_for_json(r, r->uri));
+  SEND_STRING("  \"RemoteHostname\": \"%s\"\n", escape_for_json(r, rhost));
   SEND_STRING("}\n");
   return GOSP_STATUS_OK;
 }
