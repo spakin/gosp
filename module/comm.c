@@ -116,7 +116,7 @@ gosp_status_t send_termination_request(request_rec *r, const char *sock_name)
 
   /* Ask the server to terminate. */
   SEND_STRING("{\n");
-  SEND_STRING("  \"ExitNow\": \"true\"\n");
+  SEND_STRING("  \"ExitNow\": true\n");
   SEND_STRING("}\n");
 
   /* Receive a process ID in response. */
