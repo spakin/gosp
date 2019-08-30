@@ -58,8 +58,10 @@ gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
 
   SEND_STRING("{\n");
   SEND_STRING("  \"LocalHostname\": \"%s\",\n", r->hostname);
-  SEND_STRING("  \"QueryArgs\": \"%s\",\n", r->args);
-  SEND_STRING("  \"PathInfo\": \"%s\",\n", r->path_info);
+  if (r->args)
+    SEND_STRING("  \"QueryArgs\": \"%s\",\n", r->args);
+  if (r->path_info)
+    SEND_STRING("  \"PathInfo\": \"%s\",\n", r->path_info);
   SEND_STRING("  \"Uri\": \"%s\",\n", r->uri);
   SEND_STRING("  \"RemoteHostname\": \"%s\"\n",
               ap_get_remote_host(r->connection, r->per_dir_config, REMOTE_NAME, NULL));
@@ -205,10 +207,8 @@ gosp_status_t receive_response(request_rec *r, apr_socket_t *sock, char **respon
     status = apr_socket_recv(sock, chunk, &len);
     switch (status) {
     case APR_EOF:
-      ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "End of file encountered");  // Temporary
     case APR_SUCCESS:
       /* Successful read */
-      ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Successfully read %lu bytes \"%-*.*s\"", len, (int)len, (int)len, chunk);  // Temporary
       break;
 
     case APR_TIMEUP:
@@ -255,25 +255,19 @@ gosp_status_t simple_request_response(request_rec *r, const char *sock_name)
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r,
                "Asking the Gosp server listening on socket %s to handle URI %s",
                sock_name, r->uri);
-  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Connecting to socket %s", sock_name);  // Temporary
   gstatus = connect_socket(r, sock_name, &sock);
-  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Connection status is %d", gstatus);  // Temporary
   if (gstatus != GOSP_STATUS_OK)
     return gstatus;
 
   /* Send the Gosp server a request and process its response. */
-  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Sending a request");  // Temporary
   gstatus = send_request(r, sock);
   if (gstatus != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
-  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Receiving a response");  // Temporary
   gstatus = receive_response(r, sock, &response, &resp_len);
   if (gstatus != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
-  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Closing the socket");  // Temporary
   status = apr_socket_close(sock);
   if (status != APR_SUCCESS)
     return GOSP_STATUS_FAIL;
-  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Processing the response (%s)", response);  // Temporary
   return process_response(r, response, resp_len);
 }
