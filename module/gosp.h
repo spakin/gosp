@@ -40,15 +40,11 @@
 #define GOSP_STATUS_NEED_ACTION 1    /* Function failed but may succeed if the caller takes some action and retries */
 #define GOSP_STATUS_FAIL        2    /* Function experienced a presumably permanent failure */
 
-/* Define a time in microseconds we're willing to wait to receive a
- * chunk of data from a Gosp server. */
-#define GOSP_RESPONSE_TIMEOUT 5000000
-
-/* Define a time in microseconds we're willing to wait to acquire a lock. */
-#define GOSP_LOCK_WAIT_TIME 3000000
-
-/* Define a time in microseconds we're willing to wait for a Gosp server to exit. */
-#define GOSP_EXIT_WAIT_TIME 100000
+/* Define a number of wait-time values (all in microseconds). */
+#define GOSP_RESPONSE_TIMEOUT 5000000  /* Time to wait to receive a chunk of data from a Gosp server */
+#define GOSP_LOCK_WAIT_TIME   3000000  /* Time to wait to acquire a lock */
+#define GOSP_LAUNCH_WAIT_TIME 3000000  /* Time to wait for a Gosp server to launch */
+#define GOSP_EXIT_WAIT_TIME    100000  /* Time to wait for a Gosp server to exit */
 
 /* Define a type corresponding the above. */
 typedef int gosp_status_t;
@@ -95,7 +91,7 @@ extern module AP_MODULE_DECLARE_DATA gosp_module;
 extern gosp_status_t acquire_global_lock(server_rec *s);
 extern gosp_status_t compile_gosp_server(request_rec *r, const char *server_name);
 extern char *concatenate_filepaths(server_rec *s, apr_pool_t *pool, ...);
-extern gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name);
+extern gosp_status_t connect_socket(request_rec *r, const char *sock_name, apr_socket_t **sock);
 extern gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char *fname, int is_dir);
 extern int is_newer_than(request_rec *r, const char *first, const char *second);
 extern gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char *server_name);

@@ -149,6 +149,7 @@ static int gosp_handler(request_rec *r)
   apr_finfo_t finfo;          /* File information for the rquested file */
   char *sock_name;            /* Name of the socket on which the Gosp server is listening */
   char *server_name;          /* Name of the Gosp server executable */
+  apr_time_t begin_time;      /* Time at which we began waiting for the server to launch */
   gosp_config_t *config;      /* Server configuration */
   int retval;                 /* Function return value */
   apr_status_t status;        /* Status of an APR call */
@@ -238,16 +239,27 @@ static int gosp_handler(request_rec *r)
   while (0);
 
   /* Release the lock. */
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Releasing the lock");  // Temporary
   gstatus = release_global_lock(r->server);
   if (gstatus != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "retval = %d", retval);  // Temporary
   if (retval != OK)
     return retval;
 
   /* Try again to have the Gosp server handle the request. */
-  gstatus = simple_request_response(r, sock_name);
-  if (gstatus != GOSP_STATUS_OK)
-    return HTTP_INTERNAL_SERVER_ERROR;
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Repeating the request");  // Temporary
+  begin_time = apr_time_now();
+  while (apr_time_now() - begin_time < GOSP_LAUNCH_WAIT_TIME) {
+    /* Keep retrying while we wait for the server to launch. */
+    gstatus = simple_request_response(r, sock_name);
+    ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Request returned %d", gstatus);  // Temporary
+    if (gstatus == GOSP_STATUS_OK)
+      break;
+    if (gstatus == GOSP_STATUS_FAIL)
+      return HTTP_INTERNAL_SERVER_ERROR;
+    apr_sleep(1000);
+  }
   return OK;
 }
 

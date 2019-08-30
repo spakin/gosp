@@ -24,7 +24,7 @@
 /* Connect to a Unix-domain stream socket.  Return GOSP_STATUS_FAIL if we fail
  * to create any local data structures.  Return GOSP_STATUS_NEED_ACTION if we
  * fail to connect to the socket.  Return GOSP_STATUS_OK on success. */
-gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name)
+gosp_status_t connect_socket(request_rec *r, const char *sock_name, apr_socket_t **sock)
 {
   apr_sockaddr_t *sa;         /* Socket address corresponding to sock_name */
   apr_status_t status;        /* Status of an APR call */
@@ -83,7 +83,7 @@ gosp_status_t send_termination_request(request_rec *r, const char *sock_name)
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_INFO, APR_SUCCESS, r,
                "Asking the Gosp server listening on socket %s to terminate",
                sock_name);
-  gstatus = connect_socket(&sock, r, sock_name);
+  gstatus = connect_socket(r, sock_name, &sock);
   if (gstatus != GOSP_STATUS_OK)
     return GOSP_STATUS_NEED_ACTION;
 
@@ -251,19 +251,25 @@ gosp_status_t simple_request_response(request_rec *r, const char *sock_name)
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r,
                "Asking the Gosp server listening on socket %s to handle URI %s",
                sock_name, r->uri);
-  gstatus = connect_socket(&sock, r, sock_name);
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Connecting to socket %s", sock_name);  // Temporary
+  gstatus = connect_socket(r, sock_name, &sock);
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Connection status is %d", gstatus);  // Temporary
   if (gstatus != GOSP_STATUS_OK)
     return gstatus;
 
   /* Send the Gosp server a request and process its response. */
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Sending a request");  // Temporary
   gstatus = send_request(r, sock);
   if (gstatus != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Receiving a response");  // Temporary
   gstatus = receive_response(r, sock, &response, &resp_len);
   if (gstatus != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Closing the socket");  // Temporary
   status = apr_socket_close(sock);
   if (status != APR_SUCCESS)
     return GOSP_STATUS_FAIL;
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Processing the response (%s)", response);  // Temporary
   return process_response(r, response, resp_len);
 }
