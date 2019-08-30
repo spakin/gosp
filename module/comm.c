@@ -29,24 +29,23 @@ gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *so
   apr_sockaddr_t *sa;         /* Socket address corresponding to sock_name */
   apr_status_t status;        /* Status of an APR call */
 
-  /* Construct a socket address.  Failure should never happen. */
+  /* Construct a socket address. */
   status = apr_sockaddr_info_get(&sa, sock_name, APR_UNIX, 0, 0, r->pool);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                          "Failed to construct a Unix-domain socket address from %s", sock_name);
 
-  /* Create a Unix-domain stream socket.  Failure may indicate the parent
-   * directory hasn't yet been created. */
+  /* Create a Unix-domain stream socket. */
   status = apr_socket_create(sock, APR_UNIX, SOCK_STREAM, APR_PROTO_TCP, r->pool);
   if (status != APR_SUCCESS)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_NEED_ACTION, APLOG_ALERT, status,
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                          "Failed to create socket %s", sock_name);
 
-  /* Connect to the socket we just created.  Failure may indicate the Gosp
-   * server isn't running. */
+  /* Connect to the socket we just created.  Failure presumably indicates that
+   * the Gosp server isn't running. */
   status = apr_socket_connect(*sock, sa);
   if (status != APR_SUCCESS)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_NEED_ACTION, APLOG_NOTICE, status,
+    REPORT_REQUEST_ERROR(GOSP_STATUS_NEED_ACTION, APLOG_INFO, status,
                          "Failed to connect to socket %s", sock_name);
   return GOSP_STATUS_OK;
 }
@@ -81,7 +80,7 @@ gosp_status_t send_termination_request(request_rec *r, const char *sock_name)
   apr_status_t status;        /* Status of an APR call */
 
   /* Connect to the process that handles the requested Go Server Page. */
-  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r,
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_INFO, APR_SUCCESS, r,
                "Asking the Gosp server listening on socket %s to terminate",
                sock_name);
   gstatus = connect_socket(&sock, r, sock_name);

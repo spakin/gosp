@@ -150,6 +150,7 @@ static int gosp_handler(request_rec *r)
   char *sock_name;            /* Name of the socket on which the Gosp server is listening */
   char *server_name;          /* Name of the Gosp server executable */
   gosp_config_t *config;      /* Server configuration */
+  int retval;                 /* Function return value */
   apr_status_t status;        /* Status of an APR call */
   gosp_status_t gstatus;      /* Status of an internal Gosp call */
 
@@ -208,21 +209,45 @@ static int gosp_handler(request_rec *r)
     break;
   }
 
-  /* If we get here, we were unable to communicate with the Gosp server. */
-  status = apr_stat(&finfo, server_name, 0, r->pool);
-  if (status != APR_SUCCESS) {
-    /* The Gosp server doesn't appear to have been compiled.  Compile it. */
-    gstatus = compile_gosp_server(r, server_name);
-    if (gstatus != GOSP_STATUS_OK)
-      return HTTP_INTERNAL_SERVER_ERROR;
-  }
+  /* If we get here, we were unable to communicate with the Gosp server.  We
+   * may need to compile and/or launch it.  To ensure that it's
+   * compiled/launched only once, we take the global lock. */
+  gstatus = acquire_global_lock(r->server);
+  if (gstatus != GOSP_STATUS_OK)
+    return HTTP_INTERNAL_SERVER_ERROR;
+  retval = OK;
+  do {
+    /* Check if the Gosp server executable already exists. */
+    status = apr_stat(&finfo, server_name, 0, r->pool);
+    if (status != APR_SUCCESS) {
+      /* The Gosp server doesn't appear to have been compiled.  Compile it. */
+      gstatus = compile_gosp_server(r, server_name);
+      if (gstatus != GOSP_STATUS_OK) {
+        retval = HTTP_INTERNAL_SERVER_ERROR;
+        break;
+      }
+    }
 
-  /* Temporary placeholder */
-  {
-    time_t now = time(NULL);
-    r->content_type = "text/html";
-    ap_rprintf(r, "Temporary placeholder for %s at %s\n", r->filename, ctime(&now));
+    /* The Gosp server executable now exists.  Launch it. */
+    gstatus = launch_gosp_process(r, server_name, sock_name);
+    if (gstatus != GOSP_STATUS_OK) {
+      retval = HTTP_INTERNAL_SERVER_ERROR;
+      break;
+    }
   }
+  while (0);
+
+  /* Release the lock. */
+  gstatus = release_global_lock(r->server);
+  if (gstatus != GOSP_STATUS_OK)
+    return HTTP_INTERNAL_SERVER_ERROR;
+  if (retval != OK)
+    return retval;
+
+  /* Try again to have the Gosp server handle the request. */
+  gstatus = simple_request_response(r, sock_name);
+  if (gstatus != GOSP_STATUS_OK)
+    return HTTP_INTERNAL_SERVER_ERROR;
   return OK;
 }
 

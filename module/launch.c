@@ -96,6 +96,10 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
   const char **args;          /* Process command-line arguments */
   apr_status_t status;        /* Status of an APR call */
 
+  /* Announce what we're about to do. */
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r,
+                "Launching Gosp process %s", server_name);
+
   /* Ensure we have a place to write the socket. */
   if (create_directories_for(r->server, r->pool, sock_name, 0) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
