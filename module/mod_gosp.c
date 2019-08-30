@@ -199,12 +199,9 @@ static int gosp_handler(request_rec *r)
     break;
 
   case 1:
-    /* Newer -- kill the Gosp server then remove its executable. */
+    /* Newer -- kill the Gosp server and remove its socket and executable. */
     gstatus = kill_gosp_server(r, sock_name, server_name);
     if (gstatus != GOSP_STATUS_OK)
-      return HTTP_INTERNAL_SERVER_ERROR;
-    status = apr_file_remove(server_name, r->pool);
-    if (status != APR_SUCCESS)
       return HTTP_INTERNAL_SERVER_ERROR;
     break;
 

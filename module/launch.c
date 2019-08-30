@@ -129,10 +129,11 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
                        "Failed to run %s", server_name);
 }
 
-/* Kill a running Gosp server. */
+/* Kill a running Gosp server.  We assume this is called because the Gosp page
+ * is newer than the Gosp server. */
 gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char *server_name)
 {
-  apr_status_t errcode = APR_SUCCESS;  /* Error code to return or APR_SUCCESS if we should keep going */
+  gosp_status_t errcode = GOSP_STATUS_OK;  /* Error code to return */
   apr_status_t status;        /* Status of an APR call */
   gosp_status_t gstatus;      /* Status of an internal Gosp call */
 
@@ -146,8 +147,8 @@ gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char
     /* Check that the server was not already recompiled by another process. */
     if (is_newer_than(r, r->canonical_filename, sock_name) == 1) {
       gstatus = send_termination_request(r, sock_name);
-      if (gstatus == GOSP_STATUS_FAIL) {
-        errcode = HTTP_INTERNAL_SERVER_ERROR;
+      if (gstatus != GOSP_STATUS_OK) {
+        errcode = GOSP_STATUS_FAIL;
         break;
       }
     }
@@ -157,7 +158,7 @@ gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char
     if (status != APR_SUCCESS) {
       ap_log_rerror(APLOG_MARK, APLOG_ALERT, status, r,
                     "Failed to remove socket %s", sock_name);
-      errcode = status;
+      errcode = GOSP_STATUS_FAIL;
       break;
     }
 
@@ -166,7 +167,7 @@ gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char
     if (status != APR_SUCCESS) {
       ap_log_rerror(APLOG_MARK, APLOG_ALERT, status, r,
                     "Failed to remove Gosp server %s", server_name);
-      errcode = status;
+      errcode = GOSP_STATUS_FAIL;
       break;
     }
   }
@@ -175,5 +176,5 @@ gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char
   /* Release the lock and return. */
   if (release_global_lock(r->server) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
-  return GOSP_STATUS_OK;
+  return errcode;
 }
