@@ -92,18 +92,18 @@ do {                                                                        \
 
 /* Declare variables and functions that will be accessed cross-file. */
 extern module AP_MODULE_DECLARE_DATA gosp_module;
-extern gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name);
-extern gosp_status_t launch_gosp_process(request_rec *r, const char *run_dir, const char *sock_name);
-extern gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char *fname, int is_dir);
-extern char *concatenate_filepaths(server_rec *s, apr_pool_t *pool, ...);
-extern int is_newer_than(request_rec *r, const char *first, const char *second);
-extern gosp_status_t compile_gosp_server(request_rec *r, const char *work_dir);
-extern gosp_status_t send_request(apr_socket_t *sock, request_rec *r);
-extern gosp_status_t receive_response(apr_socket_t *sock, request_rec *r, char **response, size_t *resp_len);
 extern gosp_status_t acquire_global_lock(server_rec *s);
-extern gosp_status_t release_global_lock(server_rec *s);
-extern gosp_status_t simple_request_response(request_rec *r, const char *sock_name);
-extern gosp_status_t send_termination_request(request_rec *r, const char *sock_name);
+extern gosp_status_t compile_gosp_server(request_rec *r, const char *server_name);
+extern char *concatenate_filepaths(server_rec *s, apr_pool_t *pool, ...);
+extern gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *sock_name);
+extern gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char *fname, int is_dir);
+extern int is_newer_than(request_rec *r, const char *first, const char *second);
 extern gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char *server_name);
+extern gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const char *sock_name);
+extern gosp_status_t receive_response(apr_socket_t *sock, request_rec *r, char **response, size_t *resp_len);
+extern gosp_status_t release_global_lock(server_rec *s);
+extern gosp_status_t send_request(apr_socket_t *sock, request_rec *r);
+extern gosp_status_t send_termination_request(request_rec *r, const char *sock_name);
+extern gosp_status_t simple_request_response(request_rec *r, const char *sock_name);
 
 #endif

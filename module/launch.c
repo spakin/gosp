@@ -17,77 +17,31 @@
     }                                                                   \
   } while (0)
 
-/* Launch a Go Server Page process to handle the current page.  Return
- * GOSP_STATUS_OK on success, GOSP_STATUS_NEED_ACTION if the executable wasn't
- * found (and presumably needs to be built), and GOSP_STATUS_FAIL if an
- * unexpected error occurred (and the request needs to be aborted). */
-gosp_status_t launch_gosp_process(request_rec *r, const char *work_dir, const char *sock_name)
-{
-  char *server_name;          /* Name of the Gosp server executable */
-  apr_proc_t proc;            /* Launched process */
-  apr_procattr_t *attr;       /* Process attributes */
-  const char **args;          /* Process command-line arguments */
-  apr_status_t status;        /* Status of an APR call */
-
-  /* Ensure we have a place to write the socket. */
-  if (create_directories_for(r->server, r->pool, sock_name, 0) != GOSP_STATUS_OK)
-    return GOSP_STATUS_FAIL;
-
-  /* Prepare the process attributes. */
-  LAUNCH_CALL(apr_procattr_create(&attr, r->pool),
-              "Creating Gosp process attributes failed");
-  LAUNCH_CALL(apr_procattr_detach_set(attr, 1),
-              "Specifying that a Gosp process should detach from its parent");
-  LAUNCH_CALL(apr_procattr_error_check_set(attr, 1),
-              "Specifying that there should be extra error checking for a Gosp process");
-  LAUNCH_CALL(apr_procattr_cmdtype_set(attr, APR_PROGRAM_ENV),
-              "Specifying that a Gosp process should inherit its parent's environment");
-
-  /* Prefix the Gosp page name with the run directory to produce the name of
-   * the Gosp server. */
-  server_name = concatenate_filepaths(r->server, r->pool, work_dir, "bin",
-                                      apr_pstrcat(r->pool, r->canonical_filename, ".exe", NULL),
-                                      NULL);
-  if (server_name == NULL)
-    return GOSP_STATUS_FAIL;
-
-  /* Spawn the Gosp process. */
-  args = (const char **) apr_palloc(r->pool, 4*sizeof(char *));
-  args[0] = server_name;
-  args[1] = "-socket";
-  args[2] = sock_name;
-  args[3] = NULL;
-  status = apr_proc_create(&proc, server_name, args, NULL, attr, r->pool);
-  if (status == APR_SUCCESS)
-    return GOSP_STATUS_OK;
-  if (APR_STATUS_IS_ENOENT(status))
-    return GOSP_STATUS_NEED_ACTION;
-  REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
-                       "Failed to run %s", server_name);
-}
-
 /* Use gosp2go to compile a Go Server Page into an executable program. */
-int compile_gosp_server(request_rec *r, const char *work_dir)
+gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
 {
   apr_procattr_t *attr;       /* Process attributes */
-  char *server_name;          /* Gosp executable filename */
   apr_proc_t proc;            /* Launched process */
   const char **args;          /* Process command-line arguments */
   int exit_code;              /* gosp2go return code */
   apr_exit_why_e exit_why;    /* Condition under which gosp2go exited */
   char *go_cache;             /* Directory for the Go build cache */
+  gosp_config_t *config;      /* Server configuration */
+  const char *work_dir;       /* Top-level work directory */
   apr_status_t status;        /* Status of an APR call */
 
+  /* Announce what we're about to do. */
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r,
+                "Compiling %s into %s",
+                r->canonical_filename, server_name);
+
   /* Ensure we have a place to write the executable. */
-  server_name = concatenate_filepaths(r->server, r->pool, work_dir, "bin",
-                                      apr_pstrcat(r->pool, r->canonical_filename, ".exe", NULL),
-                                      NULL);
-  if (server_name == NULL)
-    return GOSP_STATUS_FAIL;
   if (create_directories_for(r->server, r->pool, server_name, 0) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
 
   /* Prepare a Go build cache. */
+  config = ap_get_module_config(r->server->module_config, &gosp_module);
+  work_dir = config->work_dir;
   go_cache = concatenate_filepaths(r->server, r->pool, work_dir, "go-build", NULL);
   if (go_cache == NULL)
     return GOSP_STATUS_FAIL;
@@ -129,6 +83,46 @@ int compile_gosp_server(request_rec *r, const char *work_dir)
                          "Nonzero exit code (%d) from %s --build -o %s %s",
                          exit_code, GOSP2GO, server_name, r->canonical_filename);
   return GOSP_STATUS_OK;
+}
+
+/* Launch a Go Server Page process to handle the current page.  Return
+ * GOSP_STATUS_OK on success, GOSP_STATUS_NEED_ACTION if the executable wasn't
+ * found (and presumably needs to be built), and GOSP_STATUS_FAIL if an
+ * unexpected error occurred (and the request needs to be aborted). */
+gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const char *sock_name)
+{
+  apr_proc_t proc;            /* Launched process */
+  apr_procattr_t *attr;       /* Process attributes */
+  const char **args;          /* Process command-line arguments */
+  apr_status_t status;        /* Status of an APR call */
+
+  /* Ensure we have a place to write the socket. */
+  if (create_directories_for(r->server, r->pool, sock_name, 0) != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
+
+  /* Prepare the process attributes. */
+  LAUNCH_CALL(apr_procattr_create(&attr, r->pool),
+              "Creating Gosp process attributes failed");
+  LAUNCH_CALL(apr_procattr_detach_set(attr, 1),
+              "Specifying that a Gosp process should detach from its parent");
+  LAUNCH_CALL(apr_procattr_error_check_set(attr, 1),
+              "Specifying that there should be extra error checking for a Gosp process");
+  LAUNCH_CALL(apr_procattr_cmdtype_set(attr, APR_PROGRAM_ENV),
+              "Specifying that a Gosp process should inherit its parent's environment");
+
+  /* Spawn the Gosp process. */
+  args = (const char **) apr_palloc(r->pool, 4*sizeof(char *));
+  args[0] = server_name;
+  args[1] = "-socket";
+  args[2] = sock_name;
+  args[3] = NULL;
+  status = apr_proc_create(&proc, server_name, args, NULL, attr, r->pool);
+  if (status == APR_SUCCESS)
+    return GOSP_STATUS_OK;
+  if (APR_STATUS_IS_ENOENT(status))
+    return GOSP_STATUS_NEED_ACTION;
+  REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+                       "Failed to run %s", server_name);
 }
 
 /* Kill a running Gosp server. */

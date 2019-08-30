@@ -29,19 +29,21 @@ gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *so
   apr_sockaddr_t *sa;         /* Socket address corresponding to sock_name */
   apr_status_t status;        /* Status of an APR call */
 
-  /* Construct a socket address. */
+  /* Construct a socket address.  Failure should never happen. */
   status = apr_sockaddr_info_get(&sa, sock_name, APR_UNIX, 0, 0, r->pool);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
                          "Failed to construct a Unix-domain socket address from %s", sock_name);
 
-  /* Create a Unix-domain stream socket. */
+  /* Create a Unix-domain stream socket.  Failure may indicate the parent
+   * directory hasn't yet been created. */
   status = apr_socket_create(sock, APR_UNIX, SOCK_STREAM, APR_PROTO_TCP, r->pool);
   if (status != APR_SUCCESS)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+    REPORT_REQUEST_ERROR(GOSP_STATUS_NEED_ACTION, APLOG_ALERT, status,
                          "Failed to create socket %s", sock_name);
 
-  /* Connect to the socket we just created. */
+  /* Connect to the socket we just created.  Failure may indicate the Gosp
+   * server isn't running. */
   status = apr_socket_connect(*sock, sa);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(GOSP_STATUS_NEED_ACTION, APLOG_NOTICE, status,

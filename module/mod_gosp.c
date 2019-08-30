@@ -209,10 +209,20 @@ static int gosp_handler(request_rec *r)
   }
 
   /* If we get here, we were unable to communicate with the Gosp server. */
+  status = apr_stat(&finfo, server_name, 0, r->pool);
+  if (status != APR_SUCCESS) {
+    /* The Gosp server doesn't appear to have been compiled.  Compile it. */
+    gstatus = compile_gosp_server(r, server_name);
+    if (gstatus != GOSP_STATUS_OK)
+      return HTTP_INTERNAL_SERVER_ERROR;
+  }
 
   /* Temporary placeholder */
-  r->content_type = "text/html";
-  ap_rprintf(r, "We need to compile an executable for %s\n", r->filename);
+  {
+    time_t now = time(NULL);
+    r->content_type = "text/html";
+    ap_rprintf(r, "Temporary placeholder for %s at %s\n", r->filename, ctime(&now));
+  }
   return OK;
 }
 
