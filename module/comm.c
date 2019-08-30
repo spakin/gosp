@@ -57,10 +57,10 @@ gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
   apr_status_t status;        /* Status of an APR call */
 
   SEND_STRING("{\n");
-  SEND_STRING("  \"LocalHostname\": \"%s\"\n", r->hostname);
-  SEND_STRING("  \"QueryArgs\": \"%s\"\n", r->args);
-  SEND_STRING("  \"PathInfo\": \"%s\"\n", r->path_info);
-  SEND_STRING("  \"Uri\": \"%s\"\n", r->uri);
+  SEND_STRING("  \"LocalHostname\": \"%s\",\n", r->hostname);
+  SEND_STRING("  \"QueryArgs\": \"%s\",\n", r->args);
+  SEND_STRING("  \"PathInfo\": \"%s\",\n", r->path_info);
+  SEND_STRING("  \"Uri\": \"%s\",\n", r->uri);
   SEND_STRING("  \"RemoteHostname\": \"%s\"\n",
               ap_get_remote_host(r->connection, r->per_dir_config, REMOTE_NAME, NULL));
   SEND_STRING("}\n");
@@ -132,7 +132,8 @@ static gosp_status_t process_response(request_rec *r, char *response, size_t res
 {
   char *last;      /* Internal apr_strtok() state */
   char *line;      /* One line of metadata */
-  int nwritten;    /* Number of bytes of data written */
+  int n_to_write;  /* Number of bytes of data we expect to write */
+  int nwritten;    /* Number of bytes of data actuall written */
 
   /* Process each line of metadata until we see "end-header". */
   for (line = apr_strtok(response, "\n", &last);
@@ -169,8 +170,9 @@ static gosp_status_t process_response(request_rec *r, char *response, size_t res
     return GOSP_STATUS_OK;
   if (line == NULL)
     return GOSP_STATUS_OK;
-  nwritten = ap_rwrite(line, (int)resp_len - (int)(last - response + 1), r);
-  if (nwritten != (int)resp_len - (int)(last - response + 1))
+  n_to_write = (int)resp_len - (int)(last - response + 1) - 11;  /* 11 is "end-header" followed by apr_strtok's '\0'. */
+  nwritten = ap_rwrite(line + 11, n_to_write, r);
+  if (nwritten != n_to_write)
     return GOSP_STATUS_FAIL;
   return GOSP_STATUS_OK;
 }
@@ -202,9 +204,11 @@ gosp_status_t receive_response(request_rec *r, apr_socket_t *sock, char **respon
     /* Read one chunk of data. */
     status = apr_socket_recv(sock, chunk, &len);
     switch (status) {
-    case APR_SUCCESS:
     case APR_EOF:
+      ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "End of file encountered");  // Temporary
+    case APR_SUCCESS:
       /* Successful read */
+      ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r, "Successfully read %lu bytes \"%-*.*s\"", len, (int)len, (int)len, chunk);  // Temporary
       break;
 
     case APR_TIMEUP:

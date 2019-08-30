@@ -151,6 +151,14 @@ func GospStartServer(fn string) error {
 		if err != nil {
 			return err
 		}
+
+
+// Temporary
+f, err := gospOs.Create("/tmp/junk.out")
+if err != nil {return err}
+defer f.Close()
+gospFmt.Fprintln(f, "In GospLaunchHTMLGenerator")
+
 		wg.Add(1)
 		go func(conn gospNet.Conn) {
 			defer wg.Done()
@@ -159,6 +167,10 @@ func GospStartServer(fn string) error {
 			dec := gospJson.NewDecoder(conn)
 			var gr GospRequest
 			err = dec.Decode(&gr)
+
+// Temporary
+gospFmt.Fprintf(f, "dec.Decode ==> %#v %s\n", gr, err)
+
 			if err != nil {
 				return
 			}
