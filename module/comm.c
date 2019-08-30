@@ -52,7 +52,7 @@ gosp_status_t connect_socket(apr_socket_t **sock, request_rec *r, const char *so
 
 /* Send HTTP connection information to a socket.  The connection information
  * must be kept up-to-date with the GospRequest struct in boilerplate.go. */
-gosp_status_t send_request(apr_socket_t *sock, request_rec *r)
+gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
 {
   apr_status_t status;        /* Status of an APR call */
 
@@ -93,7 +93,7 @@ gosp_status_t send_termination_request(request_rec *r, const char *sock_name)
   SEND_STRING("}\n");
 
   /* Receive a process ID in response. */
-  gstatus = receive_response(sock, r, &response, &resp_len);
+  gstatus = receive_response(r, sock, &response, &resp_len);
   if (gstatus != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
   if (strncmp(response, "gosp-pid ", 9) != 0)
@@ -178,7 +178,7 @@ static gosp_status_t process_response(request_rec *r, char *response, size_t res
 /* Receive a response from the Gosp server and return it.  Return
  * GOSP_STATUS_NEED_ACTION if the server timed out and ought to be killed and
  * relaunched. */
-gosp_status_t receive_response(apr_socket_t *sock, request_rec *r, char **response, size_t *resp_len)
+gosp_status_t receive_response(request_rec *r, apr_socket_t *sock, char **response, size_t *resp_len)
 {
   char *chunk;                /* One chunk of data read from the socket */
   const size_t chunk_size = 1000000;   /* Amount of data to read at once */
@@ -256,7 +256,10 @@ gosp_status_t simple_request_response(request_rec *r, const char *sock_name)
     return gstatus;
 
   /* Send the Gosp server a request and process its response. */
-  gstatus = receive_response(sock, r, &response, &resp_len);
+  gstatus = send_request(r, sock);
+  if (gstatus != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
+  gstatus = receive_response(r, sock, &response, &resp_len);
   if (gstatus != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
   status = apr_socket_close(sock);

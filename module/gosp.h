@@ -100,9 +100,9 @@ extern gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, con
 extern int is_newer_than(request_rec *r, const char *first, const char *second);
 extern gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char *server_name);
 extern gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const char *sock_name);
-extern gosp_status_t receive_response(apr_socket_t *sock, request_rec *r, char **response, size_t *resp_len);
+extern gosp_status_t receive_response(request_rec *r, apr_socket_t *sock, char **response, size_t *resp_len);
 extern gosp_status_t release_global_lock(server_rec *s);
-extern gosp_status_t send_request(apr_socket_t *sock, request_rec *r);
+extern gosp_status_t send_request(request_rec *r, apr_socket_t *sock);
 extern gosp_status_t send_termination_request(request_rec *r, const char *sock_name);
 extern gosp_status_t simple_request_response(request_rec *r, const char *sock_name);
 
