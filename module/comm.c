@@ -16,7 +16,7 @@
                                                                         \
     status = apr_socket_send(sock, str, &len);                          \
     if (status != APR_SUCCESS || len != exp_len)                        \
-      REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,       \
+      REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,         \
                           "Failed to send %lu bytes to the Gosp server", (unsigned long)exp_len); \
   }                                                                     \
   while (0)
@@ -32,13 +32,13 @@ gosp_status_t connect_socket(request_rec *r, const char *sock_name, apr_socket_t
   /* Construct a socket address. */
   status = apr_sockaddr_info_get(&sa, sock_name, APR_UNIX, 0, 0, r->pool);
   if (status != APR_SUCCESS)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                          "Failed to construct a Unix-domain socket address from %s", sock_name);
 
   /* Create a Unix-domain stream socket. */
   status = apr_socket_create(sock, APR_UNIX, SOCK_STREAM, APR_PROTO_TCP, r->pool);
   if (status != APR_SUCCESS)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                          "Failed to create socket %s", sock_name);
 
   /* Connect to the socket we just created.  Failure presumably indicates that
@@ -261,7 +261,7 @@ gosp_status_t receive_response(request_rec *r, apr_socket_t *sock, char **respon
   /* Prepare to read from the socket. */
   status = apr_socket_timeout_set(sock, GOSP_RESPONSE_TIMEOUT);
   if (status != APR_SUCCESS)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                          "Failed to set a socket timeout");
   chunk = apr_palloc(r->pool, chunk_size);
   iov[0].iov_base = "";
@@ -287,7 +287,7 @@ gosp_status_t receive_response(request_rec *r, apr_socket_t *sock, char **respon
 
     default:
       /* Other error */
-      REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+      REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                            "Failed to receive data from the Gosp server");
       break;
     }

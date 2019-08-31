@@ -12,7 +12,7 @@
   do {                                                                  \
     status = FCALL;                                                     \
     if (status != APR_SUCCESS) {                                        \
-      ap_log_rerror(APLOG_MARK, APLOG_ALERT, status, r, __VA_ARGS__);   \
+      ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r, __VA_ARGS__);     \
       return GOSP_STATUS_FAIL;                                          \
     }                                                                   \
   } while (0)
@@ -66,20 +66,20 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   args[5] = NULL;
   status = apr_proc_create(&proc, args[0], args, NULL, attr, r->pool);
   if (status != APR_SUCCESS)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                          "Failed to run " GOSP2GO);
 
   /* Wait for gosp2go to finish its execution. */
   status = apr_proc_wait(&proc, &exit_code, &exit_why, APR_WAIT);
   if (status != APR_CHILD_DONE)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, APR_SUCCESS,
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
                          "%s was supposed to finish but didn't", GOSP2GO);
   if (exit_why != APR_PROC_EXIT)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, APR_SUCCESS,
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
                          "Abnormal exit from %s --build -o %s %s",
                          GOSP2GO, server_name, r->canonical_filename);
   if (exit_code != 0 && exit_code != APR_ENOTIMPL)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, APR_SUCCESS,
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
                          "Nonzero exit code (%d) from %s --build -o %s %s",
                          exit_code, GOSP2GO, server_name, r->canonical_filename);
   return GOSP_STATUS_OK;
@@ -125,7 +125,7 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
     return GOSP_STATUS_OK;
   if (APR_STATUS_IS_ENOENT(status))
     return GOSP_STATUS_NEED_ACTION;
-  REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ALERT, status,
+  REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                        "Failed to run %s", server_name);
 }
 
@@ -156,7 +156,7 @@ gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char
     /* Remove the socket. */
     status = apr_file_remove(sock_name, r->pool);
     if (status != APR_SUCCESS) {
-      ap_log_rerror(APLOG_MARK, APLOG_ALERT, status, r,
+      ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
                     "Failed to remove socket %s", sock_name);
       errcode = GOSP_STATUS_FAIL;
       break;
@@ -165,7 +165,7 @@ gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char
     /* Remove the server executable. */
     status = apr_file_remove(server_name, r->pool);
     if (status != APR_SUCCESS) {
-      ap_log_rerror(APLOG_MARK, APLOG_ALERT, status, r,
+      ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
                     "Failed to remove Gosp server %s", server_name);
       errcode = GOSP_STATUS_FAIL;
       break;

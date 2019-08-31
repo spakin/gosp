@@ -118,12 +118,12 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
                                    APR_LOCK_DEFAULT, pconf);
 #endif
   if (status != APR_SUCCESS)
-    REPORT_SERVER_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
+    REPORT_SERVER_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, status,
                         "Failed to create lock file %s", config->lock_name);
 #ifdef AP_NEED_SET_MUTEX_PERMS
   status = ap_unixd_set_global_mutex_perms(config->mutex);
   if (status != APR_SUCCESS)
-    REPORT_SERVER_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, status,
+    REPORT_SERVER_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, status,
                         "Failed to set permissions on lock file %s", config->lock_name);
 #endif
   return OK;
@@ -139,7 +139,7 @@ static void gosp_child_init(apr_pool_t *pool, server_rec *s)
   config = ap_get_module_config(s->module_config, &gosp_module);
   status = apr_global_mutex_child_init(&config->mutex, config->lock_name, pool);
   if (status != APR_SUCCESS)
-    ap_log_error(APLOG_MARK, APLOG_ALERT, status, s,
+    ap_log_error(APLOG_MARK, APLOG_ERR, status, s,
                  "Failed to reconnect to lock file %s", config->lock_name);
 }
 
@@ -174,7 +174,7 @@ static int gosp_handler(request_rec *r)
    * server. */
   sock_name = concatenate_filepaths(r->server, r->pool, config->work_dir, "sockets", r->canonical_filename, NULL);
   if (sock_name == NULL)
-    REPORT_REQUEST_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, APR_SUCCESS,
+    REPORT_REQUEST_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, APR_SUCCESS,
                          "Failed to construct a socket name");
   sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
 
@@ -183,7 +183,7 @@ static int gosp_handler(request_rec *r)
                                       apr_pstrcat(r->pool, r->canonical_filename, ".exe", NULL),
                                       NULL);
   if (server_name == NULL)
-    REPORT_REQUEST_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ALERT, APR_SUCCESS,
+    REPORT_REQUEST_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, APR_SUCCESS,
                          "Failed to construct the name of the Gosp server");
 
   /* If the Gosp file is newer than the Gosp server, terminate the Gosp server.
