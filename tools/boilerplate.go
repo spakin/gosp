@@ -96,6 +96,7 @@ type GospRequest struct {
 	Uri            string            // Path portion of the URI
 	Method         string            // Request method ("GET", "POST", etc.)
 	PostData       map[string]string // {Key, value} pairs sent by a POST request
+	HeaderData     map[string]string // Request headers as {key, value} pairs
 	RemoteHostname string            // Name of the remote host
 	ExitNow        bool              // Used internally: If true, shut down the program cleanly
 }

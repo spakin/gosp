@@ -117,14 +117,61 @@ static gosp_status_t send_post_data(request_rec *r, apr_socket_t *sock)
   return GOSP_STATUS_OK;
 }
 
+/* Define some information to pass to a table iterator. */
+typedef struct {
+  request_rec *request;   /* Current request */
+  int first;              /* 1=first item in table; 0=subsequent item */
+  apr_socket_t *socket;   /* Gosp socket to send strings to */
+} table_item_data_t;
+
+/* Send a {key, value} pair with JSON encoding into a socket. */
+static int send_table_item(void *rec, const char *key, const char *value)
+{
+  const char *str;            /* String to send */
+  apr_size_t exp_len;         /* Number of bytes we had expected to send */
+  apr_size_t len;             /* Number of bytes sent */
+  apr_status_t status;        /* Status of an APR call */
+
+  /* Extract a few fields from our data structure. */
+  table_item_data_t *data = (table_item_data_t *)rec;
+  request_rec *r = data->request;
+  apr_socket_t *sock = data->socket;
+
+  /* Send the key and value as JSON code. */
+  if (data->first)
+    data->first = 0;
+  else {
+    len = 2;
+    status = apr_socket_send(sock, ",\n", &len);
+    if (status != APR_SUCCESS || len != 2)
+      REPORT_REQUEST_ERROR(0, APLOG_ERR, status,
+                           "Failed to send 2 bytes to the Gosp server");
+  }
+  str = apr_psprintf(r->pool, "    \"%s\": \"%s\"",
+                     escape_for_json(r, key), escape_for_json(r, value));
+  len = exp_len = (apr_size_t) strlen(str);
+  status = apr_socket_send(sock, ",\n", &len);
+  if (status != APR_SUCCESS || len != exp_len)
+    REPORT_REQUEST_ERROR(0, APLOG_ERR, status,
+                         "Failed to send %ld bytes to the Gosp server", exp_len);
+  return 1;
+}
+
 /* Send HTTP connection information to a socket.  The connection information
  * must be kept up-to-date with the GospRequest struct in boilerplate.go. */
 gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
 {
-  apr_status_t status;        /* Status of an APR call */
-  const char *rhost;          /* Name of remote host */
+  table_item_data_t item_data;  /* Data to pass to each table item */
+  apr_status_t status;          /* Status of an APR call */
+  const char *rhost;            /* Name of remote host */
 
+  /* Prepare some data we'll need below. */
   rhost = ap_get_remote_host(r->connection, r->per_dir_config, REMOTE_NAME, NULL);
+  item_data.request =r;
+  item_data.first = 1;
+  item_data.socket = sock;
+
+  /* Send the request as JSON-encoded data. */
   SEND_STRING("{\n");
   SEND_STRING("  \"LocalHostname\": \"%s\",\n", escape_for_json(r, r->hostname));
   SEND_STRING("  \"QueryArgs\": \"%s\",\n", escape_for_json(r, r->args));
@@ -133,6 +180,10 @@ gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
   SEND_STRING("  \"Method\": \"%s\",\n", escape_for_json(r, r->method));
   if (send_post_data(r, sock) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
+  SEND_STRING("  \"HeaderData\": {");
+  if (apr_table_do(send_table_item, (void *) &item_data, r->headers_in, NULL) == FALSE)
+    return GOSP_STATUS_FAIL;
+  SEND_STRING("\n  },\n");
   SEND_STRING("  \"RemoteHostname\": \"%s\"\n", escape_for_json(r, rhost));
   SEND_STRING("}\n");
   return GOSP_STATUS_OK;

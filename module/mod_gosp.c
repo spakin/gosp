@@ -165,7 +165,8 @@ static int gosp_handler(request_rec *r)
   /* Issue an HTTP error if the requested Gosp file doesn't exist. */
   status = apr_stat(&finfo, r->canonical_filename, 0, r->pool);
   if (status != APR_SUCCESS)
-    return HTTP_NOT_FOUND;
+    REPORT_REQUEST_ERROR(HTTP_NOT_FOUND, APLOG_NOTICE, status,
+                         "Failed to query Gosp page %s", r->canonical_filename);
 
   /* Gain access to our configuration information. */
   config = ap_get_module_config(r->server->module_config, &gosp_module);
