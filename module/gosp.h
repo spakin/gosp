@@ -46,6 +46,11 @@
 #define GOSP_LAUNCH_WAIT_TIME 3000000  /* Time to wait for a Gosp server to launch */
 #define GOSP_EXIT_WAIT_TIME    100000  /* Time to wait for a Gosp server to exit */
 
+/* Define the maximum size of a POST request that we'll allow. */
+#ifndef GOSP_MAX_POST_SIZE
+# define GOSP_MAX_POST_SIZE 1048576
+#endif
+
 /* Define a type corresponding the above. */
 typedef int gosp_status_t;
 

@@ -76,6 +76,47 @@ static char *escape_for_json(request_rec *r, const char *str)
   return quoted;
 }
 
+/* Send POST data as a JSON object. */
+static gosp_status_t send_post_data(request_rec *r, apr_socket_t *sock)
+{
+  apr_array_header_t *array = NULL;   /* Array of key:value pairs */
+  int first = 1;              /* 1=first key:value pair; 0=subsequent pair */
+  apr_status_t status;        /* Status of an APR call */
+
+  /* Read the POST data into an array. */
+  status = ap_parse_form_data(r, NULL, &array, -1, GOSP_MAX_POST_SIZE);
+  if (status != APR_SUCCESS)
+    return GOSP_STATUS_FAIL;
+  if (array == NULL)
+    return GOSP_STATUS_OK;    /* No POST data */
+
+  /* Walk the array key:value entry by key:value entry. */
+  SEND_STRING("  \"PostData\": {");
+  while (array && !apr_is_empty_array(array)) {
+    apr_off_t blen;    /* Length of the brigade used for the value */
+    apr_size_t slen;   /* Length of the value itself */
+    char *value;       /* The value converted from a brigade to a string */
+
+    /* Get the next pair, and convert its value from a brigade to a string. */
+    ap_form_pair_t *pair = (ap_form_pair_t *) apr_array_pop(array);
+    apr_brigade_length(pair->value, 1, &blen);
+    slen = (apr_size_t) blen;
+    value = apr_palloc(r->pool, slen + 1);
+    apr_brigade_flatten(pair->value, value, &slen);
+    value[slen] = 0;
+
+    /* Output the key and value as JSON code. */
+    if (first)
+      first = 0;
+    else
+      SEND_STRING("\n,");
+    SEND_STRING("    \"%s\": \"%s\"",
+                escape_for_json(r, pair->name), escape_for_json(r, value));
+  }
+  SEND_STRING("\n  },\n");
+  return GOSP_STATUS_OK;
+}
+
 /* Send HTTP connection information to a socket.  The connection information
  * must be kept up-to-date with the GospRequest struct in boilerplate.go. */
 gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
@@ -89,6 +130,8 @@ gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
   SEND_STRING("  \"QueryArgs\": \"%s\",\n", escape_for_json(r, r->args));
   SEND_STRING("  \"PathInfo\": \"%s\",\n", escape_for_json(r, r->path_info));
   SEND_STRING("  \"Uri\": \"%s\",\n", escape_for_json(r, r->uri));
+  if (send_post_data(r, sock) != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
   SEND_STRING("  \"RemoteHostname\": \"%s\"\n", escape_for_json(r, rhost));
   SEND_STRING("}\n");
   return GOSP_STATUS_OK;
