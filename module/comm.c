@@ -130,6 +130,7 @@ gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
   SEND_STRING("  \"QueryArgs\": \"%s\",\n", escape_for_json(r, r->args));
   SEND_STRING("  \"PathInfo\": \"%s\",\n", escape_for_json(r, r->path_info));
   SEND_STRING("  \"Uri\": \"%s\",\n", escape_for_json(r, r->uri));
+  SEND_STRING("  \"Method\": \"%s\",\n", escape_for_json(r, r->method));
   if (send_post_data(r, sock) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
   SEND_STRING("  \"RemoteHostname\": \"%s\"\n", escape_for_json(r, rhost));

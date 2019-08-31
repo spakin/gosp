@@ -87,11 +87,14 @@ func GospLaunchHTMLGenerator(gospOut gospIo.Writer, gospReq *GospRequest) {
 }
 
 // A GospRequest encapsulates Web-server information passed into this program.
+// This data structure must be kept up-to-date with the send_request() function
+// in comm.c
 type GospRequest struct {
 	LocalHostname  string            // Name of the local host
 	QueryArgs      string            // Query arguments from the request
 	PathInfo       string            // Additional text following the Gosp filename
 	Uri            string            // Path portion of the URI
+	Method         string            // Request method ("GET", "POST", etc.)
 	PostData       map[string]string // {Key, value} pairs sent by a POST request
 	RemoteHostname string            // Name of the remote host
 	ExitNow        bool              // Used internally: If true, shut down the program cleanly
