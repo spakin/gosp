@@ -371,12 +371,8 @@ gosp_status_t simple_request_response(request_rec *r, const char *sock_name)
   apr_socket_t *sock;         /* The Unix-domain socket proper */
   char *response;             /* Response string */
   size_t resp_len;            /* Length of response string */
-  gosp_config_t *config;      /* Server configuration */
   apr_status_t status;        /* Status of an APR call */
   gosp_status_t gstatus;      /* Status of an internal Gosp call */
-
-  /* Acquire access to our configuration information. */
-  config = ap_get_module_config(r->server->module_config, &gosp_module);
 
   /* Connect to the process that handles the requested Go Server Page. */
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r,
