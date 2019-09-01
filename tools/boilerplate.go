@@ -95,6 +95,8 @@ type GospRequest struct {
 	PathInfo       string            // Additional text following the Gosp filename
 	Uri            string            // Path portion of the URI
 	Method         string            // Request method ("GET", "POST", etc.)
+	RequestLine    string            // First line of the request (e.g., "GET / HTTP/1.1")
+	RequestTime    int64             // Request time in nanoseconds since the Unix epoch
 	PostData       map[string]string // {Key, value} pairs sent by a POST request
 	HeaderData     map[string]string // Request headers as {key, value} pairs
 	RemoteHostname string            // Name of the remote host

@@ -178,6 +178,8 @@ gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
   SEND_STRING("  \"PathInfo\": \"%s\",\n", escape_for_json(r, r->path_info));
   SEND_STRING("  \"Uri\": \"%s\",\n", escape_for_json(r, r->uri));
   SEND_STRING("  \"Method\": \"%s\",\n", escape_for_json(r, r->method));
+  SEND_STRING("  \"RequestLine\": \"%s\",\n", escape_for_json(r, r->the_request));
+  SEND_STRING("  \"RequestTime\": %" PRId64 ",\n", r->request_time*1000);
   if (send_post_data(r, sock) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
   SEND_STRING("  \"HeaderData\": {");
