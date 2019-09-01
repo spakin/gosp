@@ -150,7 +150,7 @@ static int send_table_item(void *rec, const char *key, const char *value)
   str = apr_psprintf(r->pool, "    \"%s\": \"%s\"",
                      escape_for_json(r, key), escape_for_json(r, value));
   len = exp_len = (apr_size_t) strlen(str);
-  status = apr_socket_send(sock, ",\n", &len);
+  status = apr_socket_send(sock, str, &len);
   if (status != APR_SUCCESS || len != exp_len)
     REPORT_REQUEST_ERROR(0, APLOG_ERR, status,
                          "Failed to send %ld bytes to the Gosp server", exp_len);
@@ -167,7 +167,7 @@ gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
 
   /* Prepare some data we'll need below. */
   rhost = ap_get_remote_host(r->connection, r->per_dir_config, REMOTE_NAME, NULL);
-  item_data.request =r;
+  item_data.request = r;
   item_data.first = 1;
   item_data.socket = sock;
 
