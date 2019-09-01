@@ -105,6 +105,7 @@ type GospRequest struct {
 	PostData       map[string]string // {Key, value} pairs sent by a POST request
 	HeaderData     map[string]string // Request headers as {key, value} pairs
 	AdminEmail     string            // Email address of the Web server administrator
+	Environment    map[string]string // Environment variables passed in from the server
 	ExitNow        bool              // Used internally: If true, shut down the program cleanly
 }
 
@@ -165,6 +166,7 @@ func GospStartServer(fn string) error {
 		}
 		wg.Add(1)
 		go func(conn gospNet.Conn) {
+			// Parse the request as a JSON object.
 			defer wg.Done()
 			defer conn.Close()
 			conn.SetDeadline(gospTime.Now().Add(10 * gospTime.Second))
@@ -174,6 +176,10 @@ func GospStartServer(fn string) error {
 			if err != nil {
 				return
 			}
+
+			// If we were asked to exit, send back our PID, notify
+			// our parent, and establish a dummy connection to
+			// flush the pipeline.
 			if gr.ExitNow {
 				gospFmt.Fprintf(conn, "gosp-pid %d\n", gospOs.Getpid())
 				gospAtomic.StoreInt32(&done, 1)
@@ -183,6 +189,8 @@ func GospStartServer(fn string) error {
 				}
 				return
 			}
+
+			// Pass the request to the user-defined Gosp code.
 			GospLaunchHTMLGenerator(conn, &gr)
 		}(conn)
 	}

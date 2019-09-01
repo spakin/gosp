@@ -173,7 +173,6 @@ gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
   lhost = ap_get_server_name_for_url(r);
   port = ap_get_server_port(r);
   item_data.request = r;
-  item_data.first = 1;
   item_data.socket = sock;
 
   /* For the Gosp page's convenience, combine the various URL components into a
@@ -202,10 +201,21 @@ gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
   if (send_post_data(r, sock) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
   SEND_STRING("  \"HeaderData\": {");
+  item_data.first = 1;
   if (apr_table_do(send_table_item, (void *) &item_data, r->headers_in, NULL) == FALSE)
     return GOSP_STATUS_FAIL;
   SEND_STRING("\n  },\n");
-  SEND_STRING("  \"AdminEmail\": \"%s\"\n", escape_for_json(r, r->server->server_admin));
+  SEND_STRING("  \"Environment\": {");
+  item_data.first = 1;
+  if (apr_table_do(send_table_item, (void *) &item_data, r->subprocess_env, NULL) == FALSE)
+    return GOSP_STATUS_FAIL;
+  SEND_STRING("\n  },\n");
+  SEND_STRING("  \"AdminEmail\": \"%s\",\n", escape_for_json(r, r->server->server_admin));
+  SEND_STRING("  \"Environment\": {");
+  item_data.first = 1;
+  if (apr_table_do(send_table_item, (void *) &item_data, r->subprocess_env, NULL) == FALSE)
+    return GOSP_STATUS_FAIL;
+  SEND_STRING("\n  }\n");
   SEND_STRING("}\n");
   return GOSP_STATUS_OK;
 }
