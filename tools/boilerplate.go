@@ -100,10 +100,11 @@ type GospRequest struct {
 	Method         string            // Request method ("GET", "POST", etc.)
 	RequestLine    string            // First line of the request (e.g., "GET / HTTP/1.1")
 	RequestTime    int64             // Request time in nanoseconds since the Unix epoch
-	AdminEmail     string            // Email address of the Web server administrator
+	RemoteHostname string            // Name of the remote host
+	Filename       string            // Local filename of the Gosp page
 	PostData       map[string]string // {Key, value} pairs sent by a POST request
 	HeaderData     map[string]string // Request headers as {key, value} pairs
-	RemoteHostname string            // Name of the remote host
+	AdminEmail     string            // Email address of the Web server administrator
 	ExitNow        bool              // Used internally: If true, shut down the program cleanly
 }
 
