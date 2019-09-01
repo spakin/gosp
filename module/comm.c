@@ -320,7 +320,7 @@ static gosp_status_t process_response(request_rec *r, char *response, size_t res
     return GOSP_STATUS_OK;
   if (line == NULL)
     return GOSP_STATUS_OK;
-  n_to_write = (int)resp_len - (int)(last - response + 1) - 11;  /* 11 is "end-header" followed by apr_strtok's '\0'. */
+  n_to_write = (int)resp_len - (int)(last - response + 1) + 1;
   nwritten = ap_rwrite(line + 11, n_to_write, r);
   if (nwritten != n_to_write)
     return GOSP_STATUS_FAIL;
