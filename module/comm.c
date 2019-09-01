@@ -164,22 +164,40 @@ gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
   table_item_data_t item_data;  /* Data to pass to each table item */
   apr_status_t status;          /* Status of an APR call */
   const char *rhost;            /* Name of remote host */
+  const char *lhost;            /* Name of local host as used in the request */
+  int port;                     /* Port number to which the request was issued */
+  const char *url;              /* Complete URL requested */
 
   /* Prepare some data we'll need below. */
   rhost = ap_get_remote_host(r->connection, r->per_dir_config, REMOTE_NAME, NULL);
+  lhost = ap_get_server_name_for_url(r);
+  port = ap_get_server_port(r);
   item_data.request = r;
   item_data.first = 1;
   item_data.socket = sock;
 
+  /* For the Gosp page's convenience, combine the various URL components into a
+   * complete URL. */
+  url = apr_psprintf(r->pool, "%s://%s", ap_http_scheme(r), lhost);
+  if (!ap_is_default_port(port, r))
+    url = apr_psprintf(r->pool, "%s:%d", url, port);
+  url = apr_psprintf(r->pool, "%s%s", url, r->uri);
+  if (r->args != NULL && r->args[0] != '\0')
+    url = apr_psprintf(r->pool, "%s?%s", url, r->args);
+
   /* Send the request as JSON-encoded data. */
   SEND_STRING("{\n");
-  SEND_STRING("  \"LocalHostname\": \"%s\",\n", escape_for_json(r, r->hostname));
-  SEND_STRING("  \"QueryArgs\": \"%s\",\n", escape_for_json(r, r->args));
-  SEND_STRING("  \"PathInfo\": \"%s\",\n", escape_for_json(r, r->path_info));
+  SEND_STRING("  \"Scheme\": \"%s\",\n", escape_for_json(r, ap_http_scheme(r)));
+  SEND_STRING("  \"LocalHostname\": \"%s\",\n", escape_for_json(r, lhost));
+  SEND_STRING("  \"Port\": %d,\n", port);
   SEND_STRING("  \"Uri\": \"%s\",\n", escape_for_json(r, r->uri));
+  SEND_STRING("  \"PathInfo\": \"%s\",\n", escape_for_json(r, r->path_info));
+  SEND_STRING("  \"QueryArgs\": \"%s\",\n", escape_for_json(r, r->args));
+  SEND_STRING("  \"Url\": \"%s\",\n", escape_for_json(r, url));
   SEND_STRING("  \"Method\": \"%s\",\n", escape_for_json(r, r->method));
   SEND_STRING("  \"RequestLine\": \"%s\",\n", escape_for_json(r, r->the_request));
   SEND_STRING("  \"RequestTime\": %" PRId64 ",\n", r->request_time*1000);
+  SEND_STRING("  \"AdminEmail\": \"%s\",\n", escape_for_json(r, r->server->server_admin));
   if (send_post_data(r, sock) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
   SEND_STRING("  \"HeaderData\": {");

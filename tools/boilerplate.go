@@ -90,13 +90,17 @@ func GospLaunchHTMLGenerator(gospOut gospIo.Writer, gospReq *GospRequest) {
 // This data structure must be kept up-to-date with the send_request() function
 // in comm.c
 type GospRequest struct {
+	Scheme         string            // HTTP scheme ("http" or "https")
 	LocalHostname  string            // Name of the local host
-	QueryArgs      string            // Query arguments from the request
-	PathInfo       string            // Additional text following the Gosp filename
+	Port           int               // Port number to which the request was issued
 	Uri            string            // Path portion of the URI
+	PathInfo       string            // Additional text following the Gosp filename
+	QueryArgs      string            // Query arguments from the request
+	Url            string            // Complete URL requested
 	Method         string            // Request method ("GET", "POST", etc.)
 	RequestLine    string            // First line of the request (e.g., "GET / HTTP/1.1")
 	RequestTime    int64             // Request time in nanoseconds since the Unix epoch
+	AdminEmail     string            // Email address of the Web server administrator
 	PostData       map[string]string // {Key, value} pairs sent by a POST request
 	HeaderData     map[string]string // Request headers as {key, value} pairs
 	RemoteHostname string            // Name of the remote host
