@@ -71,7 +71,7 @@ func GospLaunchHTMLGenerator(gospOut gospIo.Writer, gospReq *GospRequest) {
 	status := okStr
 	for kv := range meta {
 		switch kv.Key {
-		case "mime-type", "http-status", "keep-alive":
+		case "mime-type", "http-status", "keep-alive", "debug-message":
 			gospFmt.Fprintf(gospOut, "%s %s\n", kv.Key, kv.Value)
 		}
 
