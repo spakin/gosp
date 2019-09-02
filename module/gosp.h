@@ -58,6 +58,7 @@ typedef int gosp_status_t;
 /* Declare a type for our configuration options. */
 typedef struct {
   const char *work_dir;       /* Work directory, for storing Gosp-generated files */
+  const char *gopath;         /* Value to assign to GOPATH when building Gosp pages */
   apr_uid_t user_id;          /* User ID when server answers requests */
   apr_gid_t group_id;         /* Group ID when server answers requests */
   apr_global_mutex_t *mutex;  /* Global lock to serialize operations*/

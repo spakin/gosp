@@ -101,6 +101,7 @@ type GospRequest struct {
 	RequestLine    string            // First line of the request (e.g., "GET / HTTP/1.1")
 	RequestTime    int64             // Request time in nanoseconds since the Unix epoch
 	RemoteHostname string            // Name of the remote host
+	RemoteIp       string            // IP address of the remote host
 	Filename       string            // Local filename of the Gosp page
 	PostData       map[string]string // {Key, value} pairs sent by a POST request
 	HeaderData     map[string]string // Request headers as {key, value} pairs
