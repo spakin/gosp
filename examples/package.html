@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Invoking a custom helper package</title>
+  <?go:top
+import (
+	"helper"
+)
+?></head>
+
+  <body>
+
+    <p>Let's all
+    sing <a href="https://en.wikipedia.org/wiki/99_Bottles_of_Beer"><em>99
+    Bottles of Beer</em></a>:</p>
+
+      <blockquote>
+<?go:block
+helper.Bottles(gospOut, 99, 75)
+?>
+      </blockquote>
+
+    <p>This is boring.  Let's skip ahead&hellip;</p>
+
+      <blockquote>
+<?go:block
+helper.Bottles(gospOut, 25, 1)
+?>
+      </blockquote>
+
+    <p>Whew!  Note that in the Go code, <code>gospOut</code> is a
+      predefined <code>io.Writer</code> that writes to the HTML page.</p>
+
+    <p>The Apache Web server's configuration file needs to specify
+    a <code>GospGoPath</code> directive to indicate the <samp>GOPATH</samp> the
+    Go compiler should search to find the helper package.</p>
+      
+  </body>
+</html>
