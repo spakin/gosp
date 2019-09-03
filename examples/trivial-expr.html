@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Embedding Go expressions</title>
+    <style>
+      /*<![CDATA[*/
+      .answer {
+	  border: thin solid black;
+	  padding: 0.5ex;
+	  color: inherit;
+	  background-color: yellow;
+      }
+      blockquote {
+	  width: 10em;
+	  color: black;
+	  background-color: #f0f0f0;
+	  padding: 1ex;
+      }
+      /*]]>*/
+    </style>
+  </head>
+
+  <body>
+
+    <p>Perhaps the simplest use of Go Server Pages is to evaluate a Go
+      expression server-side by placing it within
+      a <code>&lt;?go:expr</code>&nbsp;&hellip; <code>?&gt;</code>
+      tag:</p>
+
+    <blockquote>
+      &lfloor;(1 + 2&times;3 + 4)&div;5&rfloor; =
+      <span class="answer"><?go:expr (1+2*3+4)/5 ?></span>
+    </blockquote>
+
+    <p>Expressions can have any type on which <code>String()</code> is
+      defined.  This includes all internal data types
+      (<code>int</code>, <code>string</code>, etc.).</p>
+    
+  </body>
+</html>

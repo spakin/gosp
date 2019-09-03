@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Embedding top-level Go code</title>
+    <style>
+      /*<![CDATA[*/
+      blockquote {
+          width: 22em;
+          color: black;
+          background-color: #f0f0f0;
+          padding: 1ex;
+      }
+      /*]]>*/
+    </style>
+  <?go:top
+import (
+        "fmt"
+        "io"
+)
+
+func SayHelloFrom(w io.Writer, whom string) {
+        fmt.Fprintf(w, "Hello from %s!", whom)
+}
+?></head>
+
+  <body>
+
+    <p>Top-level Go code (<code>import</code>, <code>func</code>, etc.) must be
+      enclosed within
+      a <code>&lt;?go:top</code>&nbsp;&hellip; <code>?&gt;</code> tag.
+      Anything declared top-level will be available
+      within <code>&lt;?go:block</code>&nbsp;&hellip; <code>?&gt;</code>
+      and <code>&lt;?go:expr</code>&nbsp;&hellip; <code>?&gt;</code> tags on
+      the same page.</p>
+
+    <blockquote>
+      I just wanted to say, <q><?go:block SayHelloFrom(gospOut, "Go Server Pages") ?></q>
+    </blockquote>
+
+    <p>In this example, we placed
+      the <code>&lt;?go:top</code>&nbsp;&hellip; <code>?&gt;</code> tag in the
+      HTML <code>&lt;head&gt;</code>&nbsp;&hellip; <code>&lt;/head&gt;</code>
+      section, but this is not mandatory.  It can appear anywhere on the
+      page.</p>
+    
+  </body>
+</html>

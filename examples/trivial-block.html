@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Embedding Go statements</title>
+    <style>
+      /*<![CDATA[*/
+      blockquote {
+          color: black;
+          background-color: #f0f0f0;
+          padding: 1ex;
+      }
+      /*]]>*/
+    </style>
+  </head>
+
+  <body>
+
+    <p>Statements or blocks of statements can be embedded on a Web page by
+      enclosing them within
+      a <code>&lt;?go:block</code>&nbsp;&hellip; <code>?&gt;</code> tag.  A
+      really convenient feature is that Go code and HTML can be
+      interleaved:</p>
+
+    <ol>
+<?go:block
+for i := 0; i < 100; i++ {
+?>
+      <li>I will not talk in class.</li>
+<?go:block
+}
+?>
+    </ol>
+
+  </body>
+</html>
+
