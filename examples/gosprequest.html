@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>The GospRequest data structure</title>
+    <style>
+      /*<![CDATA[*/
+      blockquote {
+          color: black;
+          background-color: #f0f0f0;
+          padding: 1ex;
+      }
+      /*]]>*/
+    </style>
+  <?go:top
+import (
+        "html"
+)
+?></head>
+
+  <body>
+
+    <p>The Web server passes information to a Go Server Page in the form of
+    a <code>gospReq</code> variable of
+    type <code>GospRequest</code>.  <code>gospReq</code> lies in the scope of
+    all <code>&lt;?go:block</code>&nbsp;&hellip; <code>?&gt;</code>
+    and <code>&lt;?go:expr</code>&nbsp;&hellip; <code>?&gt;</code> code.  Here
+    are some examples of the data provided via <code>gospReq</code>:</p>
+
+    <blockquote>
+<?go:block
+url := html.EscapeString(gospReq.Url)
+admin := html.EscapeString(gospReq.AdminEmail)
+?>
+      Hello, visitor from host
+      <samp><?go:expr html.EscapeString(gospReq.RemoteHostname) ?></samp>.
+      I see you're interested in the URL
+      <a href="<?go:expr url ?>"><?go:expr url ?></a>.  If you experience
+      any problems with this site, please notify
+      <a href="mailto:<?go:expr admin ?>"><?go:expr admin ?></a>.
+    </blockquote>
+
+    <p>Much of <code>gospReq</code>'s content is provided by the untrusted
+    remote user and should therefore be considered suspect.
+    Use <a href="https://golang.org/pkg/html/#EscapeString"><code>html.EscapeString</code></a>,
+    the <a href="https://golang.org/pkg/html/template/"><samp>html/template</samp></a>
+    package, or a similar safety mechanism when manipulating data
+    from <code>gospReq</code>.</p>
+    
+  </body>
+</html>

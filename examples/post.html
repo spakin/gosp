@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Handling POST requests</title>
+  <?go:top
+import (
+        "html"
+)
+?></head>
+
+  <body>
+
+<?go:block
+name, ok := gospReq.PostData["name"]
+if ok {
+?>
+    <p>Nice to meet you, <?go:expr html.EscapeString(name) ?>.
+      Welcome to Go Server Pages.</p>
+<?go:block
+} else {
+?>
+    <p>Hi.  What's your name?</p>
+    <form action="<?go:expr gospReq.Uri ?>" method="post">
+      <input type="text" name="name">
+      <input type="submit" value="Submit">
+    </form>
+<?go:block
+}
+?>
+
+  </body>
+</html>
