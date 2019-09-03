@@ -92,7 +92,7 @@ func GospToGo(p *Parameters, s string) string {
 	// Parse each Gosp directive in turn.
 	top := make([]string, 0, 1)   // Top-level Go code
 	body := make([]string, 0, 16) // Main body Go code
-	re := regexp.MustCompile(`<\?go:(top|block|expr)\s+((?:.|\n)*?)\?>\s*`)
+	re := regexp.MustCompile(`<\?go:(top|block|expr)\s+((?:.|\n)*?)\?>[\t ]*\n?`)
 	b := []byte(s)
 	for {
 		// Find the indexes of the first Gosp directive.
