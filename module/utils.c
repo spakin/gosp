@@ -48,7 +48,7 @@ gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char
   if (chown(dir_name, (uid_t)config->user_id, (gid_t)config->group_id) == -1) {
     status = APR_FROM_OS_ERROR(errno);
     REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
-                        "Failed to change ownership of directory, %s", dir_name);
+                        "Failed to change ownership of directory %s", dir_name);
   }
 
   /* Everything is okay. */
@@ -111,6 +111,48 @@ int is_newer_than(request_rec *r, const char *first, const char *second)
 
   /* Return 1 if the first file is newer, 0 otherwise. */
   return finfo1.mtime > finfo2.mtime;
+}
+
+/* Append formatted text to the cleanup script.  It is assumed that we're
+ * holding the global lock when called. */
+gosp_status_t cleanup_script_printf(server_rec *s, apr_pool_t *pool, const char *fmt, ...)
+{
+  va_list ap;              /* Argument list */
+  const char *text;        /* Text to write to the file */
+  apr_size_t exp_len;      /* Number of bytes to write */
+  apr_size_t len;          /* Number of bytes written */
+  apr_file_t *cfile;       /* Configuration file handle */
+  gosp_config_t *config;   /* Server configuration */
+  apr_status_t status;     /* Status of an APR call */
+
+  /* Acquire access to our configuration information. */
+  config = ap_get_module_config(s->module_config, &gosp_module);
+
+  /* Open the script file. */
+  status = apr_file_open(&cfile, config->cleanup_name,
+                         APR_FOPEN_WRITE|APR_FOPEN_APPEND,
+                         GOSP_FILE_PERMS, pool);
+  if (status != APR_SUCCESS)
+    REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
+                        "Failed to open %s for appending", config->cleanup_name);
+
+  /* Construct the text and write it to the script file. */
+  va_start(ap, fmt);
+  text = apr_pvsprintf(pool, fmt, ap);
+  va_end(ap);
+  len = exp_len = strlen(text);
+  status = apr_file_write(cfile, text, &len);
+  if (status != APR_SUCCESS || len != exp_len)
+    REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
+                        "Failed to write %lu bytes to the cleanup script",
+                        exp_len);
+
+  /* Close the script file and return. */
+  status = apr_file_close(cfile);
+  if (status != APR_SUCCESS)
+    REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
+                        "Failed to close %s", config->cleanup_name);
+  return GOSP_STATUS_OK;
 }
 
 /* Acquire the global lock.  Return GOSP_STATUS_OK on success or

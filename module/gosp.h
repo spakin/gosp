@@ -13,6 +13,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <stdarg.h>
 #include "httpd.h"
 #include "http_config.h"
 #include "http_core.h"
@@ -59,13 +60,16 @@ typedef int gosp_status_t;
 typedef struct {
   const char *work_dir;       /* Work directory, for storing Gosp-generated files */
   const char *gopath;         /* Value to assign to GOPATH when building Gosp pages */
-  apr_uid_t user_id;          /* User ID when server answers requests */
-  apr_gid_t group_id;         /* Group ID when server answers requests */
-  apr_global_mutex_t *mutex;  /* Global lock to serialize operations*/
-  const char *lock_name;      /* Name of a file to back the mutex, if needed */
+  apr_uid_t user_id;           /* User ID when server answers requests */
+  apr_gid_t group_id;          /* Group ID when server answers requests */
+  apr_global_mutex_t *mutex;   /* Global lock to serialize operations*/
+  const char *lock_name;       /* Name of a file to back the mutex, if needed */
+  const char *cleanup_name;    /* Name of a shell script that cleans up our mess */
 } gosp_config_t;
 
-/* Define access permissions for any directories we create. */
+/* Define access permissions for any files and directories we create. */
+#define GOSP_FILE_PERMS                                 \
+  APR_FPROT_UREAD|APR_FPROT_UWRITE|APR_FPROT_GREAD|APR_FPROT_WREAD
 #define GOSP_DIR_PERMS                                  \
   APR_FPROT_UREAD|APR_FPROT_UWRITE|APR_FPROT_UEXECUTE | \
   APR_FPROT_GREAD|APR_FPROT_GEXECUTE |                  \
@@ -95,12 +99,12 @@ do {                                                                        \
 
 /* Declare variables and functions that will be accessed cross-file. */
 extern module AP_MODULE_DECLARE_DATA gosp_module;
-extern gosp_status_t acquire_global_lock(server_rec *s);
-extern gosp_status_t compile_gosp_server(request_rec *r, const char *server_name);
 extern char *concatenate_filepaths(server_rec *s, apr_pool_t *pool, ...);
+extern gosp_status_t acquire_global_lock(server_rec *s);
+extern gosp_status_t cleanup_script_printf(server_rec *s, apr_pool_t *pool, const char *fmt, ...);
+extern gosp_status_t compile_gosp_server(request_rec *r, const char *server_name);
 extern gosp_status_t connect_socket(request_rec *r, const char *sock_name, apr_socket_t **sock);
 extern gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char *fname, int is_dir);
-extern int is_newer_than(request_rec *r, const char *first, const char *second);
 extern gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char *server_name);
 extern gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const char *sock_name);
 extern gosp_status_t receive_response(request_rec *r, apr_socket_t *sock, char **response, size_t *resp_len);
@@ -108,5 +112,6 @@ extern gosp_status_t release_global_lock(server_rec *s);
 extern gosp_status_t send_request(request_rec *r, apr_socket_t *sock);
 extern gosp_status_t send_termination_request(request_rec *r, const char *sock_name);
 extern gosp_status_t simple_request_response(request_rec *r, const char *sock_name);
+extern int is_newer_than(request_rec *r, const char *first, const char *second);
 
 #endif

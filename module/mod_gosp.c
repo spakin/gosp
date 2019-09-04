@@ -93,12 +93,53 @@ static void *gosp_allocate_server_config(apr_pool_t *p, server_rec *s)
 {
   gosp_config_t *config;
 
-  config = apr_palloc(p, sizeof(gosp_config_t));
+  config = apr_pcalloc(p, sizeof(gosp_config_t));
   config->work_dir = ap_server_root_relative(p, DEFAULT_WORK_DIR);
-  config->gopath = NULL;
-  config->user_id = 0;
-  config->group_id = 0;
   return (void *) config;
+}
+
+/* For the webmaster's convenience, create a Bash script that kills all Gosp
+ * processes and removes all Gosp sockets. */
+static gosp_status_t create_cleanup_script(server_rec *s, apr_pool_t *pool)
+{
+  gosp_config_t *config;      /* Server configuration */
+  apr_file_t *cfile;          /* Configuration file handle */
+  apr_status_t status;        /* Status of an APR call */
+
+  config = ap_get_module_config(s->module_config, &gosp_module);
+  config->cleanup_name = concatenate_filepaths(s, pool, config->work_dir, "cleanup.sh", NULL);
+  if (config->cleanup_name == NULL)
+    REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
+                        "Failed to construct a cleanup-script name");
+  ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
+               "Creating a %s script for killing all Gosp processes",
+               config->cleanup_name);
+  status = apr_file_open(&cfile, config->cleanup_name,
+                         APR_FOPEN_CREATE|APR_FOPEN_WRITE|APR_FOPEN_TRUNCATE,
+                         GOSP_FILE_PERMS, pool);
+  if (status != APR_SUCCESS)
+    REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
+                        "Failed to create %s", config->cleanup_name);
+if (chown(config->cleanup_name, (uid_t)config->user_id, (gid_t)config->group_id) == -1) {
+    status = APR_FROM_OS_ERROR(errno);
+    REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
+                        "Failed to change ownership of cleanup file %s",
+                        config->cleanup_name);
+  }
+  if (cleanup_script_printf(s, pool,
+                            "###################################\n"
+                            "# Kill all running Gosp processes #\n"
+                            "###################################\n"
+                            "\n"
+                            "# This shell script is generated automatically by mod_gosp.\n"
+                            "# It should not be edited while the Web server is running.\n"
+                            "\n") != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
+  status = apr_file_close(cfile);
+  if (status != APR_SUCCESS)
+    REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
+                        "Failed to close %s", config->cleanup_name);
+  return GOSP_STATUS_OK;
 }
 
 /* Run after the configuration file has been processed but before lowering
@@ -146,6 +187,10 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
     REPORT_SERVER_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, status,
                         "Failed to set permissions on lock file %s", config->lock_name);
 #endif
+
+  /* Create a cleanup script. */
+  if (create_cleanup_script(s, ptemp) != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
   return OK;
 }
 

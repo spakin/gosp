@@ -121,12 +121,21 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
   args[2] = sock_name;
   args[3] = NULL;
   status = apr_proc_create(&proc, server_name, args, NULL, attr, r->pool);
-  if (status == APR_SUCCESS)
-    return GOSP_STATUS_OK;
-  if (APR_STATUS_IS_ENOENT(status))
-    return GOSP_STATUS_NEED_ACTION;
-  REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
-                       "Failed to run %s", server_name);
+  if (status != APR_SUCCESS) {
+    if (APR_STATUS_IS_ENOENT(status))
+      return GOSP_STATUS_NEED_ACTION;
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
+                         "Failed to run %s", server_name);
+  }
+
+  /* Write commands to the cleanup script to kill the Gosp process. */
+  if (cleanup_script_printf(r->server, r->pool,
+                            "kill `echo '{\"ExitNow\": true}' | nc -U '%s' | cut -d' ' -f2`\n"
+                            "rm -f %s\n",
+                            sock_name, sock_name) != GOSP_STATUS_OK)
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
+                         "Failed to write code to the cleanup script");
+  return GOSP_STATUS_OK;
 }
 
 /* Kill a running Gosp server.  We assume this is called because the Gosp page
