@@ -117,9 +117,10 @@ func GospToGo(p *Parameters, s string) string {
 		switch dir {
 		case "top":
 			// Top-level Go code.
-			top = append(top, code)
 			if i2 < i3 && b[i3-1] != '\n' {
-				top = append(top, "\n")
+				top = append(top, code+"\n")
+			} else {
+				top = append(top, code)
 			}
 		case "block":
 			// Zero or more statements.
