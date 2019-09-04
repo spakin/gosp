@@ -1,0 +1,15 @@
+Go Server Pages are not required to be HTML.  This is an example of
+serving plain text with server-side Go-code execution.
+
+<?go:top
+import "fmt"
+?>
+     N     2**N
+    --  ----------
+<?go:block
+for i := 0; i <= 30; i++ {
+        fmt.Fprintf(gospOut, "    %2d  %10d\n", i, 1<<uint(i))
+}
+?>
+
+Ta da!
