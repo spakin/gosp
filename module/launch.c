@@ -17,14 +17,32 @@
     }                                                                   \
   } while (0)
 
+static gosp_status_t await_process_completion(request_rec *r, apr_proc_t *proc, const char *proc_name)
+{
+  int exit_code;              /* gosp2go return code */
+  apr_exit_why_e exit_why;    /* Condition under which gosp2go exited */
+  apr_status_t status;        /* Status of an APR call */
+
+  status = apr_proc_wait(proc, &exit_code, &exit_why, APR_WAIT);
+  if (status != APR_CHILD_DONE)
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
+                         "%s was supposed to finish but didn't", proc_name);
+  if (exit_why != APR_PROC_EXIT)
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
+                         "Abnormal exit from %s", proc_name);
+  if (exit_code != 0 && exit_code != APR_ENOTIMPL)
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
+                         "Nonzero exit code (%d) from %s",
+                         exit_code, proc_name);
+  return GOSP_STATUS_OK;
+}
+
 /* Use gosp2go to compile a Go Server Page into an executable program. */
 gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
 {
   apr_procattr_t *attr;       /* Process attributes */
   apr_proc_t proc;            /* Launched process */
   const char **args;          /* Process command-line arguments */
-  int exit_code;              /* gosp2go return code */
-  apr_exit_why_e exit_why;    /* Condition under which gosp2go exited */
   char *go_cache;             /* Directory for the Go build cache */
   gosp_config_t *config;      /* Server configuration */
   const char *work_dir;       /* Top-level work directory */
@@ -56,7 +74,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   LAUNCH_CALL(apr_procattr_cmdtype_set(attr, APR_PROGRAM_ENV),
               "Specifying that " GOSP2GO " should inherit its parent's environment");
 
-  /* Spawn the gosp2go process. */
+  /* Spawn the gosp2go process and wait for it to complete. */
   args = (const char **) apr_palloc(r->pool, 6*sizeof(char *));
   args[0] = GOSP2GO;
   args[1] = "--build";
@@ -68,20 +86,8 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                          "Failed to run " GOSP2GO);
-
-  /* Wait for gosp2go to finish its execution. */
-  status = apr_proc_wait(&proc, &exit_code, &exit_why, APR_WAIT);
-  if (status != APR_CHILD_DONE)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
-                         "%s was supposed to finish but didn't", GOSP2GO);
-  if (exit_why != APR_PROC_EXIT)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
-                         "Abnormal exit from %s --build -o %s %s",
-                         GOSP2GO, server_name, r->canonical_filename);
-  if (exit_code != 0 && exit_code != APR_ENOTIMPL)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
-                         "Nonzero exit code (%d) from %s --build -o %s %s",
-                         exit_code, GOSP2GO, server_name, r->canonical_filename);
+  if (await_process_completion(r, &proc, GOSP2GO) != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
   return GOSP_STATUS_OK;
 }
 
@@ -114,7 +120,9 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
   LAUNCH_CALL(apr_procattr_cmdtype_set(attr, APR_PROGRAM_ENV),
               "Specifying that a Gosp process should inherit its parent's environment");
 
-  /* Spawn the Gosp process. */
+  /* Spawn the Gosp process.  Even though the "detatch" attribute is set, it
+   * appears that we need to await its completion to avoid leaving defunct
+   * processes lying around. */
   args = (const char **) apr_palloc(r->pool, 4*sizeof(char *));
   args[0] = server_name;
   args[1] = "-socket";
@@ -127,6 +135,8 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                          "Failed to run %s", server_name);
   }
+  if (await_process_completion(r, &proc, server_name) != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
 
   /* Write commands to the cleanup script to kill the Gosp process. */
   if (cleanup_script_printf(r->server, r->pool,
