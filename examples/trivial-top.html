@@ -4,6 +4,12 @@
     <title>Embedding top-level Go code</title>
     <style>
       /*<![CDATA[*/
+      .hello {
+	  border: thin solid black;
+	  padding: 0.5ex;
+	  color: inherit;
+	  background-color: yellow;
+      }
       blockquote {
           width: 22em;
           color: black;
@@ -34,7 +40,7 @@ func SayHelloFrom(w io.Writer, whom string) {
       the same page.</p>
 
     <blockquote>
-      I just wanted to say, <q><?go:block SayHelloFrom(gospOut, "Go Server Pages") ?></q>
+      I just wanted to say, <q><span class="hello"><?go:block SayHelloFrom(gospOut, "Go Server Pages") ?></span></q>
     </blockquote>
 
     <p>In this example, we placed
