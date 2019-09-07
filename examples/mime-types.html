@@ -1,0 +1,79 @@
+<?go:top
+import (
+	"fmt"
+	"image"
+	"image/color"
+	"image/png"
+	"image/jpeg"
+	"image/gif"
+	"io"
+	"net/http"
+)
+
+// drawGradient draws and returns a pretty 256x256 gradient pattern.
+func drawGradient() image.Image {
+	img := image.NewRGBA(image.Rect(0, 0, 256, 256))
+	for y := 0; y < 256; y++ {
+		for x := 0; x < 256; x++ {
+			blue := 32768 - (x - 128)*(x - 128) - (y - 128)*(y - 128)
+			img.Set(x, y, color.RGBA{
+				R: uint8(x),
+				G: uint8(y),
+				B: uint8(blue/128),
+				A: 255,
+			})
+		}
+	}
+	return img
+}
+
+// renderImage outputs the image in a given file format.
+func renderImage(w io.Writer, iType string, img image.Image) error {
+	var err error
+	switch iType {
+	case "png":
+		err = png.Encode(w, img)
+	case "jpeg":
+		err = jpeg.Encode(w, img, nil)
+	case "gif":
+		err = gif.Encode(w, img, nil)
+	default:
+		return fmt.Errorf("Unrecognized image type %q", iType)
+	}
+	return err
+}
+?><?go:block
+iType, ok := gospReq.PostData["image_type"]
+if ok {
+	GospSetMimeType("image/" + iType)
+	img := drawGradient()
+	err := renderImage(gospOut, iType, img)
+	if err != nil {
+		GospSetHttpStatus(http.StatusBadRequest)
+	}
+} else {
+	// All HTML must be output conditionally because we don't want it
+	// to inadvertently precede the image data.
+?>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Changing MIME types</title>
+  </head>
+
+  <body>
+    <form action="<?go:expr gospReq.Uri ?>" method="post">
+      <p>Image type:
+	<select name="image_type">
+	  <option value="png">PNG</option>
+	  <option value="jpeg">JPEG</option>
+	  <option value="gif">GIF</option>
+	</select>    
+      </p>
+      <input type="submit" value="Submit">
+    </form>
+  </body>
+</html>
+<?go:block
+}
+?>
