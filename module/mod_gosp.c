@@ -264,7 +264,7 @@ static int launch_and_retry(request_rec *r, const char *server_name, const char 
       return HTTP_INTERNAL_SERVER_ERROR;
     apr_sleep(1000);
   }
-  return OK;
+  return r->status;
 }
 
 /* Handle requests of type "gosp" by passing them to the gosp2go tool. */
@@ -316,7 +316,7 @@ static int gosp_handler(request_rec *r)
     /* Not newer (common case) -- let the Gosp server handle the request. */
     gstatus = simple_request_response(r, sock_name);
     if (gstatus == GOSP_STATUS_OK)
-      return OK;
+      return r->status;
     if (gstatus == GOSP_STATUS_FAIL)
       return HTTP_INTERNAL_SERVER_ERROR;
     break;
