@@ -47,10 +47,16 @@ func GospGenerateHTML(gospReq *GospRequest, gospOut gospIo.Writer, gospMeta chan
 	GospSetMimeType := func(mt string) {
 		gospMeta <- GospKeyValue{Key: "mime-type", Value: mt}
 	}
+	GospSetHeaderField := func(k, v string, repl bool) {
+		gospMeta <- GospKeyValue{
+			Key:   "header-field",
+			Value: gospFmt.Sprintf("%v %s %s", repl, k, v),
+		}
+	}
 	GospHeartbeat := func() {
 		gospMeta <- GospKeyValue{Key: "keep-alive", Value: ""}
 	}
-	_, _, _ = GospSetHttpStatus, GospSetMimeType, GospHeartbeat
+	_, _, _, _ = GospSetHttpStatus, GospSetMimeType, GospSetHeaderField, GospHeartbeat
 
 	// Express the Gosp page in Go.
 `
@@ -71,7 +77,7 @@ func GospLaunchHTMLGenerator(gospOut gospIo.Writer, gospReq *GospRequest) {
 	status := okStr
 	for kv := range meta {
 		switch kv.Key {
-		case "mime-type", "http-status", "keep-alive", "debug-message":
+		case "mime-type", "http-status", "header-field", "keep-alive", "debug-message":
 			gospFmt.Fprintf(gospOut, "%s %s\n", kv.Key, kv.Value)
 		}
 

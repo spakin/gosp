@@ -278,6 +278,41 @@ gosp_status_t send_termination_request(request_rec *r, const char *sock_name)
   return GOSP_STATUS_OK;
 }
 
+/* Parse and process an HTTP header field assignment. */
+static gosp_status_t process_field_assignment(request_rec *r, char *line)
+{
+  char *orig_line;  /* Copy of line for use in error messages */
+  char *replace;    /* Replace existing key if "true"; append if "false" */
+  char *key;        /* Name of header field */
+  char *value;      /* Value to assign to header field */
+  char *last;       /* apr_strtok() state */
+
+  /* Parse a line of the form "header-field true MyKey MyValue" into
+   * {replace, key, value}. */
+  orig_line = apr_pstrdup(r->pool, line);
+  replace = apr_strtok(line + 13, " ", &last);
+  if (replace == NULL)
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
+                         "Failed to parse \"%s\"", orig_line);
+  key = apr_strtok(NULL, " ", &last);
+  if (key == NULL)
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
+                         "Failed to parse \"%s\"", orig_line);
+  value = last;
+
+  /* Either append or replace the key in the headers_out table. */
+  if (strcmp(replace, "true") == 0)
+    apr_table_set(r->headers_out, key, value);
+  else
+    if (strcmp(replace, "false") == 0)
+      apr_table_add(r->headers_out, key, value);
+    else
+      REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
+                           "Expected \"true\" or \"false\" but saw \"%s\" in \"%s\"",
+                           replace, orig_line);
+  return GOSP_STATUS_OK;
+}
+
 /* Split a response string into metadata and data.  Process the metadata.
  * Output the data.  Return GOSP_STATUS_OK if this procedure succeeded (even if
  * it corresponds to a Gosp-server error condition) or GOSP_STATUS_FAIL if
@@ -297,10 +332,6 @@ static gosp_status_t process_response(request_rec *r, char *response, size_t res
     if (strcmp(line, "end-header") == 0)
       break;
 
-    /* Heartbeat: ignore. */
-    if (strcmp(line, "keep-alive") == 0)
-      continue;
-
     /* HTTP status: set in the request_rec. */
     if (strncmp(line, "http-status ", 12) == 0) {
       r->status = atoi(line + 12);
@@ -315,6 +346,13 @@ static gosp_status_t process_response(request_rec *r, char *response, size_t res
       continue;
     }
 
+    /* Header field: set in the request_rec. */
+    if (strncmp(line, "header-field ", 13) == 0) {
+      if (process_field_assignment(r, line) != GOSP_STATUS_OK)
+        return GOSP_STATUS_FAIL;
+      continue;
+    }
+
     /* Debug message: output it. */
     if (strncmp(line, "debug-message ", 14) == 0) {
       ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r,
@@ -322,8 +360,13 @@ static gosp_status_t process_response(request_rec *r, char *response, size_t res
       continue;
     }
 
+    /* Heartbeat: ignore. */
+    if (strcmp(line, "keep-alive") == 0)
+      continue;
+
     /* Anything else: throw an error. */
-    return GOSP_STATUS_FAIL;
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
+                         "Received unexpected metadata command \"%s\"", line);
   }
 
   /* Write the rest of the response as data. */
