@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Storing and retrieving cookies</title>
+  <?go:top
+import (
+	"fmt"
+	"net/http"
+	"regexp"
+	"strconv"
+)
+?></head>
+
+  <body>
+    <?go:block
+// Find the previous cookie, if any.
+tally := 0
+cStr := gospReq.HeaderData["Cookie"]
+cRe := regexp.MustCompile(`Tally=([^;]*)`)
+ms := cRe.FindStringSubmatch(cStr)
+if len(ms) >= 2 {
+	var err error
+	tally, err = strconv.Atoi(ms[1])
+	if err != nil {
+		GospSetHttpStatus(http.StatusBadRequest)
+		return
+	}
+}
+
+// Tell the user how many times he's visited this page based on the tally
+// specified in the cookie.
+switch tally {
+case 0:
+	fmt.Fprintln(gospOut, "<p>You've never visited this page before.</p>")
+case 1:
+	fmt.Fprintln(gospOut, "<p>You've visited this page once before.</p>")
+default:
+	fmt.Fprintf(gospOut, "<p>You've visited this page %d times.</p>", tally)
+}
+
+// Increment the page-visit tally for next time.  We do so using a
+// session cookie.
+val := fmt.Sprintf("Tally=%d; Path=/; HttpOnly; SameSite=Strict", tally+1)
+GospSetHeaderField("Set-Cookie", val, false)
+?>
+
+    <p>(Try refreshing the page in your browser.)</p>
+	
+  </body>
+</html>
