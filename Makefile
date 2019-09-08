@@ -12,7 +12,7 @@ APXS = apxs
 APXSFLAGS =
 GOFLAGS =
 INSTALL = install
-AUTO_KILL_TIME = 0
+AUTO_KILL_TIME = 5
 
 # GO should be defined as the absolute path of the go command.
 GO = $(shell which go)
