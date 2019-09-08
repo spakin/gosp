@@ -16,9 +16,14 @@ import (
 // notify is used to output error messages.
 var notify *log.Logger
 
-// Define the Go compiler command.  This can be overridden with go's
+// goCmd specifies the Go compiler command.  This can be overridden with go's
 // -X linker option.
 var goCmd = "go"
+
+// Define the maximum time in seconds a Gosp server is allowed to be idle
+// before exiting or 0 for infinite time.  This can be overridden with go's -X
+// linker option.
+var autoKillTime = "0"
 
 // Parameters encapsulates the key program parameters.
 type Parameters struct {
@@ -150,6 +155,7 @@ func GospToGo(p *Parameters, s string) string {
 	all = append(all, header)
 	all = append(all, top...)
 	all = append(all, "\n")
+	all = append(all, "const gospAutoKillTime = "+autoKillTime+" // Idle time after which to exit automatically\n\n")
 	all = append(all, bodyBegin)
 	all = append(all, body...)
 	all = append(all, "}\n")

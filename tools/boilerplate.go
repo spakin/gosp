@@ -140,6 +140,17 @@ func GospRequestFromFile(fn string) error {
 	return nil
 }
 
+// GospResetKillClock adds time to the auto-kill clock.
+func GospResetKillClock(t *gospTime.Timer, d gospTime.Duration) {
+	if d == 0 {
+		return
+	}
+	if !t.Stop() {
+		<-t.C
+	}
+	t.Reset(d)
+}
+
 // GospStartServer runs the program in server mode.  It accepts a connection on
 // a Unix-domain socket, reads a GospRequest in JSON format, and spawns
 // GospLaunchHTMLGenerator to respond to the request.  The server terminates
@@ -162,6 +173,15 @@ func GospStartServer(fn string) error {
 		return err
 	}
 
+	// Exit automatically after gospAutoKill seconds of no activity.
+	var killClk *gospTime.Timer
+	if gospAutoKillTime > 0 {
+		killClk = gospTime.AfterFunc(gospAutoKillTime*gospTime.Second, func() {
+			_ = gospOs.Remove(sock)
+			gospOs.Exit(0)
+		})
+	}
+
 	// Process connections until we're told to stop.
 	var done int32
 	var wg gospSync.WaitGroup
@@ -171,6 +191,7 @@ func GospStartServer(fn string) error {
 		if err != nil {
 			return err
 		}
+		GospResetKillClock(killClk, gospAutoKillTime*gospTime.Second)
 		wg.Add(1)
 		go func(conn gospNet.Conn) {
 			// Parse the request as a JSON object.
