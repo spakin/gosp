@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Redirecting a request</title>
+  <?go:top
+import (
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+)
+
+// Output a hyperlinked URL.
+func writeUrl(w io.Writer, url string) {
+	fmt.Fprintf(w, `<a href="%s"><code>%s</code></a>`, url, url)
+}
+?></head>
+
+  <body>
+
+    <p>If you access this page as</p>
+
+    <blockquote>
+      <?go:block
+url := gospReq.Url      // URL, excluding the query arguments
+if len(gospReq.QueryArgs) > 0 {
+	url = url[:len(url)-len(gospReq.QueryArgs)-1]
+}
+writeUrl(gospOut, url)
+?>
+
+    </blockquote>
+
+    <p>it will automatically redirect you to</p>
+
+    <blockquote>
+      <?go:block writeUrl(gospOut, url + "?redirected=yes") ?>
+
+    </blockquote>
+
+<?go:block
+// Determine if we need to redirect the request.
+if strings.Index(gospReq.QueryArgs, "redirected=yes") == -1 {
+	GospSetHeaderField("Location", url + "?redirected=yes", true)
+	GospSetHttpStatus(http.StatusTemporaryRedirect)
+}
+?>
+  </body>
+</html>
