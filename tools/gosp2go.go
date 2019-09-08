@@ -20,7 +20,7 @@ var notify *log.Logger
 // -X linker option.
 var goCmd = "go"
 
-// Define the maximum time in seconds a Gosp server is allowed to be idle
+// Define the maximum time in minutes a Gosp server is allowed to be idle
 // before exiting or 0 for infinite time.  This can be overridden with go's -X
 // linker option.
 var autoKillTime = "0"

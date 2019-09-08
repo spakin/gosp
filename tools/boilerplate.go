@@ -173,10 +173,10 @@ func GospStartServer(fn string) error {
 		return err
 	}
 
-	// Exit automatically after gospAutoKill seconds of no activity.
+	// Exit automatically after gospAutoKill minutes of no activity.
 	var killClk *gospTime.Timer
 	if gospAutoKillTime > 0 {
-		killClk = gospTime.AfterFunc(gospAutoKillTime*gospTime.Second, func() {
+		killClk = gospTime.AfterFunc(gospAutoKillTime*gospTime.Minute, func() {
 			_ = gospOs.Remove(sock)
 			gospOs.Exit(0)
 		})
@@ -191,7 +191,7 @@ func GospStartServer(fn string) error {
 		if err != nil {
 			return err
 		}
-		GospResetKillClock(killClk, gospAutoKillTime*gospTime.Second)
+		GospResetKillClock(killClk, gospAutoKillTime*gospTime.Minute)
 		wg.Add(1)
 		go func(conn gospNet.Conn) {
 			// Parse the request as a JSON object.
