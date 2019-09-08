@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Returning an HTTP error code</title>
+  </head>
+
+  <body>
+
+    <p>You won't see this line because we're returning an error code.
+    See <a href="https://golang.org/pkg/net/http/#pkg-constants">the
+    <code>net/http</code> documentation</a> for a list of
+    available error codes.</p>
+
+    <?go:top import "net/http" ?>
+    <?go:block GospSetHttpStatus(http.StatusTooManyRequests) ?>
+    
+  </body>
+</html>
