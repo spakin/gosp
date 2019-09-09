@@ -51,7 +51,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   /* Announce what we're about to do. */
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r,
                 "Compiling %s into %s",
-                r->canonical_filename, server_name);
+                r->filename, server_name);
 
   /* Ensure we have a place to write the executable. */
   if (create_directories_for(r->server, r->pool, server_name, 0) != GOSP_STATUS_OK)
@@ -80,7 +80,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   args[1] = "--build";
   args[2] = "-o";
   args[3] = server_name;
-  args[4] = r->canonical_filename;
+  args[4] = r->filename;
   args[5] = NULL;
   status = apr_proc_create(&proc, args[0], args, NULL, attr, r->pool);
   if (status != APR_SUCCESS)
@@ -164,7 +164,7 @@ gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char
   /* On any error, first release the lock. */
   do {
     /* Check that the server was not already recompiled by another process. */
-    if (is_newer_than(r, r->canonical_filename, sock_name) == 1) {
+    if (is_newer_than(r, r->filename, sock_name) == 1) {
       gstatus = send_termination_request(r, sock_name);
       if (gstatus != GOSP_STATUS_OK) {
         errcode = GOSP_STATUS_FAIL;

@@ -285,17 +285,17 @@ static int gosp_handler(request_rec *r)
     return DECLINED;
 
   /* Issue an HTTP error if the requested Gosp file doesn't exist. */
-  status = apr_stat(&finfo, r->canonical_filename, 0, r->pool);
+  status = apr_stat(&finfo, r->filename, 0, r->pool);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(HTTP_NOT_FOUND, APLOG_NOTICE, status,
-                         "Failed to query Gosp page %s", r->canonical_filename);
+                         "Failed to query Gosp page %s", r->filename);
 
   /* Gain access to our configuration information. */
   config = ap_get_module_config(r->server->module_config, &gosp_module);
 
   /* Identify the name of the socket to use to communicate with the Gosp
    * server. */
-  sock_name = concatenate_filepaths(r->server, r->pool, config->work_dir, "sockets", r->canonical_filename, NULL);
+  sock_name = concatenate_filepaths(r->server, r->pool, config->work_dir, "sockets", r->filename, NULL);
   if (sock_name == NULL)
     REPORT_REQUEST_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, APR_SUCCESS,
                          "Failed to construct a socket name");
@@ -303,7 +303,7 @@ static int gosp_handler(request_rec *r)
 
   /* Identify the name of the Gosp server executable. */
   server_name = concatenate_filepaths(r->server, r->pool, config->work_dir, "bin",
-                                      apr_pstrcat(r->pool, r->canonical_filename, ".exe", NULL),
+                                      apr_pstrcat(r->pool, r->filename, ".exe", NULL),
                                       NULL);
   if (server_name == NULL)
     REPORT_REQUEST_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, APR_SUCCESS,
@@ -311,7 +311,7 @@ static int gosp_handler(request_rec *r)
 
   /* If the Gosp file is newer than the Gosp server, terminate the Gosp server.
    * It will be recompiled and rebuilt below. */
-  switch (is_newer_than(r, r->canonical_filename, sock_name)) {
+  switch (is_newer_than(r, r->filename, sock_name)) {
   case 0:
     /* Not newer (common case) -- let the Gosp server handle the request. */
     gstatus = simple_request_response(r, sock_name);
