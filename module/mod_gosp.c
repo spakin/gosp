@@ -311,7 +311,7 @@ static int gosp_handler(request_rec *r)
 
   /* If the Gosp file is newer than the Gosp server, terminate the Gosp server.
    * It will be recompiled and rebuilt below. */
-  switch (is_newer_than(r, r->filename, sock_name)) {
+  switch (is_newer_than(r, r->filename, server_name)) {
   case 0:
     /* Not newer (common case) -- let the Gosp server handle the request. */
     gstatus = simple_request_response(r, sock_name);

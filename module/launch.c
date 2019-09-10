@@ -164,7 +164,7 @@ gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char
   /* On any error, first release the lock. */
   do {
     /* Check that the server was not already recompiled by another process. */
-    if (is_newer_than(r, r->filename, sock_name) == 1) {
+    if (is_newer_than(r, r->filename, server_name) == 1) {
       gstatus = send_termination_request(r, sock_name);
       if (gstatus != GOSP_STATUS_OK) {
         errcode = GOSP_STATUS_FAIL;
@@ -174,7 +174,7 @@ gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char
 
     /* Remove the socket. */
     status = apr_file_remove(sock_name, r->pool);
-    if (status != APR_SUCCESS) {
+    if (status != APR_SUCCESS && !APR_STATUS_IS_ENOENT(status)) {
       ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
                     "Failed to remove socket %s", sock_name);
       errcode = GOSP_STATUS_FAIL;
@@ -183,7 +183,7 @@ gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char
 
     /* Remove the server executable. */
     status = apr_file_remove(server_name, r->pool);
-    if (status != APR_SUCCESS) {
+    if (status != APR_SUCCESS && !APR_STATUS_IS_ENOENT(status)) {
       ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
                     "Failed to remove Gosp server %s", server_name);
       errcode = GOSP_STATUS_FAIL;
