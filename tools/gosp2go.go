@@ -97,7 +97,7 @@ func GospToGo(p *Parameters, s string) string {
 	// Parse each Gosp directive in turn.
 	top := make([]string, 0, 1)   // Top-level Go code
 	body := make([]string, 0, 16) // Main body Go code
-	re := regexp.MustCompile(`<\?go:(top|block|expr)\s+((?:.|\n)*?)\?>[\t ]*\n?`)
+	re := regexp.MustCompile(`<\?go:(top|block|expr)\s+((?:.|\n)*?)\?>([\t ]*\n?)`)
 	b := []byte(s)
 	for {
 		// Find the indexes of the first Gosp directive.
@@ -109,9 +109,10 @@ func GospToGo(p *Parameters, s string) string {
 			}
 			break
 		}
-		i0, i1, i2, i3 := idxs[2], idxs[3], idxs[4], idxs[5]
-		dir := string(b[i0:i1])  // Directive
-		code := string(b[i2:i3]) // Inner Go code
+		i0, i1, i2, i3, i4, i5 := idxs[2], idxs[3], idxs[4], idxs[5], idxs[6], idxs[7]
+		dir := string(b[i0:i1])    // Directive
+		code := string(b[i2:i3])   // Inner Go code
+		tSpace := string(b[i4:i5]) // Trailing white space
 
 		// Extract HTML text preceding the Gosp code, if any.
 		if i0 > 5 {
@@ -134,8 +135,10 @@ func GospToGo(p *Parameters, s string) string {
 				body = append(body, "\n")
 			}
 		case "expr":
-			// A single Go expression.
-			body = append(body, fmt.Sprintf(`gospFmt.Fprintf(gospOut, "%%v", %s)`+"\n", strings.TrimSpace(code)))
+			// A single Go expression.  In this case only, we
+			// retain all trailing white space.
+			body = append(body, fmt.Sprintf(`gospFmt.Fprintf(gospOut, "%%v%%s", %s, %q)`+"\n",
+				strings.TrimSpace(code), tSpace))
 		default:
 			panic("Internal error parsing a Gosp directive")
 		}
