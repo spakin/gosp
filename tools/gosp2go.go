@@ -135,7 +135,7 @@ func GospToGo(p *Parameters, s string) string {
 			}
 		case "expr":
 			// A single Go expression.
-			body = append(body, fmt.Sprintf(`gospFmt.Fprintf(gospOut, "%%v", %s)`+"\n", code))
+			body = append(body, fmt.Sprintf(`gospFmt.Fprintf(gospOut, "%%v", %s)`+"\n", strings.TrimSpace(code)))
 		default:
 			panic("Internal error parsing a Gosp directive")
 		}
