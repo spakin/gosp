@@ -17,6 +17,8 @@
     }                                                                   \
   } while (0)
 
+extern char **environ;   /* Process environment passed to the Apache module */
+
 static gosp_status_t await_process_completion(request_rec *r, apr_proc_t *proc, const char *proc_name)
 {
   int exit_code;              /* gosp2go return code */
@@ -43,6 +45,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   apr_procattr_t *attr;             /* Process attributes */
   apr_proc_t proc;                  /* Launched process */
   const char **args;                /* Process command-line arguments */
+  const char **envp;                /* Process environment */
   char *go_cache;                   /* Directory for the Go build cache */
   gosp_server_config_t *sconfig;    /* Server configuration */
   gosp_context_config_t *cconfig;   /* Context configuration */
@@ -72,11 +75,18 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
               "Creating " GOSP2GO " process attributes failed");
   LAUNCH_CALL(apr_procattr_error_check_set(attr, 1),
               "Specifying that there should be extra error checking for " GOSP2GO);
-  LAUNCH_CALL(apr_procattr_cmdtype_set(attr, APR_PROGRAM_ENV),
-              "Specifying that " GOSP2GO " should inherit its parent's environment");
+  LAUNCH_CALL(apr_procattr_cmdtype_set(attr, APR_PROGRAM),
+              "Specifying that " GOSP2GO " should not inherit its parent's environment");
 
   /* Access the per-context configuration. */
   cconfig = (gosp_context_config_t *) ap_get_module_config(r->per_dir_config, &gosp_module);
+
+  /* Establish an environment for the child. */
+  if (cconfig->go_path == NULL)
+    envp = (const char **) environ;
+  else
+    envp = append_string(r->pool, (const char **) environ,
+                         apr_pstrcat(r->pool, "GOPATH=", cconfig->go_path, NULL));
 
   /* Spawn the gosp2go process and wait for it to complete. */
   args = (const char **) apr_palloc(r->pool, 8*sizeof(char *));
@@ -88,7 +98,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   args[5] = cconfig->go_cmd;
   args[6] = r->filename;
   args[7] = NULL;
-  status = apr_proc_create(&proc, args[0], args, NULL, attr, r->pool);
+  status = apr_proc_create(&proc, args[0], args, envp, attr, r->pool);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                          "Failed to run " GOSP2GO);

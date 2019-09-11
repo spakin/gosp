@@ -65,7 +65,6 @@ typedef int gosp_status_t;
 /* Declare a type for our per-server configuration options. */
 typedef struct {
   const char *work_dir;        /* Work directory, for storing Gosp-generated files */
-  const char *gopath;          /* Value to assign to GOPATH when building Gosp pages */
   apr_uid_t user_id;           /* User ID when server answers requests */
   apr_gid_t group_id;          /* Group ID when server answers requests */
   apr_global_mutex_t *mutex;   /* Global lock to serialize operations*/
@@ -77,6 +76,7 @@ typedef struct {
 typedef struct {
   const char *context;         /* String uniquely naming the context */
   const char *go_cmd;          /* Go compiler executable */
+  const char *go_path;         /* Value to assign to GOPATH when compiling Gosp pages */
 } gosp_context_config_t;
 
 /* Define access permissions for any files and directories we create. */
@@ -112,6 +112,7 @@ do {                                                                        \
 /* Declare variables and functions that will be accessed cross-file. */
 extern module AP_MODULE_DECLARE_DATA gosp_module;
 extern char *concatenate_filepaths(server_rec *s, apr_pool_t *pool, ...);
+extern const char **append_string(apr_pool_t *p, const char *const *list, const char *str);
 extern gosp_status_t acquire_global_lock(server_rec *s);
 extern gosp_status_t cleanup_script_printf(server_rec *s, apr_pool_t *pool, const char *fmt, ...);
 extern gosp_status_t compile_gosp_server(request_rec *r, const char *server_name);

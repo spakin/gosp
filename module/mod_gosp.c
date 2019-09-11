@@ -21,16 +21,17 @@ const char *gosp_set_work_dir(cmd_parms *cmd, void *cfg, const char *arg)
 /* Assign a value to the GOPATH environment variable. */
 const char *gosp_set_go_path(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  gosp_server_config_t *sconfig;    /* Server configuration */
-  sconfig = ap_get_module_config(cmd->server->module_config, &gosp_module);
-  sconfig->gopath = arg;
+  gosp_context_config_t *cconfig;   /* Per-context configuration */
+  cconfig = (gosp_context_config_t *) cfg;
+  cconfig->go_path = arg;
   return NULL;
 }
 
 /* Assign the name of the Go compiler. */
 const char *gosp_set_go_compiler(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  gosp_context_config_t *cconfig = (gosp_context_config_t *)cfg;
+  gosp_context_config_t *cconfig;   /* Per-context configuration */
+  cconfig = (gosp_context_config_t *) cfg;
   cconfig->go_cmd = arg;
   return NULL;
 }
@@ -191,14 +192,6 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
                "Using %s as Gosp's work directory", sconfig->work_dir);
   if (create_directories_for(s, ptemp, sconfig->work_dir, 1) != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
-
-  /* Store GOPATH in the server's environment. */
-  if (sconfig->gopath != NULL) {
-    status = apr_env_set("GOPATH", sconfig->gopath, ptemp);
-    if (status != APR_SUCCESS)
-      REPORT_SERVER_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, status,
-                          "Failed to set the GOPATH environment variable");
-  }
 
   /* Create a global lock.  Store the mutex structure and name of the
    * underlying file in our configuration structure. */

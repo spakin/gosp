@@ -198,3 +198,25 @@ gosp_status_t release_global_lock(server_rec *s)
                         "Failed to release the lock on %s", sconfig->lock_name);
   return GOSP_STATUS_OK;
 }
+
+/* Append a string onto a NULL-terminated list. */
+const char **append_string(apr_pool_t *p, const char *const *list, const char *str)
+{
+  const char **new_list;         /* New list to return */
+  const char *const *elt0;       /* Pointer into the old list */
+  const char **elt1;             /* Pointer into the new list */
+  size_t len = 0;                /* Number of elements, excluding the NULL */
+
+  /* Determine the length of the list. */
+  for (elt0 = list; *elt0; elt0++)
+    len++;
+
+  /* Copy the the list followed by the new string and a NULL. */
+  new_list = (const char **) apr_palloc(p, (len + 2)*sizeof(char *));
+  for (elt0 = list, elt1 = new_list; *elt0; elt0++, elt1++)
+    *elt1 = *elt0;
+  *elt1 = str;
+  elt1++;
+  *elt1 = NULL;
+  return new_list;
+}
