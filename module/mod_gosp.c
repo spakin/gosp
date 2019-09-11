@@ -30,9 +30,8 @@ const char *gosp_set_go_path(cmd_parms *cmd, void *cfg, const char *arg)
 /* Assign the name of the Go compiler. */
 const char *gosp_set_go_compiler(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  gosp_server_config_t *sconfig;    /* Server configuration */
-  sconfig = ap_get_module_config(cmd->server->module_config, &gosp_module);
-  sconfig->go_cmd = arg;
+  gosp_context_config_t *cconfig = (gosp_context_config_t *)cfg;
+  cconfig->go_cmd = arg;
   return NULL;
 }
 
@@ -86,29 +85,53 @@ const char *gosp_set_group_id(cmd_parms *cmd, void *cfg, const char *arg)
 /* Define all of the configuration-file directives we accept. */
 static const command_rec gosp_directives[] =
   {
-   AP_INIT_TAKE1("GospWorkDir", gosp_set_work_dir, NULL, OR_ALL,
+   AP_INIT_TAKE1("GospWorkDir", gosp_set_work_dir, NULL, RSRC_CONF|ACCESS_CONF,
                  "Name of a directory in which Gosp can generate files needed during execution"),
-   AP_INIT_TAKE1("GospGoPath", gosp_set_go_path, NULL, OR_ALL,
+   AP_INIT_TAKE1("GospGoPath", gosp_set_go_path, NULL, RSRC_CONF|ACCESS_CONF,
                  "Value of the GOPATH environment variable to use when building Gosp pages"),
-   AP_INIT_TAKE1("GospGoCompiler", gosp_set_go_compiler, NULL, OR_ALL,
+   AP_INIT_TAKE1("GospGoCompiler", gosp_set_go_compiler, NULL, RSRC_CONF|ACCESS_CONF,
                  "Go compiler executable"),
-   AP_INIT_TAKE1("User", gosp_set_user_id, NULL, OR_ALL,
+   AP_INIT_TAKE1("User", gosp_set_user_id, NULL, RSRC_CONF|ACCESS_CONF,
                  "The user under which the server will answer requests"),
-   AP_INIT_TAKE1("Group", gosp_set_group_id, NULL, OR_ALL,
+   AP_INIT_TAKE1("Group", gosp_set_group_id, NULL, RSRC_CONF|ACCESS_CONF,
                  "The group under which the server will answer requests"),
    { NULL }
   };
 
-/* Allocate and initialize a configuration data structure. */
+/* Allocate and initialize a per-server configuration. */
 static void *gosp_allocate_server_config(apr_pool_t *p, server_rec *s)
 {
   gosp_server_config_t *sconfig;
 
   sconfig = apr_pcalloc(p, sizeof(gosp_server_config_t));
   sconfig->work_dir = ap_server_root_relative(p, DEFAULT_WORK_DIR);
-  sconfig->go_cmd = DEFAULT_GO_COMMAND;
   return (void *) sconfig;
 }
+
+/* Allocate and initialize a per-context configuration. */
+static void *gosp_allocate_context_config(apr_pool_t *p, char *ctx)
+{
+  gosp_context_config_t *cconfig;
+
+  cconfig = apr_pcalloc(p, sizeof(gosp_context_config_t));
+  cconfig->context = apr_pstrdup(p, ctx ? ctx : "[undefined context]");
+  cconfig->go_cmd = DEFAULT_GO_COMMAND;
+  return (void *) cconfig;
+}
+
+/* Merge two per-context configurations into a new configuration. */
+static void *gosp_merge_context_config(apr_pool_t *p, void *base, void *delta) {
+  gosp_context_config_t *parent = (gosp_context_config_t *)base;
+  gosp_context_config_t *child = (gosp_context_config_t *)delta;
+  gosp_context_config_t *merged;
+  char *merged_name;
+
+  merged_name = apr_psprintf(p, "Merger of %s and %s", parent->context, child->context);
+  merged = (gosp_context_config_t *) gosp_allocate_context_config(p, merged_name);
+  merged->go_cmd = child->go_cmd;
+  return merged;
+}
+
 
 /* For the webmaster's convenience, create a Bash script that kills all Gosp
  * processes and removes all Gosp sockets. */
@@ -362,10 +385,10 @@ static void gosp_register_hooks(apr_pool_t *p)
 module AP_MODULE_DECLARE_DATA gosp_module =
   {
    STANDARD20_MODULE_STUFF,
-   NULL,                         /* Allocate per-server configuration */
-   NULL,                         /* Merge per-server configurations */
-   gosp_allocate_server_config,  /* Allocate per-server configuration */
-   NULL,                         /* Merge per-server configurations */
-   gosp_directives,              /* Define our configuration directives */
-   gosp_register_hooks           /* Register Gosp hooks */
+   gosp_allocate_context_config,  /* Allocate a per-context configuration */
+   gosp_merge_context_config,     /* Merge per-context configurations */
+   gosp_allocate_server_config,   /* Allocate a per-server configuration */
+   NULL,                          /* Merge per-server configurations */
+   gosp_directives,               /* Define our configuration directives */
+   gosp_register_hooks            /* Register Gosp hooks */
   };

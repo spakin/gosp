@@ -45,6 +45,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   const char **args;                /* Process command-line arguments */
   char *go_cache;                   /* Directory for the Go build cache */
   gosp_server_config_t *sconfig;    /* Server configuration */
+  gosp_context_config_t *cconfig;   /* Context configuration */
   const char *work_dir;             /* Top-level work directory */
   apr_status_t status;              /* Status of an APR call */
 
@@ -74,6 +75,9 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   LAUNCH_CALL(apr_procattr_cmdtype_set(attr, APR_PROGRAM_ENV),
               "Specifying that " GOSP2GO " should inherit its parent's environment");
 
+  /* Access the per-context configuration. */
+  cconfig = (gosp_context_config_t *) ap_get_module_config(r->per_dir_config, &gosp_module);
+
   /* Spawn the gosp2go process and wait for it to complete. */
   args = (const char **) apr_palloc(r->pool, 8*sizeof(char *));
   args[0] = GOSP2GO;
@@ -81,7 +85,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   args[2] = "-o";
   args[3] = server_name;
   args[4] = "-g";
-  args[5] = sconfig->go_cmd;
+  args[5] = cconfig->go_cmd;
   args[6] = r->filename;
   args[7] = NULL;
   status = apr_proc_create(&proc, args[0], args, NULL, attr, r->pool);
