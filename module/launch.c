@@ -40,13 +40,13 @@ static gosp_status_t await_process_completion(request_rec *r, apr_proc_t *proc, 
 /* Use gosp2go to compile a Go Server Page into an executable program. */
 gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
 {
-  apr_procattr_t *attr;       /* Process attributes */
-  apr_proc_t proc;            /* Launched process */
-  const char **args;          /* Process command-line arguments */
-  char *go_cache;             /* Directory for the Go build cache */
-  gosp_config_t *config;      /* Server configuration */
-  const char *work_dir;       /* Top-level work directory */
-  apr_status_t status;        /* Status of an APR call */
+  apr_procattr_t *attr;             /* Process attributes */
+  apr_proc_t proc;                  /* Launched process */
+  const char **args;                /* Process command-line arguments */
+  char *go_cache;                   /* Directory for the Go build cache */
+  gosp_server_config_t *sconfig;    /* Server configuration */
+  const char *work_dir;             /* Top-level work directory */
+  apr_status_t status;              /* Status of an APR call */
 
   /* Announce what we're about to do. */
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r,
@@ -58,8 +58,8 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
     return GOSP_STATUS_FAIL;
 
   /* Prepare a Go build cache. */
-  config = ap_get_module_config(r->server->module_config, &gosp_module);
-  work_dir = config->work_dir;
+  sconfig = ap_get_module_config(r->server->module_config, &gosp_module);
+  work_dir = sconfig->work_dir;
   go_cache = concatenate_filepaths(r->server, r->pool, work_dir, "go-build", NULL);
   if (go_cache == NULL)
     return GOSP_STATUS_FAIL;
@@ -81,7 +81,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   args[2] = "-o";
   args[3] = server_name;
   args[4] = "-g";
-  args[5] = config->go_cmd;
+  args[5] = sconfig->go_cmd;
   args[6] = r->filename;
   args[7] = NULL;
   status = apr_proc_create(&proc, args[0], args, NULL, attr, r->pool);

@@ -12,50 +12,50 @@ module AP_MODULE_DECLARE_DATA gosp_module;
 /* Assign a value to the work directory. */
 const char *gosp_set_work_dir(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  gosp_config_t *config;    /* Server configuration */
-  config = ap_get_module_config(cmd->server->module_config, &gosp_module);
-  config->work_dir = ap_server_root_relative(cmd->pool, arg);
+  gosp_server_config_t *sconfig;    /* Server configuration */
+  sconfig = ap_get_module_config(cmd->server->module_config, &gosp_module);
+  sconfig->work_dir = ap_server_root_relative(cmd->pool, arg);
   return NULL;
 }
 
 /* Assign a value to the GOPATH environment variable. */
 const char *gosp_set_go_path(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  gosp_config_t *config;    /* Server configuration */
-  config = ap_get_module_config(cmd->server->module_config, &gosp_module);
-  config->gopath = arg;
+  gosp_server_config_t *sconfig;    /* Server configuration */
+  sconfig = ap_get_module_config(cmd->server->module_config, &gosp_module);
+  sconfig->gopath = arg;
   return NULL;
 }
 
 /* Assign the name of the Go compiler. */
 const char *gosp_set_go_compiler(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  gosp_config_t *config;    /* Server configuration */
-  config = ap_get_module_config(cmd->server->module_config, &gosp_module);
-  config->go_cmd = arg;
+  gosp_server_config_t *sconfig;    /* Server configuration */
+  sconfig = ap_get_module_config(cmd->server->module_config, &gosp_module);
+  sconfig->go_cmd = arg;
   return NULL;
 }
 
 /* Map a user name to a user ID. */
 const char *gosp_set_user_id(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  gosp_config_t *config;       /* Server configuration */
-  apr_uid_t user_id;           /* User ID encountered */
-  apr_gid_t group_id;          /* Group ID encountered */
-  apr_status_t status;         /* Status of an APR call */
+  gosp_server_config_t *sconfig;      /* Server configuration */
+  apr_uid_t user_id;                  /* User ID encountered */
+  apr_gid_t group_id;                 /* Group ID encountered */
+  apr_status_t status;                /* Status of an APR call */
 
-  config = ap_get_module_config(cmd->server->module_config, &gosp_module);
+  sconfig = ap_get_module_config(cmd->server->module_config, &gosp_module);
   if (arg[0] == '#') {
     /* Hash followed by a user ID: convert the ID from a string to an
      * integer. */
-    config->user_id = (apr_uid_t) apr_atoi64(arg + 1);
+    sconfig->user_id = (apr_uid_t) apr_atoi64(arg + 1);
   }
   else {
     /* User name: look up the corresponding user ID. */
     status = apr_uid_get(&user_id, &group_id, arg, cmd->temp_pool);
     if (status != APR_SUCCESS)
       return "Failed to map configuration option User to a user ID";
-    config->user_id = user_id;
+    sconfig->user_id = user_id;
   }
   return NULL;
 }
@@ -63,22 +63,22 @@ const char *gosp_set_user_id(cmd_parms *cmd, void *cfg, const char *arg)
 /* Map a group name to a group ID. */
 const char *gosp_set_group_id(cmd_parms *cmd, void *cfg, const char *arg)
 {
-  gosp_config_t *config;       /* Server configuration */
-  apr_gid_t group_id;          /* Group ID encountered */
-  apr_status_t status;         /* Status of an APR call */
+  gosp_server_config_t *sconfig;      /* Server configuration */
+  apr_gid_t group_id;                 /* Group ID encountered */
+  apr_status_t status;                /* Status of an APR call */
 
-  config = ap_get_module_config(cmd->server->module_config, &gosp_module);
+  sconfig = ap_get_module_config(cmd->server->module_config, &gosp_module);
   if (arg[0] == '#') {
     /* Hash followed by a group ID: convert the ID from a string to an
      * integer. */
-    config->group_id = (apr_uid_t) apr_atoi64(arg + 1);
+    sconfig->group_id = (apr_uid_t) apr_atoi64(arg + 1);
   }
   else {
     /* Group name: look up the corresponding group ID. */
     status = apr_gid_get(&group_id, arg, cmd->temp_pool);
     if (status != APR_SUCCESS)
       return "Failed to map configuration option Group to a group ID";
-    config->group_id = group_id;
+    sconfig->group_id = group_id;
   }
   return NULL;
 }
@@ -102,41 +102,41 @@ static const command_rec gosp_directives[] =
 /* Allocate and initialize a configuration data structure. */
 static void *gosp_allocate_server_config(apr_pool_t *p, server_rec *s)
 {
-  gosp_config_t *config;
+  gosp_server_config_t *sconfig;
 
-  config = apr_pcalloc(p, sizeof(gosp_config_t));
-  config->work_dir = ap_server_root_relative(p, DEFAULT_WORK_DIR);
-  config->go_cmd = DEFAULT_GO_COMMAND;
-  return (void *) config;
+  sconfig = apr_pcalloc(p, sizeof(gosp_server_config_t));
+  sconfig->work_dir = ap_server_root_relative(p, DEFAULT_WORK_DIR);
+  sconfig->go_cmd = DEFAULT_GO_COMMAND;
+  return (void *) sconfig;
 }
 
 /* For the webmaster's convenience, create a Bash script that kills all Gosp
  * processes and removes all Gosp sockets. */
 static gosp_status_t create_cleanup_script(server_rec *s, apr_pool_t *pool)
 {
-  gosp_config_t *config;      /* Server configuration */
-  apr_file_t *cfile;          /* Configuration file handle */
-  apr_status_t status;        /* Status of an APR call */
+  gosp_server_config_t *sconfig;      /* Server configuration */
+  apr_file_t *cfile;                  /* Configuration file handle */
+  apr_status_t status;                /* Status of an APR call */
 
-  config = ap_get_module_config(s->module_config, &gosp_module);
-  config->cleanup_name = concatenate_filepaths(s, pool, config->work_dir, "cleanup.sh", NULL);
-  if (config->cleanup_name == NULL)
+  sconfig = ap_get_module_config(s->module_config, &gosp_module);
+  sconfig->cleanup_name = concatenate_filepaths(s, pool, sconfig->work_dir, "cleanup.sh", NULL);
+  if (sconfig->cleanup_name == NULL)
     REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
                         "Failed to construct a cleanup-script name");
   ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
                "Creating a %s script for killing all Gosp processes",
-               config->cleanup_name);
-  status = apr_file_open(&cfile, config->cleanup_name,
+               sconfig->cleanup_name);
+  status = apr_file_open(&cfile, sconfig->cleanup_name,
                          APR_FOPEN_CREATE|APR_FOPEN_WRITE|APR_FOPEN_TRUNCATE,
                          GOSP_FILE_PERMS, pool);
   if (status != APR_SUCCESS)
     REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
-                        "Failed to create %s", config->cleanup_name);
-if (chown(config->cleanup_name, (uid_t)config->user_id, (gid_t)config->group_id) == -1) {
+                        "Failed to create %s", sconfig->cleanup_name);
+if (chown(sconfig->cleanup_name, (uid_t)sconfig->user_id, (gid_t)sconfig->group_id) == -1) {
     status = APR_FROM_OS_ERROR(errno);
     REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                         "Failed to change ownership of cleanup file %s",
-                        config->cleanup_name);
+                        sconfig->cleanup_name);
   }
   if (cleanup_script_printf(s, pool,
                             "###################################\n"
@@ -150,7 +150,7 @@ if (chown(config->cleanup_name, (uid_t)config->user_id, (gid_t)config->group_id)
   status = apr_file_close(cfile);
   if (status != APR_SUCCESS)
     REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
-                        "Failed to close %s", config->cleanup_name);
+                        "Failed to close %s", sconfig->cleanup_name);
   return GOSP_STATUS_OK;
 }
 
@@ -159,19 +159,19 @@ if (chown(config->cleanup_name, (uid_t)config->user_id, (gid_t)config->group_id)
 static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
                             apr_pool_t *ptemp, server_rec *s)
 {
-  gosp_config_t *config;      /* Server configuration */
-  apr_status_t status;        /* Status of an APR call */
+  gosp_server_config_t *sconfig;      /* Server configuration */
+  apr_status_t status;                /* Status of an APR call */
 
   /* Create our work directory. */
-  config = ap_get_module_config(s->module_config, &gosp_module);
+  sconfig = ap_get_module_config(s->module_config, &gosp_module);
   ap_log_error(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, s,
-               "Using %s as Gosp's work directory", config->work_dir);
-  if (create_directories_for(s, ptemp, config->work_dir, 1) != GOSP_STATUS_OK)
+               "Using %s as Gosp's work directory", sconfig->work_dir);
+  if (create_directories_for(s, ptemp, sconfig->work_dir, 1) != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
 
   /* Store GOPATH in the server's environment. */
-  if (config->gopath != NULL) {
-    status = apr_env_set("GOPATH", config->gopath, ptemp);
+  if (sconfig->gopath != NULL) {
+    status = apr_env_set("GOPATH", sconfig->gopath, ptemp);
     if (status != APR_SUCCESS)
       REPORT_SERVER_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, status,
                           "Failed to set the GOPATH environment variable");
@@ -179,25 +179,25 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
 
   /* Create a global lock.  Store the mutex structure and name of the
    * underlying file in our configuration structure. */
-  config->lock_name = concatenate_filepaths(s, pconf, config->work_dir,
+  sconfig->lock_name = concatenate_filepaths(s, pconf, sconfig->work_dir,
                                             "global.lock", NULL);
-  if (config->lock_name == NULL)
+  if (sconfig->lock_name == NULL)
     return HTTP_INTERNAL_SERVER_ERROR;
 #ifdef APR_LOCK_DEFAULT_TIMED
-  status = apr_global_mutex_create(&config->mutex, config->lock_name,
+  status = apr_global_mutex_create(&sconfig->mutex, sconfig->lock_name,
                                    APR_LOCK_DEFAULT_TIMED, pconf);
 #else
-  status = apr_global_mutex_create(&config->mutex, config->lock_name,
+  status = apr_global_mutex_create(&sconfig->mutex, sconfig->lock_name,
                                    APR_LOCK_DEFAULT, pconf);
 #endif
   if (status != APR_SUCCESS)
     REPORT_SERVER_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, status,
-                        "Failed to create lock file %s", config->lock_name);
+                        "Failed to create lock file %s", sconfig->lock_name);
 #ifdef AP_NEED_SET_MUTEX_PERMS
-  status = ap_unixd_set_global_mutex_perms(config->mutex);
+  status = ap_unixd_set_global_mutex_perms(sconfig->mutex);
   if (status != APR_SUCCESS)
     REPORT_SERVER_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, status,
-                        "Failed to set permissions on lock file %s", config->lock_name);
+                        "Failed to set permissions on lock file %s", sconfig->lock_name);
 #endif
 
   /* Create a cleanup script. */
@@ -209,15 +209,15 @@ static int gosp_post_config(apr_pool_t *pconf, apr_pool_t *plog,
 /* Perform per-child initialization. */
 static void gosp_child_init(apr_pool_t *pool, server_rec *s)
 {
-  gosp_config_t *config;     /* Server configuration */
-  apr_status_t status;       /* Status of an APR call */
+  gosp_server_config_t *sconfig;     /* Server configuration */
+  apr_status_t status;               /* Status of an APR call */
 
   /* Reconnect to the global mutex. */
-  config = ap_get_module_config(s->module_config, &gosp_module);
-  status = apr_global_mutex_child_init(&config->mutex, config->lock_name, pool);
+  sconfig = ap_get_module_config(s->module_config, &gosp_module);
+  status = apr_global_mutex_child_init(&sconfig->mutex, sconfig->lock_name, pool);
   if (status != APR_SUCCESS)
     ap_log_error(APLOG_MARK, APLOG_ERR, status, s,
-                 "Failed to reconnect to lock file %s", config->lock_name);
+                 "Failed to reconnect to lock file %s", sconfig->lock_name);
 }
 
 /* As a helper function for gosp_handler(), handle requests for which the Gosp
@@ -282,12 +282,12 @@ static int launch_and_retry(request_rec *r, const char *server_name, const char 
 /* Handle requests of type "gosp" by passing them to the gosp2go tool. */
 static int gosp_handler(request_rec *r)
 {
-  apr_finfo_t finfo;          /* File information for the rquested file */
-  char *sock_name;            /* Name of the socket on which the Gosp server is listening */
-  char *server_name;          /* Name of the Gosp server executable */
-  gosp_config_t *config;      /* Server configuration */
-  apr_status_t status;        /* Status of an APR call */
-  gosp_status_t gstatus;      /* Status of an internal Gosp call */
+  apr_finfo_t finfo;               /* File information for the rquested file */
+  char *sock_name;                 /* Name of the socket on which the Gosp server is listening */
+  char *server_name;               /* Name of the Gosp server executable */
+  gosp_server_config_t *sconfig;   /* Server configuration */
+  apr_status_t status;             /* Status of an APR call */
+  gosp_status_t gstatus;           /* Status of an internal Gosp call */
 
   /* We care only about "gosp" requests, and we don't care about HEAD
    * requests. */
@@ -303,18 +303,18 @@ static int gosp_handler(request_rec *r)
                          "Failed to query Gosp page %s", r->filename);
 
   /* Gain access to our configuration information. */
-  config = ap_get_module_config(r->server->module_config, &gosp_module);
+  sconfig = ap_get_module_config(r->server->module_config, &gosp_module);
 
   /* Identify the name of the socket to use to communicate with the Gosp
    * server. */
-  sock_name = concatenate_filepaths(r->server, r->pool, config->work_dir, "sockets", r->filename, NULL);
+  sock_name = concatenate_filepaths(r->server, r->pool, sconfig->work_dir, "sockets", r->filename, NULL);
   if (sock_name == NULL)
     REPORT_REQUEST_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, APR_SUCCESS,
                          "Failed to construct a socket name");
   sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
 
   /* Identify the name of the Gosp server executable. */
-  server_name = concatenate_filepaths(r->server, r->pool, config->work_dir, "bin",
+  server_name = concatenate_filepaths(r->server, r->pool, sconfig->work_dir, "bin",
                                       apr_pstrcat(r->pool, r->filename, ".exe", NULL),
                                       NULL);
   if (server_name == NULL)

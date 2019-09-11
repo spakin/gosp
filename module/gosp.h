@@ -72,7 +72,7 @@ typedef struct {
   apr_global_mutex_t *mutex;   /* Global lock to serialize operations*/
   const char *lock_name;       /* Name of a file to back the mutex, if needed */
   const char *cleanup_name;    /* Name of a shell script that cleans up our mess */
-} gosp_config_t;
+} gosp_server_config_t;
 
 /* Define access permissions for any files and directories we create. */
 #define GOSP_FILE_PERMS                                 \

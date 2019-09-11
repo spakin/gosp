@@ -11,10 +11,10 @@
  * 1, the last component of the file path is itself a directory. */
 gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char *fname, int is_dir)
 {
-  const char *dir_name;       /* Directory containing fname */
-  apr_finfo_t finfo;          /* File information for the directory */
-  gosp_config_t *config;      /* Server configuration */
-  apr_status_t status;        /* Return value from an APR operation */
+  const char *dir_name;             /* Directory containing fname */
+  apr_finfo_t finfo;                /* File information for the directory */
+  gosp_server_config_t *sconfig;    /* Server configuration */
+  apr_status_t status;              /* Return value from an APR operation */
 
   /* Check if the directory exists.  If it doesn't exist, create it. */
   if (is_dir)
@@ -44,8 +44,8 @@ gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char
                         "Failed to create directory %s because it already exists as a non-directory", dir_name);
 
   /* Set the permissions to those with which requests are handled. */
-  config = ap_get_module_config(s->module_config, &gosp_module);
-  if (chown(dir_name, (uid_t)config->user_id, (gid_t)config->group_id) == -1) {
+  sconfig = ap_get_module_config(s->module_config, &gosp_module);
+  if (chown(dir_name, (uid_t)sconfig->user_id, (gid_t)sconfig->group_id) == -1) {
     status = APR_FROM_OS_ERROR(errno);
     REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                         "Failed to change ownership of directory %s", dir_name);
@@ -117,24 +117,24 @@ int is_newer_than(request_rec *r, const char *first, const char *second)
  * holding the global lock when called. */
 gosp_status_t cleanup_script_printf(server_rec *s, apr_pool_t *pool, const char *fmt, ...)
 {
-  va_list ap;              /* Argument list */
-  const char *text;        /* Text to write to the file */
-  apr_size_t exp_len;      /* Number of bytes to write */
-  apr_size_t len;          /* Number of bytes written */
-  apr_file_t *cfile;       /* Configuration file handle */
-  gosp_config_t *config;   /* Server configuration */
-  apr_status_t status;     /* Status of an APR call */
+  va_list ap;                      /* Argument list */
+  const char *text;                /* Text to write to the file */
+  apr_size_t exp_len;              /* Number of bytes to write */
+  apr_size_t len;                  /* Number of bytes written */
+  apr_file_t *cfile;               /* Configuration file handle */
+  gosp_server_config_t *sconfig;   /* Server configuration */
+  apr_status_t status;             /* Status of an APR call */
 
   /* Acquire access to our configuration information. */
-  config = ap_get_module_config(s->module_config, &gosp_module);
+  sconfig = ap_get_module_config(s->module_config, &gosp_module);
 
   /* Open the script file. */
-  status = apr_file_open(&cfile, config->cleanup_name,
+  status = apr_file_open(&cfile, sconfig->cleanup_name,
                          APR_FOPEN_WRITE|APR_FOPEN_APPEND,
                          GOSP_FILE_PERMS, pool);
   if (status != APR_SUCCESS)
     REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
-                        "Failed to open %s for appending", config->cleanup_name);
+                        "Failed to open %s for appending", sconfig->cleanup_name);
 
   /* Construct the text and write it to the script file. */
   va_start(ap, fmt);
@@ -151,7 +151,7 @@ gosp_status_t cleanup_script_printf(server_rec *s, apr_pool_t *pool, const char 
   status = apr_file_close(cfile);
   if (status != APR_SUCCESS)
     REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
-                        "Failed to close %s", config->cleanup_name);
+                        "Failed to close %s", sconfig->cleanup_name);
   return GOSP_STATUS_OK;
 }
 
@@ -159,24 +159,24 @@ gosp_status_t cleanup_script_printf(server_rec *s, apr_pool_t *pool, const char 
  * GOSP_STATUS_FAIL on failure. */
 gosp_status_t acquire_global_lock(server_rec *s)
 {
-  gosp_config_t *config;   /* Server configuration */
-  apr_status_t status;     /* Status of an APR call */
+  gosp_server_config_t *sconfig;   /* Server configuration */
+  apr_status_t status;             /* Status of an APR call */
 
   /* Acquire access to our configuration information. */
-  config = ap_get_module_config(s->module_config, &gosp_module);
+  sconfig = ap_get_module_config(s->module_config, &gosp_module);
 
   /* Impose a timeout if supported. */
 #ifdef APR_LOCK_DEFAULT_TIMED
-  status = apr_global_mutex_timedlock(config->mutex, GOSP_LOCK_WAIT_TIME);
+  status = apr_global_mutex_timedlock(sconfig->mutex, GOSP_LOCK_WAIT_TIME);
   if (status != APR_SUCCESS)
     REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                         "Failed to acquire a lock on %s within %d microseconds",
-                        config->lock_name, GOSP_LOCK_WAIT_TIME);
+                        sconfig->lock_name, GOSP_LOCK_WAIT_TIME);
 #else
-  status = apr_global_mutex_trylock(config->mutex);
+  status = apr_global_mutex_trylock(sconfig->mutex);
   if (status != APR_SUCCESS)
     REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
-                        "Failed to acquire a lock on %s", config->lock_name);
+                        "Failed to acquire a lock on %s", sconfig->lock_name);
 #endif
   return GOSP_STATUS_OK;
 }
@@ -185,16 +185,16 @@ gosp_status_t acquire_global_lock(server_rec *s)
  * GOSP_STATUS_FAIL on failure. */
 gosp_status_t release_global_lock(server_rec *s)
 {
-  gosp_config_t *config;   /* Server configuration */
-  apr_status_t status;     /* Status of an APR call */
+  gosp_server_config_t *sconfig;   /* Server configuration */
+  apr_status_t status;             /* Status of an APR call */
 
   /* Acquire access to our configuration information. */
-  config = ap_get_module_config(s->module_config, &gosp_module);
+  sconfig = ap_get_module_config(s->module_config, &gosp_module);
 
   /* Release the lock. */
-  status = apr_global_mutex_unlock(config->mutex);
+  status = apr_global_mutex_unlock(sconfig->mutex);
   if (status != APR_SUCCESS)
     REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
-                        "Failed to release the lock on %s", config->lock_name);
+                        "Failed to release the lock on %s", sconfig->lock_name);
   return GOSP_STATUS_OK;
 }
