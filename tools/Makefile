@@ -11,7 +11,7 @@ SOURCES = \
 all: gosp2go
 
 gosp2go: $(SOURCES)
-	$(GO) build $(GOFLAGS) -ldflags="-X main.goCmd=$(GO) -X main.autoKillTime=$(AUTO_KILL_TIME)" -o gosp2go $(SOURCES)
+	$(GO) build $(GOFLAGS) -ldflags="-X main.autoKillTime=$(AUTO_KILL_TIME)" -o gosp2go $(SOURCES)
 
 clean:
 	$(RM) gosp2go

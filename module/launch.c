@@ -75,13 +75,15 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
               "Specifying that " GOSP2GO " should inherit its parent's environment");
 
   /* Spawn the gosp2go process and wait for it to complete. */
-  args = (const char **) apr_palloc(r->pool, 6*sizeof(char *));
+  args = (const char **) apr_palloc(r->pool, 8*sizeof(char *));
   args[0] = GOSP2GO;
   args[1] = "--build";
   args[2] = "-o";
   args[3] = server_name;
-  args[4] = r->filename;
-  args[5] = NULL;
+  args[4] = "-g";
+  args[5] = config->go_cmd;
+  args[6] = r->filename;
+  args[7] = NULL;
   status = apr_proc_create(&proc, args[0], args, NULL, attr, r->pool);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,

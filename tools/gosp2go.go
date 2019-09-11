@@ -16,10 +16,6 @@ import (
 // notify is used to output error messages.
 var notify *log.Logger
 
-// goCmd specifies the Go compiler command.  This can be overridden with go's
-// -X linker option.
-var goCmd = "go"
-
 // Define the maximum time in minutes a Gosp server is allowed to be idle
 // before exiting or 0 for infinite time.  This can be overridden with go's -X
 // linker option.
@@ -32,6 +28,7 @@ type Parameters struct {
 	Build       bool   // true=compile the generated Go code
 	Run         bool   // true=execute the generated Go code
 	MaxTop      uint   // Maximum number of go:top blocks allowed per page
+	GoCmd       string // Go compiler executable (e.g., "/usr/bin/go")
 }
 
 // ParseCommandLine parses the command line and returns a set of
@@ -57,6 +54,9 @@ The following options are accepted:
                default); the file type depends on whether --build,
                --run, or neither is also specified
 
+  -g FILE, --go=FILE
+               Use FILE as the Go compiler [default: "go"]
+
 `, os.Args[0])
 		os.Exit(1)
 	}
@@ -70,6 +70,8 @@ The following options are accepted:
 	flag.BoolVar(&p.Run, "r", false, "Abbreviation of --run")
 	flag.UintVar(&p.MaxTop, "max-top", 1, "Maximum number of go:top blocks per file")
 	flag.UintVar(&p.MaxTop, "t", 1, "Abbreviation of --max-top")
+	flag.StringVar(&p.GoCmd, "go", "go", "Name of the Go executable")
+	flag.StringVar(&p.GoCmd, "g", "go", "Abbreviation of --go")
 	flag.Parse()
 
 	// Check the parameters for self-consistency.
@@ -181,10 +183,10 @@ func MakeTempGo(goStr string) string {
 
 // Build compiles the generated Go code to a given filename.  It aborts on
 // error.
-func Build(goStr, exeFn string) {
+func Build(p *Parameters, goStr, exeFn string) {
 	goFn := MakeTempGo(goStr)
 	defer os.Remove(goFn)
-	cmd := exec.Command(goCmd, "build", "-o", exeFn, goFn)
+	cmd := exec.Command(p.GoCmd, "build", "-o", exeFn, goFn)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
@@ -195,10 +197,10 @@ func Build(goStr, exeFn string) {
 
 // Run compiles and runs the generated Go code, sending its output to a given
 // io.Writer.  It aborts on error.
-func Run(goStr string, out io.Writer) {
+func Run(p *Parameters, goStr string, out io.Writer) {
 	goFn := MakeTempGo(goStr)
 	defer os.Remove(goFn)
-	cmd := exec.Command(goCmd, "run", goFn)
+	cmd := exec.Command(p.GoCmd, "run", goFn)
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
@@ -274,10 +276,10 @@ func main() {
 	switch {
 	case p.Run:
 		// Run the Go program and output HTML.
-		Run(goStr, outFile)
+		Run(p, goStr, outFile)
 	case p.Build:
 		// Compile the Go program and output an executable file.
-		Build(goStr, p.OutFileName)
+		Build(p, goStr, p.OutFileName)
 	default:
 		// Output the Go program itself.
 		fmt.Fprintln(outFile, goStr)

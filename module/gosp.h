@@ -34,7 +34,12 @@
 
 /* Ensure GOSP2GO is defined, typically on the command line. */
 #ifndef GOSP2GO
-# error GOSP2GO needs to be defined.
+# error GOSP2GO needs to be defined as the full filespec for gosp2go.
+#endif
+
+/* Ensure DEFAULT_GO_COMMAND is defined, typically on the command line. */
+#ifndef DEFAULT_GO_COMMAND
+# error DEFAULT_GO_COMMAND needs to be defined as the Go compiler executable.
 #endif
 
 /* Define some status codes for the functions we define. */
@@ -59,8 +64,9 @@ typedef int gosp_status_t;
 
 /* Declare a type for our configuration options. */
 typedef struct {
-  const char *work_dir;       /* Work directory, for storing Gosp-generated files */
-  const char *gopath;         /* Value to assign to GOPATH when building Gosp pages */
+  const char *work_dir;        /* Work directory, for storing Gosp-generated files */
+  const char *gopath;          /* Value to assign to GOPATH when building Gosp pages */
+  const char *go_cmd;          /* Go compiler executable */
   apr_uid_t user_id;           /* User ID when server answers requests */
   apr_gid_t group_id;          /* Group ID when server answers requests */
   apr_global_mutex_t *mutex;   /* Global lock to serialize operations*/

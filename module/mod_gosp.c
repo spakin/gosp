@@ -18,12 +18,21 @@ const char *gosp_set_work_dir(cmd_parms *cmd, void *cfg, const char *arg)
   return NULL;
 }
 
-/* Assign a value to the GOPATH environment varialbe. */
+/* Assign a value to the GOPATH environment variable. */
 const char *gosp_set_go_path(cmd_parms *cmd, void *cfg, const char *arg)
 {
   gosp_config_t *config;    /* Server configuration */
   config = ap_get_module_config(cmd->server->module_config, &gosp_module);
   config->gopath = arg;
+  return NULL;
+}
+
+/* Assign the name of the Go compiler. */
+const char *gosp_set_go_compiler(cmd_parms *cmd, void *cfg, const char *arg)
+{
+  gosp_config_t *config;    /* Server configuration */
+  config = ap_get_module_config(cmd->server->module_config, &gosp_module);
+  config->go_cmd = arg;
   return NULL;
 }
 
@@ -81,6 +90,8 @@ static const command_rec gosp_directives[] =
                  "Name of a directory in which Gosp can generate files needed during execution"),
    AP_INIT_TAKE1("GospGoPath", gosp_set_go_path, NULL, OR_ALL,
                  "Value of the GOPATH environment variable to use when building Gosp pages"),
+   AP_INIT_TAKE1("GospGoCompiler", gosp_set_go_compiler, NULL, OR_ALL,
+                 "Go compiler executable"),
    AP_INIT_TAKE1("User", gosp_set_user_id, NULL, OR_ALL,
                  "The user under which the server will answer requests"),
    AP_INIT_TAKE1("Group", gosp_set_group_id, NULL, OR_ALL,
@@ -95,6 +106,7 @@ static void *gosp_allocate_server_config(apr_pool_t *p, server_rec *s)
 
   config = apr_pcalloc(p, sizeof(gosp_config_t));
   config->work_dir = ap_server_root_relative(p, DEFAULT_WORK_DIR);
+  config->go_cmd = DEFAULT_GO_COMMAND;
   return (void *) config;
 }
 
