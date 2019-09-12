@@ -162,8 +162,7 @@ func GospStartServer(fn string) error {
 	gospOs.Stdout.Close()
 
 	// Listen on the named Unix-domain socket.
-	dir, sock := gospFilePath.Split(fn)
-	err := gospOs.Chdir(dir)
+	sock, err := gospFilePath.Abs(fn)
 	if err != nil {
 		return err
 	}
