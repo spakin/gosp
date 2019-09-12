@@ -58,6 +58,14 @@ func GospGenerateHTML(gospReq *GospRequest, gospOut gospIo.Writer, gospMeta chan
 	}
 	_, _, _, _ = GospSetHttpStatus, GospSetMimeType, GospSetHeaderField, GospHeartbeat
 
+	// Change to the directory containing the Go Server Page.
+	if gospReq.Filename != "" {
+		err := gospOs.Chdir(gospFilePath.Dir(gospReq.Filename))
+		if err != nil {
+			panic(err) // Returns a StatusInternalServerError
+		}
+	}
+
 	// Express the Gosp page in Go.
 `
 
