@@ -1,23 +1,22 @@
-#########################################
-# Build the Go Server Pages helper tool #
-#                                       #
-# By Scott Pakin <scott+gosp@pakin.org> #
-#########################################
+##########################################
+# Build the Go Server Pages helper tools #
+#                                        #
+# By Scott Pakin <scott+gosp@pakin.org>  #
+##########################################
 
-SOURCES = \
-	gosp2go.go \
-	boilerplate.go
+GOSP_GO_FLAGS = -ldflags="-X main.autoKillTime=$(AUTO_KILL_TIME)"
+GOPATH := $(abspath .):$(GOPATH)
 
-all: gosp2go
+all: bin/gosp2go
 
-gosp2go: $(SOURCES)
-	$(GO) build $(GOFLAGS) -ldflags="-X main.autoKillTime=$(AUTO_KILL_TIME)" -o gosp2go $(SOURCES)
+bin/gosp2go:
+	$(GO) build $(GOFLAGS) $(GOSP_GO_FLAGS) -o bin/gosp2go gosp2go
 
 clean:
-	$(RM) gosp2go
+	$(RM) bin/gosp2go
 
-install: gosp2go
+install: bin/gosp2go
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(bindir)
-	$(INSTALL) gosp2go $(DESTDIR)$(bindir)
+	$(INSTALL) bin/gosp2go $(DESTDIR)$(bindir)
 
 .PHONY: all clean install
