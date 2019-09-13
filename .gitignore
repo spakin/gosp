@@ -19,4 +19,5 @@ module/mod_gosp.so
 module/utils.lo
 module/utils.o
 module/utils.slo
-tools/gosp2go
+tools/bin/
+
