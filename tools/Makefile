@@ -6,10 +6,14 @@
 
 GOSP_GO_FLAGS = -ldflags="-X main.autoKillTime=$(AUTO_KILL_TIME)"
 GOPATH := $(abspath .):$(GOPATH)
+GOSP2GO_DEPS = \
+	src/gosp2go/gosp2go.go \
+	src/gosp2go/boilerplate.go \
+	src/gosp/gosp.go
 
 all: bin/gosp2go
 
-bin/gosp2go:
+bin/gosp2go: $(GOSP2GO_DEPS)
 	$(GO) build $(GOFLAGS) $(GOSP_GO_FLAGS) -o bin/gosp2go gosp2go
 
 clean:
