@@ -4,13 +4,13 @@
 # By Scott Pakin <scott+gosp@pakin.org>  #
 ##########################################
 
-GOSP_GO_FLAGS = -ldflags="-X main.autoKillTime=$(AUTO_KILL_TIME)"
+GOSP_GO_FLAGS = -ldflags="-X main.AutoKillMinutes=$(AUTO_KILL_MINUTES)"
 GOPATH := $(abspath .):$(GOPATH)
 GOSP2GO_DEPS = \
 	src/gosp2go/gosp2go.go \
 	src/gosp2go/boilerplate.go \
 	src/gosp/gosp.go
-GOSPSERVER_DEPS = \
+GOSP_SERVER_DEPS = \
 	src/gosp-server/gosp-server.go \
 	src/gosp/gosp.go
 

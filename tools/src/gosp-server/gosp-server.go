@@ -7,10 +7,12 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"gosp"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -21,13 +23,13 @@ import (
 	"time"
 )
 
-// autoKillTime represents the maximum time in minutes a Gosp server is allowed
-// to be idle before exiting or 0 for infinite time.  This can be overridden
-// with go's -X linker option.
-var autoKillTime = "0"
+// autoKillMinutes represents the maximum time in minutes a Gosp server is
+// allowed to be idle before exiting or 0 for infinite time.  This can be
+// overridden with go's -X linker option.
+var autoKillMinutes = "0"
 
-// autoKillMinutes is duration version of the string autoKillTime.
-var autoKillMinutes time.Duration
+// notify is used to output error messages.
+var notify *log.Logger
 
 // LaunchHTMLGenerator starts GospGenerateHTML in a separate goroutine and
 // waits for it to finish.
@@ -72,8 +74,8 @@ func chdirOrPanic(req *gosp.Request) {
 
 // GospRequestFromFile reads a gosp.Request from a named JSON file and passes
 // this to LaunchHTMLGenerator.
-func GospRequestFromFile(fn string) error {
-	f, err := os.Open(fn)
+func GospRequestFromFile(p *Parameters) error {
+	f, err := os.Open(p.FileName)
 	if err != nil {
 		return err
 	}
@@ -104,14 +106,14 @@ func ResetKillClock(t *time.Timer, d time.Duration) {
 // a Unix-domain socket, reads a gosp.Request in JSON format, and spawns
 // LaunchHTMLGenerator to respond to the request.  The server terminates
 // when given a request with ExitNow set to true.
-func StartServer(fn string) error {
+func StartServer(p *Parameters) error {
 	// Server code should write only to the io.Writer it's given and not
 	// read at all.
 	os.Stdin.Close()
 	os.Stdout.Close()
 
 	// Listen on the named Unix-domain socket.
-	sock, err := filepath.Abs(fn)
+	sock, err := filepath.Abs(p.SocketName)
 	if err != nil {
 		return err
 	}
@@ -123,8 +125,8 @@ func StartServer(fn string) error {
 
 	// Exit automatically after gospAutoKill minutes of no activity.
 	var killClk *time.Timer
-	if autoKillMinutes > 0 {
-		killClk = time.AfterFunc(autoKillMinutes*time.Minute, func() {
+	if p.AutoKillTime > 0 {
+		killClk = time.AfterFunc(p.AutoKillTime, func() {
 			_ = os.Remove(sock)
 			os.Exit(0)
 		})
@@ -139,7 +141,7 @@ func StartServer(fn string) error {
 		if err != nil {
 			return err
 		}
-		ResetKillClock(killClk, autoKillMinutes*time.Minute)
+		ResetKillClock(killClk, p.AutoKillTime)
 		wg.Add(1)
 		go func(conn net.Conn) {
 			// Parse the request as a JSON object.
@@ -177,30 +179,68 @@ func StartServer(fn string) error {
 	return nil
 }
 
+// UserCode is the type of a function compiled from a Go Server Page into a Go
+// plugin.
+type UserCode func(*gosp.Request, *bytes.Buffer, chan<- gosp.KeyValue)
+
+// Parameters represents various parameters that control program operation.
+type Parameters struct {
+	SocketName   string        // Unix socket (filename) on which to listen for JSON requests
+	FileName     string        // Name of a file from which to read a JSON request
+	PluginName   string        // Name of a plugin file that provides a GospGenerateHTML function
+	AutoKillTime time.Duration // Amount of idle time after which the program should automatically exit
+}
+
+// ParseCommandLine parses the command line to fill in some of the fields of a
+// Parameters struct.
+func ParseCommandLine(p *Parameters) error {
+	// Parse the command line.
+	flag.StringVar(&p.SocketName, "socket", "", "Unix socket (filename) on which to listen for JSON requests")
+	flag.StringVar(&p.FileName, "file", "", "File name from which to read a JSON request")
+	flag.StringVar(&p.PluginName, "plugin", "", "Name of a plugin compiled from a Go Server Page by gosp2go")
+	flag.Parse()
+
+	// Validate the result.
+	if p.PluginName == "" {
+		return errors.New("--plugin is a required option")
+	}
+	if p.SocketName != "" && p.FileName != "" {
+		return errors.New("--socket and --file are mutually exclusive")
+	}
+	return nil
+}
+
 // Temporary
-func GospGenerateHTML(*gosp.Request, *bytes.Buffer, chan<- gosp.KeyValue) {
+func GospGenerateHTML(gospReq *gosp.Request, gospOut *bytes.Buffer, gospMeta chan<- gosp.KeyValue) {
+	close(gospMeta)
 }
 
 func main() {
-	akm, err := strconv.Atoi(autoKillTime)
+	// Initialize program parameters.
+	notify = log.New(os.Stderr, os.Args[0]+": ", 0)
+	var p Parameters
+	akm, err := strconv.Atoi(autoKillMinutes)
 	if err != nil {
-		panic(err)
+		notify.Fatal(err)
 	}
-	autoKillMinutes = time.Duration(akm)
+	p.AutoKillTime = time.Duration(akm) * time.Minute
+	err = ParseCommandLine(&p)
+	if err != nil {
+		notify.Fatal(err)
+	}
+
+	// Process requests from a file or a socket, as directed by the user.
 	os.Stdin = nil
-	sock := flag.String("socket", "", "Unix socket (filename) on which to listen for JSON code")
-	file := flag.String("file", "", "File name from which to read JSON code")
-	flag.Parse()
 	switch {
-	case *file != "":
-		err = GospRequestFromFile(*file)
-	case *sock != "":
-		err = StartServer(*sock)
+	case p.FileName != "":
+		err = GospRequestFromFile(&p)
+	case p.SocketName != "":
+		err = StartServer(&p)
 	default:
 		LaunchHTMLGenerator(os.Stdout, nil)
 	}
 	if err != nil {
-		panic(err)
+		notify.Fatal(err)
 	}
 	return
 }
