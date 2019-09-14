@@ -4,7 +4,7 @@
 # By Scott Pakin <scott+gosp@pakin.org>  #
 ##########################################
 
-GOPATH := $(abspath .):$(GOPATH)
+EXT_GOPATH := $(abspath .):$(GOPATH)
 GOSP2GO_DEPS = \
 	src/gosp2go/gosp2go.go \
 	src/gosp2go/boilerplate.go \
@@ -17,17 +17,22 @@ GOSP_SERVER_FLAGS = -ldflags="-X main.AutoKillMinutes=$(AUTO_KILL_MINUTES)"
 all: bin/gosp2go bin/gosp-server
 
 bin/gosp2go: $(GOSP2GO_DEPS)
-	$(GO) build $(GOFLAGS) -o bin/gosp2go gosp2go
+	env GOPATH="$(EXT_GOPATH)" $(GO) build $(GOFLAGS) -o bin/gosp2go gosp2go
 
 bin/gosp-server: $(GOSP_SERVER_DEPS)
-	$(GO) build $(GOFLAGS) $(GOSP_SERVER_FLAGS) -o bin/gosp-server gosp-server
+	env GOPATH="$(EXT_GOPATH)" $(GO) build $(GOFLAGS) $(GOSP_SERVER_FLAGS) -o bin/gosp-server gosp-server
 
 clean:
 	$(RM) bin/gosp2go bin/gosp-server
 
 install: bin/gosp2go bin/gosp-server
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(bindir)
-	$(INSTALL) bin/gosp2go $(DESTDIR)$(bindir)
-	$(INSTALL) bin/gosp-server $(DESTDIR)$(bindir)
+	$(INSTALL) -m 0755 bin/gosp2go $(DESTDIR)$(bindir)
+	$(INSTALL) -m 0755 bin/gosp-server $(DESTDIR)$(bindir)
+	$(INSTALL) -m 0755 -d $(DESTDIR)$(gospgodir)
+	$(INSTALL) -m 0755 -d $(DESTDIR)$(gospgodir)/pkg
+	$(INSTALL) -m 0755 -d $(DESTDIR)$(gospgodir)/src/gosp
+	$(INSTALL) -m 0644 src/gosp/gosp.go $(DESTDIR)$(gospgodir)/src/gosp
+	env GOPATH="$(DESTDIR)$(gospgodir):$(GOPATH)" $(GO) install $(GOFLAGS) gosp
 
 .PHONY: all clean install
