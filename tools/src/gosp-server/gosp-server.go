@@ -60,15 +60,15 @@ func LaunchHTMLGenerator(p *Parameters, gospOut io.Writer, gospReq *gosp.Request
 	}
 }
 
-// chdirOrPanic changes to the directory containing the Go Server Page.  It panics
-// on error.
-func chdirOrPanic(req *gosp.Request) {
+// chdirOrAbort changes to the directory containing the Go Server Page.  It
+// aborts on error.
+func chdirOrAbort(req *gosp.Request) {
 	if req.Filename == "" {
 		return
 	}
 	err := os.Chdir(filepath.Dir(req.Filename))
 	if err != nil {
-		panic(err)
+		notify.Fatal(err)
 	}
 }
 
@@ -86,7 +86,7 @@ func GospRequestFromFile(p *Parameters) error {
 	if err != nil {
 		return err
 	}
-	chdirOrPanic(&gr)
+	chdirOrAbort(&gr)
 	LaunchHTMLGenerator(p, os.Stdout, &gr)
 	return nil
 }
@@ -169,7 +169,7 @@ func StartServer(p *Parameters) error {
 			}
 
 			// Pass the request to the user-defined Gosp code.
-			chdirOrPanic(&gr)
+			chdirOrAbort(&gr)
 			LaunchHTMLGenerator(p, conn, &gr)
 		}(conn)
 	}

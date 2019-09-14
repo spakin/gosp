@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 )
 
 // The following data structure must be kept up-to-date with the
@@ -76,9 +75,8 @@ type Writer interface {
 
 // Fprintf is merely a renamed fmt.Fprintf.
 func Fprintf(w Writer, format string, a ...interface{}) (n int, err error) {
-	return fmt.Fprintf(w, format, a)
+	return fmt.Fprintf(w, format, a...)
 }
 
-// StatusInternalServerError represents an HTTP internal server error (status
-// code 500) as a string.
-var StatusInternalServerError = strconv.Itoa(http.StatusInternalServerError)
+// StatusInternalServerError is merely a renamed http.StatusInternalServerError
+var StatusInternalServerError = http.StatusInternalServerError

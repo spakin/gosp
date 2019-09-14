@@ -4,7 +4,6 @@
 # By Scott Pakin <scott+gosp@pakin.org>  #
 ##########################################
 
-GOSP_GO_FLAGS = -ldflags="-X main.AutoKillMinutes=$(AUTO_KILL_MINUTES)"
 GOPATH := $(abspath .):$(GOPATH)
 GOSP2GO_DEPS = \
 	src/gosp2go/gosp2go.go \
@@ -13,14 +12,15 @@ GOSP2GO_DEPS = \
 GOSP_SERVER_DEPS = \
 	src/gosp-server/gosp-server.go \
 	src/gosp/gosp.go
+GOSP_SERVER_FLAGS = -ldflags="-X main.AutoKillMinutes=$(AUTO_KILL_MINUTES)"
 
 all: bin/gosp2go bin/gosp-server
 
 bin/gosp2go: $(GOSP2GO_DEPS)
-	$(GO) build $(GOFLAGS) $(GOSP_GO_FLAGS) -o bin/gosp2go gosp2go
+	$(GO) build $(GOFLAGS) -o bin/gosp2go gosp2go
 
 bin/gosp-server: $(GOSP_SERVER_DEPS)
-	$(GO) build $(GOFLAGS) $(GOSP_GO_FLAGS) -o bin/gosp-server gosp-server
+	$(GO) build $(GOFLAGS) $(GOSP_SERVER_FLAGS) -o bin/gosp-server gosp-server
 
 clean:
 	$(RM) bin/gosp2go bin/gosp-server

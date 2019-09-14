@@ -16,15 +16,10 @@ import (
 // notify is used to output error messages.
 var notify *log.Logger
 
-// Define the maximum time in minutes a Gosp server is allowed to be idle
-// before exiting or 0 for infinite time.  This can be overridden with go's -X
-// linker option.
-var autoKillTime = "0"
-
 // Parameters encapsulates the key program parameters.
 type Parameters struct {
 	InFileName  string // Name of a file from which to read Go Server Page HTML
-	OutFileName string // Name of a file to which to write the Go or executable or HTML output
+	OutFileName string // Name of a file to which to write the Go code or plugin or HTML output
 	Build       bool   // true=compile the generated Go code
 	Run         bool   // true=execute the generated Go code
 	MaxTop      uint   // Maximum number of go:top blocks allowed per page
@@ -41,7 +36,7 @@ func ParseCommandLine() *Parameters {
 
 The following options are accepted:
 
-  -b, --build  Compile the generated Go code to an executable program
+  -b, --build  Compile the generated Go code to a plugin
 
   -r, --run    Both compile and execute the generated Go code
 
@@ -107,7 +102,7 @@ func GospToGo(p *Parameters, s string) string {
 		if idxs == nil {
 			// No more directives.  Process any HTML text.
 			if len(b) > 0 {
-				body = append(body, fmt.Sprintf(`gospFmt.Fprintf(gospOut, "%%s", %q)`+"\n", b))
+				body = append(body, fmt.Sprintf(`gosp.Fprintf(gospOut, "%%s", %q)`+"\n", b))
 			}
 			break
 		}
@@ -118,7 +113,7 @@ func GospToGo(p *Parameters, s string) string {
 
 		// Extract HTML text preceding the Gosp code, if any.
 		if i0 > 5 {
-			body = append(body, fmt.Sprintf(`gospFmt.Fprintf(gospOut, "%%s", %q)`+"\n", b[:i0-5]))
+			body = append(body, fmt.Sprintf(`gosp.Fprintf(gospOut, "%%s", %q)`+"\n", b[:i0-5]))
 		}
 
 		// Extract Go code into either top or body.
@@ -139,7 +134,7 @@ func GospToGo(p *Parameters, s string) string {
 		case "expr":
 			// A single Go expression.  In this case only, we
 			// retain all trailing white space.
-			body = append(body, fmt.Sprintf(`gospFmt.Fprintf(gospOut, "%%v%%s", %s, %q)`+"\n",
+			body = append(body, fmt.Sprintf(`gosp.Fprintf(gospOut, "%%v%%s", %s, %q)`+"\n",
 				strings.TrimSpace(code), tSpace))
 		default:
 			panic("Internal error parsing a Gosp directive")
@@ -160,11 +155,9 @@ func GospToGo(p *Parameters, s string) string {
 	all = append(all, header)
 	all = append(all, top...)
 	all = append(all, "\n")
-	all = append(all, "const gospAutoKillTime = "+autoKillTime+" // Idle time after which to exit automatically\n\n")
 	all = append(all, bodyBegin)
 	all = append(all, body...)
 	all = append(all, "}\n")
-	all = append(all, trailer)
 	return strings.Join(all, "")
 }
 
@@ -181,12 +174,12 @@ func MakeTempGo(goStr string) string {
 	return goFile.Name()
 }
 
-// Build compiles the generated Go code to a given filename.  It aborts on
-// error.
-func Build(p *Parameters, goStr, exeFn string) {
+// Build compiles the generated Go code to a given plugin filename.  It aborts
+// on error.
+func Build(p *Parameters, goStr, plugFn string) {
 	goFn := MakeTempGo(goStr)
 	defer os.Remove(goFn)
-	cmd := exec.Command(p.GoCmd, "build", "-o", exeFn, goFn)
+	cmd := exec.Command(p.GoCmd, "build", "--buildmode=plugin", "-o", plugFn, goFn)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
