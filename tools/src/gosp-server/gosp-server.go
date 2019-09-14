@@ -7,7 +7,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"gosp"
@@ -192,8 +191,8 @@ type Parameters struct {
 }
 
 // ParseCommandLine parses the command line to fill in some of the fields of a
-// Parameters struct.
-func ParseCommandLine(p *Parameters) error {
+// Parameters struct.  It aborts the program on error.
+func ParseCommandLine(p *Parameters) {
 	// Parse the command line.
 	flag.StringVar(&p.SocketName, "socket", "", "Unix socket (filename) on which to listen for JSON requests")
 	flag.StringVar(&p.FileName, "file", "", "File name from which to read a JSON request")
@@ -202,12 +201,21 @@ func ParseCommandLine(p *Parameters) error {
 
 	// Validate the result.
 	if p.PluginName == "" {
-		return errors.New("--plugin is a required option")
+		notify.Fatal("--plugin is a required option")
 	}
 	if p.SocketName != "" && p.FileName != "" {
-		return errors.New("--socket and --file are mutually exclusive")
+		notify.Fatal("--socket and --file are mutually exclusive")
 	}
-	return nil
+}
+
+// SetAutoKillTime converts autoKillMinutes to a Duration and stores it as a
+// program parameter.  It aborts the program on error.
+func SetAutoKillTime(p *Parameters) {
+	akm, err := strconv.Atoi(autoKillMinutes)
+	if err != nil {
+		notify.Fatal(err)
+	}
+	p.AutoKillTime = time.Duration(akm) * time.Minute
 }
 
 // Temporary
@@ -217,17 +225,11 @@ func GospGenerateHTML(gospReq *gosp.Request, gospOut *bytes.Buffer, gospMeta cha
 
 func main() {
 	// Initialize program parameters.
+	var err error
 	notify = log.New(os.Stderr, os.Args[0]+": ", 0)
 	var p Parameters
-	akm, err := strconv.Atoi(autoKillMinutes)
-	if err != nil {
-		notify.Fatal(err)
-	}
-	p.AutoKillTime = time.Duration(akm) * time.Minute
-	err = ParseCommandLine(&p)
-	if err != nil {
-		notify.Fatal(err)
-	}
+	SetAutoKillTime(&p)
+	ParseCommandLine(&p)
 
 	// Process requests from a file or a socket, as directed by the user.
 	os.Stdin = nil
