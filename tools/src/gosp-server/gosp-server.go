@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"plugin"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -32,12 +33,12 @@ var notify *log.Logger
 
 // LaunchHTMLGenerator starts GospGenerateHTML in a separate goroutine and
 // waits for it to finish.
-func LaunchHTMLGenerator(gospOut io.Writer, gospReq *gosp.Request) {
+func LaunchHTMLGenerator(p *Parameters, gospOut io.Writer, gospReq *gosp.Request) {
 	// Spawn GospGenerateHTML, giving it a buffer in which to write HTML
 	// and a channel in which to send metadata.
 	html := bytes.NewBuffer(nil)
 	meta := make(chan gosp.KeyValue, 5)
-	go GospGenerateHTML(gospReq, html, meta)
+	go p.GospGenerateHTML(gospReq, html, meta)
 
 	// Read metadata from GospGenerateHTML until no more remains.
 	okStr := fmt.Sprint(http.StatusOK)
@@ -86,7 +87,7 @@ func GospRequestFromFile(p *Parameters) error {
 		return err
 	}
 	chdirOrPanic(&gr)
-	LaunchHTMLGenerator(os.Stdout, &gr)
+	LaunchHTMLGenerator(p, os.Stdout, &gr)
 	return nil
 }
 
@@ -169,7 +170,7 @@ func StartServer(p *Parameters) error {
 
 			// Pass the request to the user-defined Gosp code.
 			chdirOrPanic(&gr)
-			LaunchHTMLGenerator(conn, &gr)
+			LaunchHTMLGenerator(p, conn, &gr)
 		}(conn)
 	}
 
@@ -184,10 +185,13 @@ type UserCode func(*gosp.Request, *bytes.Buffer, chan<- gosp.KeyValue)
 
 // Parameters represents various parameters that control program operation.
 type Parameters struct {
-	SocketName   string        // Unix socket (filename) on which to listen for JSON requests
-	FileName     string        // Name of a file from which to read a JSON request
-	PluginName   string        // Name of a plugin file that provides a GospGenerateHTML function
-	AutoKillTime time.Duration // Amount of idle time after which the program should automatically exit
+	SocketName       string        // Unix socket (filename) on which to listen for JSON requests
+	FileName         string        // Name of a file from which to read a JSON request
+	PluginName       string        // Name of a plugin file that provides a GospGenerateHTML function
+	AutoKillTime     time.Duration // Amount of idle time after which the program should automatically exit
+	GospGenerateHTML func(*gosp.Request,
+		gosp.Writer,
+		chan<- gosp.KeyValue) // Go Server Page as a function from a plugin
 }
 
 // ParseCommandLine parses the command line to fill in some of the fields of a
@@ -218,9 +222,23 @@ func SetAutoKillTime(p *Parameters) {
 	p.AutoKillTime = time.Duration(akm) * time.Minute
 }
 
-// Temporary
-func GospGenerateHTML(gospReq *gosp.Request, gospOut *bytes.Buffer, gospMeta chan<- gosp.KeyValue) {
-	close(gospMeta)
+// LoadPlugin opens the plugin file and stores its GospGenerateHTML function as
+// a program parameter.  It aborts the program on error.
+func LoadPlugin(p *Parameters) {
+	pl, err := plugin.Open(p.PluginName)
+	if err != nil {
+		notify.Fatal(err)
+	}
+	ggh, err := pl.Lookup("GospGenerateHTML")
+	if err != nil {
+		notify.Fatal(err)
+	}
+	var ok bool
+	p.GospGenerateHTML, ok = ggh.(func(*gosp.Request, gosp.Writer, chan<- gosp.KeyValue))
+	if !ok {
+		notify.Fatalf("the GospGenerateHTML function in %s has type %T instead of type %T",
+			p.PluginName, ggh, p.GospGenerateHTML)
+	}
 }
 
 func main() {
@@ -228,8 +246,9 @@ func main() {
 	var err error
 	notify = log.New(os.Stderr, os.Args[0]+": ", 0)
 	var p Parameters
-	SetAutoKillTime(&p)
 	ParseCommandLine(&p)
+	SetAutoKillTime(&p)
+	LoadPlugin(&p)
 
 	// Process requests from a file or a socket, as directed by the user.
 	os.Stdin = nil
@@ -239,7 +258,7 @@ func main() {
 	case p.SocketName != "":
 		err = StartServer(&p)
 	default:
-		LaunchHTMLGenerator(os.Stdout, nil)
+		LaunchHTMLGenerator(&p, os.Stdout, nil)
 	}
 	if err != nil {
 		notify.Fatal(err)
