@@ -69,7 +69,6 @@ typedef struct {
   apr_gid_t group_id;          /* Group ID when server answers requests */
   apr_global_mutex_t *mutex;   /* Global lock to serialize operations*/
   const char *lock_name;       /* Name of a file to back the mutex, if needed */
-  const char *cleanup_name;    /* Name of a shell script that cleans up our mess */
 } gosp_server_config_t;
 
 /* Declare a type for our per-context configuration options. */
@@ -114,7 +113,6 @@ extern module AP_MODULE_DECLARE_DATA gosp_module;
 extern char *concatenate_filepaths(server_rec *s, apr_pool_t *pool, ...);
 extern const char **append_string(apr_pool_t *p, const char *const *list, const char *str);
 extern gosp_status_t acquire_global_lock(server_rec *s);
-extern gosp_status_t cleanup_script_printf(server_rec *s, apr_pool_t *pool, const char *fmt, ...);
 extern gosp_status_t compile_gosp_server(request_rec *r, const char *server_name);
 extern gosp_status_t connect_socket(request_rec *r, const char *sock_name, apr_socket_t **sock);
 extern gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char *fname, int is_dir);

@@ -153,14 +153,6 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
   }
   if (await_process_completion(r, &proc, server_name) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
-
-  /* Write commands to the cleanup script to kill the Gosp process. */
-  if (cleanup_script_printf(r->server, r->pool,
-                            "kill `echo '{\"ExitNow\": true}' | nc -U '%s' | cut -d' ' -f2`\n"
-                            "rm -f %s\n",
-                            sock_name, sock_name) != GOSP_STATUS_OK)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, APR_SUCCESS,
-                         "Failed to write code to the cleanup script");
   return GOSP_STATUS_OK;
 }
 
