@@ -78,10 +78,8 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   LAUNCH_CALL(apr_procattr_cmdtype_set(attr, APR_PROGRAM),
               "Specifying that " GOSP2GO " should not inherit its parent's environment");
 
-  /* Access the per-context configuration. */
-  cconfig = (gosp_context_config_t *) ap_get_module_config(r->per_dir_config, &gosp_module);
-
   /* Establish an environment for the child. */
+  cconfig = (gosp_context_config_t *) ap_get_module_config(r->per_dir_config, &gosp_module);
   if (cconfig->go_path == NULL)
     envp = (const char **) environ;
   else
@@ -113,10 +111,12 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
  * unexpected error occurred (and the request needs to be aborted). */
 gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const char *sock_name)
 {
-  apr_proc_t proc;            /* Launched process */
-  apr_procattr_t *attr;       /* Process attributes */
-  const char **args;          /* Process command-line arguments */
-  apr_status_t status;        /* Status of an APR call */
+  apr_proc_t proc;                  /* Launched process */
+  apr_procattr_t *attr;             /* Process attributes */
+  const char **envp;                /* Process environment */
+  const char **args;                /* Process command-line arguments */
+  gosp_context_config_t *cconfig;   /* Context configuration */
+  apr_status_t status;              /* Status of an APR call */
 
   /* Announce what we're about to do. */
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r,
@@ -133,23 +133,35 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
               "Specifying that a Gosp process should detach from its parent");
   LAUNCH_CALL(apr_procattr_error_check_set(attr, 1),
               "Specifying that there should be extra error checking for a Gosp process");
-  LAUNCH_CALL(apr_procattr_cmdtype_set(attr, APR_PROGRAM_ENV),
-              "Specifying that a Gosp process should inherit its parent's environment");
+  LAUNCH_CALL(apr_procattr_cmdtype_set(attr, APR_PROGRAM),
+              "Specifying that a Gosp process should not inherit its parent's environment");
+
+  /* Establish an environment for the child. */
+  cconfig = (gosp_context_config_t *) ap_get_module_config(r->per_dir_config, &gosp_module);
+  if (cconfig->go_path == NULL)
+    envp = (const char **) environ;
+  else
+    envp = append_string(r->pool, (const char **) environ,
+                         apr_pstrcat(r->pool, "GOPATH=", cconfig->go_path, NULL));
 
   /* Spawn the Gosp process.  Even though the "detatch" attribute is set, it
    * appears that we need to await its completion to avoid leaving defunct
    * processes lying around. */
-  args = (const char **) apr_palloc(r->pool, 4*sizeof(char *));
-  args[0] = server_name;
-  args[1] = "-socket";
-  args[2] = sock_name;
-  args[3] = NULL;
-  status = apr_proc_create(&proc, server_name, args, NULL, attr, r->pool);
+  args = (const char **) apr_palloc(r->pool, 6*sizeof(char *));
+  args[0] = GOSPSERVER;
+  args[1] = "-plugin";
+  args[2] = server_name;
+  args[3] = "-socket";
+  args[4] = sock_name;
+  args[5] = NULL;
+
+  status = apr_proc_create(&proc, args[0], args, envp, attr, r->pool);
   if (status != APR_SUCCESS) {
     if (APR_STATUS_IS_ENOENT(status))
       return GOSP_STATUS_NEED_ACTION;
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
-                         "Failed to run %s", server_name);
+                         "Failed to run %s with plugin %s",
+                         GOSPSERVER, server_name);
   }
   if (await_process_completion(r, &proc, server_name) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;

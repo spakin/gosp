@@ -130,6 +130,7 @@ static void *gosp_merge_context_config(apr_pool_t *p, void *base, void *delta) {
   merged_name = apr_psprintf(p, "Merger of %s and %s", parent->context, child->context);
   merged = (gosp_context_config_t *) gosp_allocate_context_config(p, merged_name);
   merged->go_cmd = child->go_cmd;
+  merged->go_path = child->go_path;
   return merged;
 }
 
@@ -282,7 +283,7 @@ static int gosp_handler(request_rec *r)
 
   /* Identify the name of the Gosp server executable. */
   server_name = concatenate_filepaths(r->server, r->pool, sconfig->work_dir, "bin",
-                                      apr_pstrcat(r->pool, r->filename, ".exe", NULL),
+                                      apr_pstrcat(r->pool, r->filename, ".so", NULL),
                                       NULL);
   if (server_name == NULL)
     REPORT_REQUEST_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, APR_SUCCESS,

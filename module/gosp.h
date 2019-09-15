@@ -37,6 +37,11 @@
 # error GOSP2GO needs to be defined as the full filespec for gosp2go.
 #endif
 
+/* Ensure GOSPSERVER is defined, typically on the command line. */
+#ifndef GOSPSERVER
+# error GOSPSERVER needs to be defined as the full filespec for gosp-server.
+#endif
+
 /* Ensure DEFAULT_GO_COMMAND is defined, typically on the command line. */
 #ifndef DEFAULT_GO_COMMAND
 # error DEFAULT_GO_COMMAND needs to be defined as the Go compiler executable.
