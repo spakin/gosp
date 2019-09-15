@@ -1,17 +1,18 @@
 /*
-
 Package gosp provides all of the types, functions, and values needed to compile
-a generated Gosp server.  Request is the only thing defined by this package
-that an end user should care about.  Everything else is used internally by the
-Gosp server.
-
+a generated Gosp server.  Request and perhaps Open are the only things defined
+by this package that an end user should care about.  Everything else is used
+internally by the Gosp server.
 */
 package gosp
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 // The following data structure must be kept up-to-date with the
@@ -80,3 +81,83 @@ func Fprintf(w Writer, format string, a ...interface{}) (n int, err error) {
 
 // StatusInternalServerError is merely a renamed http.StatusInternalServerError
 var StatusInternalServerError = http.StatusInternalServerError
+
+// evalPartialSymlinks is like filepath.EvalSymlinks but can handle
+// nonexistent files.
+func evalPartialSymlinks(fn string) (string, error) {
+	if fn == "" {
+		return "", nil
+	}
+	real, err := filepath.EvalSymlinks(fn)
+	if errors.Is(err, os.ErrNotExist) {
+		// The file doesn't exist.  Expand symlinks in its parent.
+		dir, file := filepath.Split(fn)
+		if dir == fn {
+			return dir, nil // Top-level directory was not found.
+		}
+		realDir, err := evalPartialSymlinks(dir)
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(realDir, file), nil
+	}
+	return real, err
+}
+
+// realPath returns a canonicalized absolute pathname containing no symbolic
+// links.
+func realPath(fn string) (string, error) {
+	noSym, err := evalPartialSymlinks(fn)
+	if err != nil {
+		return "", err
+	}
+	abs, err := filepath.Abs(noSym)
+	if err != nil {
+		return "", err
+	}
+	return abs, nil
+}
+
+// liesInOrBelow returns true if a child file or directory lies in or below a
+// parent directory (or is the parent directory).
+func liesInOrBelow(child, parent string) (bool, error) {
+	// Expand the parent and directory to absolute, non-symlinked paths.
+	p, err := realPath(parent)
+	if err != nil {
+		return false, err
+	}
+	c, err := realPath(child)
+	if err != nil {
+		return false, err
+	}
+
+	// Return true if the child begins with the parent path, false
+	// otherwise.
+	switch {
+	case len(c) < len(p):
+		return false, nil
+	case c == p:
+		return true, nil
+	case c[:len(p)] == p && c[len(p)] == filepath.Separator:
+		return true, nil
+	default:
+		return false, nil
+	}
+}
+
+// Open is a wrapper for os.Open that allows opening only those files that lie
+// within or below the current directory.
+func Open(name string) (*os.File, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	in, err := liesInOrBelow(name, cwd)
+	if err != nil {
+		return nil, err
+	}
+	if !in {
+		return nil, os.ErrPermission
+	}
+	return os.Open(name)
+}
