@@ -117,9 +117,9 @@ func realPath(fn string) (string, error) {
 	return abs, nil
 }
 
-// liesInOrBelow returns true if a child file or directory lies in or below a
+// LiesInOrBelow returns true if a child file or directory lies in or below a
 // parent directory (or is the parent directory).
-func liesInOrBelow(child, parent string) (bool, error) {
+func LiesInOrBelow(child, parent string) (bool, error) {
 	// Expand the parent and directory to absolute, non-symlinked paths.
 	p, err := realPath(parent)
 	if err != nil {
@@ -151,7 +151,7 @@ func Open(name string) (*os.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	in, err := liesInOrBelow(name, cwd)
+	in, err := LiesInOrBelow(name, cwd)
 	if err != nil {
 		return nil, err
 	}

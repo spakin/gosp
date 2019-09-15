@@ -4,11 +4,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"gosp"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -18,12 +20,39 @@ var notify *log.Logger
 
 // Parameters encapsulates the key program parameters.
 type Parameters struct {
-	InFileName  string // Name of a file from which to read Go Server Page HTML
-	OutFileName string // Name of a file to which to write the Go code or plugin or HTML output
-	Build       bool   // true=compile the generated Go code
-	Run         bool   // true=execute the generated Go code
-	MaxTop      uint   // Maximum number of go:top blocks allowed per page
-	GoCmd       string // Go compiler executable (e.g., "/usr/bin/go")
+	InFileName  string   // Name of a file from which to read Go Server Page HTML
+	OutFileName string   // Name of a file to which to write the Go code or plugin or HTML output
+	Build       bool     // true=compile the generated Go code
+	Run         bool     // true=execute the generated Go code
+	MaxTop      uint     // Maximum number of go:top blocks allowed per page
+	GoCmd       string   // Go compiler executable (e.g., "/usr/bin/go")
+	DirStack    []string // Stack of directories to which we chdir
+}
+
+// PushDirectoryOf switches to the parent directory of a given file.  It aborts
+// on error.
+func (p *Parameters) PushDirectoryOf(fn string) {
+	dir, err := filepath.Abs(filepath.Dir(fn))
+	if err != nil {
+		notify.Fatal(err)
+	}
+	err = os.Chdir(dir)
+	if err != nil {
+		notify.Fatal(err)
+	}
+	p.DirStack = append(p.DirStack, dir)
+}
+
+// PopDirectory returns to the previous directory we were in.  It aborts on
+// error.
+func (p *Parameters) PopDirectory() {
+	nds := len(p.DirStack)
+	dir := p.DirStack[nds-1]
+	err := os.Chdir(dir)
+	if err != nil {
+		notify.Fatal(err)
+	}
+	p.DirStack = p.DirStack[:nds-1]
 }
 
 // ParseCommandLine parses the command line and returns a set of
@@ -89,13 +118,50 @@ The following options are accepted:
 	return &p
 }
 
+// includeRe matches a file-inclusion directive.
+var includeRe = regexp.MustCompile(`<\?go:include\s+(.*?)\s+\?>`)
+
+// ProcessGospIncludes recursively processes <?go:include ... ?> blocks.  Only
+// files lying within or below the including file's directory can be included.
+// The function aborts on error.
+func ProcessGospIncludes(p *Parameters, s []byte) []byte {
+	return includeRe.ReplaceAllFunc(s, func(inc []byte) []byte {
+		// Check that the parent is allowed to include the child.
+		fn := string(includeRe.FindSubmatch(inc)[1])
+		in, err := gosp.LiesInOrBelow(fn, p.DirStack[len(p.DirStack)-1])
+		if err != nil {
+			notify.Fatal(err)
+		}
+		if !in {
+			notify.Fatalf("%s is not allowed to be included from directory %s",
+				fn, p.DirStack[len(p.DirStack)-1])
+		}
+
+		// Open the child file and read its entire contents.
+		f, err := os.Open(fn)
+		if err != nil {
+			notify.Fatal(err)
+		}
+		all, err := ioutil.ReadAll(f)
+		if err != nil {
+			notify.Fatal(err)
+		}
+		f.Close()
+
+		// Recursively process the child from the child's directory.
+		p.PushDirectoryOf(fn)
+		defer p.PopDirectory()
+		return ProcessGospIncludes(p, all)
+	})
+}
+
 // GospToGo converts a string representing a Go server page to a Go program.
 func GospToGo(p *Parameters, s string) string {
 	// Parse each Gosp directive in turn.
 	top := make([]string, 0, 1)   // Top-level Go code
 	body := make([]string, 0, 16) // Main body Go code
 	re := regexp.MustCompile(`<\?go:(top|block|expr)\s+((?:.|\n)*?)\?>([\t ]*\n?)`)
-	b := []byte(s)
+	b := ProcessGospIncludes(p, []byte(s))
 	for {
 		// Find the indexes of the first Gosp directive.
 		idxs := re.FindSubmatchIndex(b)
@@ -242,8 +308,9 @@ func main() {
 
 	// Open the input file.
 	inFile := SmartOpen(p.InFileName, false)
-	if p.InFileName == "-" {
+	if p.InFileName != "-" {
 		defer inFile.Close()
+		p.PushDirectoryOf(p.InFileName)
 	}
 
 	// Open the output file, unless we're only compiling.  In that case,
@@ -251,7 +318,7 @@ func main() {
 	var outFile *os.File
 	if !p.Build {
 		outFile = SmartOpen(p.OutFileName, true)
-		if p.OutFileName == "-" {
+		if p.OutFileName != "-" {
 			defer outFile.Close()
 		}
 	}
