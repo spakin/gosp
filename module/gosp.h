@@ -47,6 +47,11 @@
 # error DEFAULT_GO_COMMAND needs to be defined as the Go compiler executable.
 #endif
 
+/* Ensure DEFAULT_GO_PATH is defined, typically on the command line. */
+#ifndef DEFAULT_GO_PATH
+# error DEFAULT_GO_PATH needs to be defined as the default GOPATH.
+#endif
+
 /* Define some status codes for the functions we define. */
 #define GOSP_STATUS_OK          0    /* Function succeeded */
 #define GOSP_STATUS_NEED_ACTION 1    /* Function failed but may succeed if the caller takes some action and retries */

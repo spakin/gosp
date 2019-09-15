@@ -81,7 +81,8 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   /* Establish an environment for the child. */
   cconfig = (gosp_context_config_t *) ap_get_module_config(r->per_dir_config, &gosp_module);
   if (cconfig->go_path == NULL)
-    envp = (const char **) environ;
+    envp = append_string(r->pool, (const char **) environ,
+                         apr_pstrcat(r->pool, "GOPATH=", DEFAULT_GO_PATH, NULL));
   else
     envp = append_string(r->pool, (const char **) environ,
                          apr_pstrcat(r->pool, "GOPATH=", cconfig->go_path, NULL));
