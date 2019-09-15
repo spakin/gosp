@@ -18,10 +18,10 @@ import (
 // The following data structure must be kept up-to-date with the
 // send_request() function in mod_gosp's comm.c.
 
-// A Request encapsulates Web-server information passed into a Gosp server.
-// Many of its fields come from the client and should therefore not be used
+// RequestData encapsulates Web-server information passed into a Gosp server.
+// Many of its fields come from the client; those should therefore not be used
 // without first checking them for bad or malicious content.
-type Request struct {
+type RequestData struct {
 	Scheme         string            // HTTP scheme ("http" or "https")
 	LocalHostname  string            // Name of the local host
 	Port           int               // Port number to which the request was issued
@@ -39,7 +39,6 @@ type Request struct {
 	HeaderData     map[string]string // Request headers as {key, value} pairs
 	AdminEmail     string            // Email address of the Web server administrator
 	Environment    map[string]string // Environment variables passed in from the server
-	ExitNow        bool              // Used internally: If true, shut down the program cleanly
 }
 
 // KeyValue represents a metadata key:value pair.

@@ -25,9 +25,15 @@ import (
 // notify is used to output error messages.
 var notify *log.Logger
 
+// A ServiceRequest is a request for service sent to us by the Web server.
+type ServiceRequest struct {
+	UserData gosp.RequestData // Data to pass to the user's code
+	ExitNow  bool             // If true, shut down the program cleanly
+}
+
 // LaunchHTMLGenerator starts GospGenerateHTML in a separate goroutine and
 // waits for it to finish.
-func LaunchHTMLGenerator(p *Parameters, gospOut io.Writer, gospReq *gosp.Request) {
+func LaunchHTMLGenerator(p *Parameters, gospOut io.Writer, gospReq *gosp.RequestData) {
 	// Spawn GospGenerateHTML, giving it a buffer in which to write HTML
 	// and a channel in which to send metadata.
 	html := bytes.NewBuffer(nil)
@@ -56,11 +62,11 @@ func LaunchHTMLGenerator(p *Parameters, gospOut io.Writer, gospReq *gosp.Request
 
 // chdirOrAbort changes to the directory containing the Go Server Page.  It
 // aborts on error.
-func chdirOrAbort(req *gosp.Request) {
-	if req.Filename == "" {
+func chdirOrAbort(fn string) {
+	if fn == "" {
 		return
 	}
-	err := os.Chdir(filepath.Dir(req.Filename))
+	err := os.Chdir(filepath.Dir(fn))
 	if err != nil {
 		notify.Fatal(err)
 	}
@@ -75,13 +81,13 @@ func GospRequestFromFile(p *Parameters) error {
 	}
 	defer f.Close()
 	dec := json.NewDecoder(f)
-	var gr gosp.Request
-	err = dec.Decode(&gr)
+	var sr ServiceRequest
+	err = dec.Decode(&sr)
 	if err != nil {
 		return err
 	}
-	chdirOrAbort(&gr)
-	LaunchHTMLGenerator(p, os.Stdout, &gr)
+	chdirOrAbort(sr.UserData.Filename)
+	LaunchHTMLGenerator(p, os.Stdout, &sr.UserData)
 	return nil
 }
 
@@ -143,8 +149,8 @@ func StartServer(p *Parameters) error {
 			defer conn.Close()
 			conn.SetDeadline(time.Now().Add(10 * time.Second))
 			dec := json.NewDecoder(conn)
-			var gr gosp.Request
-			err = dec.Decode(&gr)
+			var sr ServiceRequest
+			err = dec.Decode(&sr)
 			if err != nil {
 				return
 			}
@@ -152,7 +158,7 @@ func StartServer(p *Parameters) error {
 			// If we were asked to exit, send back our PID, notify
 			// our parent, and establish a dummy connection to
 			// flush the pipeline.
-			if gr.ExitNow {
+			if sr.ExitNow {
 				fmt.Fprintf(conn, "gosp-pid %d\n", os.Getpid())
 				atomic.StoreInt32(&done, 1)
 				c, err := net.Dial("unix", sock)
@@ -163,8 +169,8 @@ func StartServer(p *Parameters) error {
 			}
 
 			// Pass the request to the user-defined Gosp code.
-			chdirOrAbort(&gr)
-			LaunchHTMLGenerator(p, conn, &gr)
+			chdirOrAbort(sr.UserData.Filename)
+			LaunchHTMLGenerator(p, conn, &sr.UserData)
 		}(conn)
 	}
 
@@ -173,17 +179,13 @@ func StartServer(p *Parameters) error {
 	return nil
 }
 
-// UserCode is the type of a function compiled from a Go Server Page into a Go
-// plugin.
-type UserCode func(*gosp.Request, *bytes.Buffer, chan<- gosp.KeyValue)
-
 // Parameters represents various parameters that control program operation.
 type Parameters struct {
 	SocketName       string        // Unix socket (filename) on which to listen for JSON requests
 	FileName         string        // Name of a file from which to read a JSON request
 	PluginName       string        // Name of a plugin file that provides a GospGenerateHTML function
 	AutoKillTime     time.Duration // Amount of idle time after which the program should automatically exit
-	GospGenerateHTML func(*gosp.Request,
+	GospGenerateHTML func(*gosp.RequestData,
 		gosp.Writer,
 		chan<- gosp.KeyValue) // Go Server Page as a function from a plugin
 }
@@ -219,7 +221,7 @@ func LoadPlugin(p *Parameters) {
 		notify.Fatal(err)
 	}
 	var ok bool
-	p.GospGenerateHTML, ok = ggh.(func(*gosp.Request, gosp.Writer, chan<- gosp.KeyValue))
+	p.GospGenerateHTML, ok = ggh.(func(*gosp.RequestData, gosp.Writer, chan<- gosp.KeyValue))
 	if !ok {
 		notify.Fatalf("the GospGenerateHTML function in %s has type %T instead of type %T",
 			p.PluginName, ggh, p.GospGenerateHTML)

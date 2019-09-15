@@ -147,7 +147,7 @@ static int send_table_item(void *rec, const char *key, const char *value)
       REPORT_REQUEST_ERROR(0, APLOG_ERR, status,
                            "Failed to send 2 bytes to the Gosp server");
   }
-  str = apr_psprintf(r->pool, "    \"%s\": \"%s\"",
+  str = apr_psprintf(r->pool, "      \"%s\": \"%s\"",
                      escape_for_json(r, key), escape_for_json(r, value));
   len = exp_len = (apr_size_t) strlen(str);
   status = apr_socket_send(sock, str, &len);
@@ -186,37 +186,39 @@ gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
 
   /* Send the request as JSON-encoded data. */
   SEND_STRING("{\n");
-  SEND_STRING("  \"Scheme\": \"%s\",\n", escape_for_json(r, ap_http_scheme(r)));
-  SEND_STRING("  \"LocalHostname\": \"%s\",\n", escape_for_json(r, lhost));
-  SEND_STRING("  \"Port\": %d,\n", port);
-  SEND_STRING("  \"Uri\": \"%s\",\n", escape_for_json(r, r->uri));
-  SEND_STRING("  \"PathInfo\": \"%s\",\n", escape_for_json(r, r->path_info));
-  SEND_STRING("  \"QueryArgs\": \"%s\",\n", escape_for_json(r, r->args));
-  SEND_STRING("  \"Url\": \"%s\",\n", escape_for_json(r, url));
-  SEND_STRING("  \"Method\": \"%s\",\n", escape_for_json(r, r->method));
-  SEND_STRING("  \"RequestLine\": \"%s\",\n", escape_for_json(r, r->the_request));
-  SEND_STRING("  \"RequestTime\": %" PRId64 ",\n", r->request_time*1000);
-  SEND_STRING("  \"RemoteHostname\": \"%s\",\n", escape_for_json(r, rhost));
-  SEND_STRING("  \"RemoteIp\": \"%s\",\n", escape_for_json(r, r->useragent_ip));
-  SEND_STRING("  \"Filename\": \"%s\",\n", escape_for_json(r, r->filename));
+  SEND_STRING("  \"UserData\": {\n");
+  SEND_STRING("    \"Scheme\": \"%s\",\n", escape_for_json(r, ap_http_scheme(r)));
+  SEND_STRING("    \"LocalHostname\": \"%s\",\n", escape_for_json(r, lhost));
+  SEND_STRING("    \"Port\": %d,\n", port);
+  SEND_STRING("    \"Uri\": \"%s\",\n", escape_for_json(r, r->uri));
+  SEND_STRING("    \"PathInfo\": \"%s\",\n", escape_for_json(r, r->path_info));
+  SEND_STRING("    \"QueryArgs\": \"%s\",\n", escape_for_json(r, r->args));
+  SEND_STRING("    \"Url\": \"%s\",\n", escape_for_json(r, url));
+  SEND_STRING("    \"Method\": \"%s\",\n", escape_for_json(r, r->method));
+  SEND_STRING("    \"RequestLine\": \"%s\",\n", escape_for_json(r, r->the_request));
+  SEND_STRING("    \"RequestTime\": %" PRId64 ",\n", r->request_time*1000);
+  SEND_STRING("    \"RemoteHostname\": \"%s\",\n", escape_for_json(r, rhost));
+  SEND_STRING("    \"RemoteIp\": \"%s\",\n", escape_for_json(r, r->useragent_ip));
+  SEND_STRING("    \"Filename\": \"%s\",\n", escape_for_json(r, r->filename));
   if (send_post_data(r, sock) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
-  SEND_STRING("  \"HeaderData\": {");
+  SEND_STRING("    \"HeaderData\": {");
   item_data.first = 1;
   if (apr_table_do(send_table_item, (void *) &item_data, r->headers_in, NULL) == FALSE)
     return GOSP_STATUS_FAIL;
-  SEND_STRING("\n  },\n");
-  SEND_STRING("  \"Environment\": {");
+  SEND_STRING("\n    },\n");
+  SEND_STRING("    \"Environment\": {");
   item_data.first = 1;
   if (apr_table_do(send_table_item, (void *) &item_data, r->subprocess_env, NULL) == FALSE)
     return GOSP_STATUS_FAIL;
-  SEND_STRING("\n  },\n");
-  SEND_STRING("  \"AdminEmail\": \"%s\",\n", escape_for_json(r, r->server->server_admin));
-  SEND_STRING("  \"Environment\": {");
+  SEND_STRING("\n    },\n");
+  SEND_STRING("    \"AdminEmail\": \"%s\",\n", escape_for_json(r, r->server->server_admin));
+  SEND_STRING("    \"Environment\": {");
   item_data.first = 1;
   if (apr_table_do(send_table_item, (void *) &item_data, r->subprocess_env, NULL) == FALSE)
     return GOSP_STATUS_FAIL;
-  SEND_STRING("\n  }\n");
+  SEND_STRING("\n    }\n");
+  SEND_STRING("  }\n");
   SEND_STRING("}\n");
   return GOSP_STATUS_OK;
 }
