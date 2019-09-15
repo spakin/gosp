@@ -81,6 +81,7 @@ typedef struct {
   const char *context;         /* String uniquely naming the context */
   const char *go_cmd;          /* Go compiler executable */
   const char *go_path;         /* Value to assign to GOPATH when compiling Gosp pages */
+  const char *max_idle;        /* Maximum idle time before a Gosp server automatically exits */
 } gosp_context_config_t;
 
 /* Define access permissions for any files and directories we create. */

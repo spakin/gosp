@@ -17,16 +17,10 @@ import (
 	"os"
 	"path/filepath"
 	"plugin"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 )
-
-// autoKillMinutes represents the maximum time in minutes a Gosp server is
-// allowed to be idle before exiting or 0 for infinite time.  This can be
-// overridden with go's -X linker option.
-var autoKillMinutes = "0"
 
 // notify is used to output error messages.
 var notify *log.Logger
@@ -123,7 +117,7 @@ func StartServer(p *Parameters) error {
 		return err
 	}
 
-	// Exit automatically after gospAutoKill minutes of no activity.
+	// Exit automatically after AutoKillTime time of no activity.
 	var killClk *time.Timer
 	if p.AutoKillTime > 0 {
 		killClk = time.AfterFunc(p.AutoKillTime, func() {
@@ -201,6 +195,7 @@ func ParseCommandLine(p *Parameters) {
 	flag.StringVar(&p.SocketName, "socket", "", "Unix socket (filename) on which to listen for JSON requests")
 	flag.StringVar(&p.FileName, "file", "", "File name from which to read a JSON request")
 	flag.StringVar(&p.PluginName, "plugin", "", "Name of a plugin compiled from a Go Server Page by gosp2go")
+	flag.DurationVar(&p.AutoKillTime, "max-idle", 5*time.Minute, "Maximum idle time before automatic server exit or 0s for infinite")
 	flag.Parse()
 
 	// Validate the result.
@@ -210,16 +205,6 @@ func ParseCommandLine(p *Parameters) {
 	if p.SocketName != "" && p.FileName != "" {
 		notify.Fatal("--socket and --file are mutually exclusive")
 	}
-}
-
-// SetAutoKillTime converts autoKillMinutes to a Duration and stores it as a
-// program parameter.  It aborts the program on error.
-func SetAutoKillTime(p *Parameters) {
-	akm, err := strconv.Atoi(autoKillMinutes)
-	if err != nil {
-		notify.Fatal(err)
-	}
-	p.AutoKillTime = time.Duration(akm) * time.Minute
 }
 
 // LoadPlugin opens the plugin file and stores its GospGenerateHTML function as
@@ -247,7 +232,6 @@ func main() {
 	notify = log.New(os.Stderr, os.Args[0]+": ", 0)
 	var p Parameters
 	ParseCommandLine(&p)
-	SetAutoKillTime(&p)
 	LoadPlugin(&p)
 
 	// Process requests from a file or a socket, as directed by the user.

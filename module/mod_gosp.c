@@ -36,6 +36,16 @@ const char *gosp_set_go_compiler(cmd_parms *cmd, void *cfg, const char *arg)
   return NULL;
 }
 
+/* Assign the maximum number of minutes a Gosp server is allowed to be idle. */
+const char *gosp_set_max_idle(cmd_parms *cmd, void *cfg, const char *arg)
+{
+  gosp_context_config_t *cconfig;   /* Per-context configuration */
+  cconfig = (gosp_context_config_t *) cfg;
+  cconfig->max_idle = arg;
+  return NULL;
+}
+
+
 /* Map a user name to a user ID. */
 const char *gosp_set_user_id(cmd_parms *cmd, void *cfg, const char *arg)
 {
@@ -92,6 +102,8 @@ static const command_rec gosp_directives[] =
                  "Value of the GOPATH environment variable to use when building Gosp pages"),
    AP_INIT_TAKE1("GospGoCompiler", gosp_set_go_compiler, NULL, RSRC_CONF|ACCESS_CONF,
                  "Go compiler executable"),
+   AP_INIT_TAKE1("GospMaxIdleTime", gosp_set_max_idle, NULL, RSRC_CONF|ACCESS_CONF,
+                 "Maximum idle time before a Gosp server automatically exits"),
    AP_INIT_TAKE1("User", gosp_set_user_id, NULL, RSRC_CONF|ACCESS_CONF,
                  "The user under which the server will answer requests"),
    AP_INIT_TAKE1("Group", gosp_set_group_id, NULL, RSRC_CONF|ACCESS_CONF,
@@ -120,6 +132,11 @@ static void *gosp_allocate_context_config(apr_pool_t *p, char *ctx)
   return (void *) cconfig;
 }
 
+/* For use in gosp_merge_context_config(), assign a field to the merged context
+ * from the child if non-NULL, otherwise from the parent. */
+#define MERGE_CHILD_OVER_PARENT(FIELD) \
+  merged->FIELD = child->FIELD == NULL ? parent->FIELD : child->FIELD
+
 /* Merge two per-context configurations into a new configuration. */
 static void *gosp_merge_context_config(apr_pool_t *p, void *base, void *delta) {
   gosp_context_config_t *parent = (gosp_context_config_t *)base;
@@ -129,8 +146,9 @@ static void *gosp_merge_context_config(apr_pool_t *p, void *base, void *delta) {
 
   merged_name = apr_psprintf(p, "Merger of %s and %s", parent->context, child->context);
   merged = (gosp_context_config_t *) gosp_allocate_context_config(p, merged_name);
-  merged->go_cmd = child->go_cmd;
-  merged->go_path = child->go_path;
+  MERGE_CHILD_OVER_PARENT(go_cmd);
+  MERGE_CHILD_OVER_PARENT(go_path);
+  MERGE_CHILD_OVER_PARENT(max_idle);
   return merged;
 }
 

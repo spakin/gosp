@@ -147,14 +147,18 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
   /* Spawn the Gosp process.  Even though the "detatch" attribute is set, it
    * appears that we need to await its completion to avoid leaving defunct
    * processes lying around. */
-  args = (const char **) apr_palloc(r->pool, 6*sizeof(char *));
+  args = (const char **) apr_palloc(r->pool, 8*sizeof(char *));
   args[0] = GOSPSERVER;
   args[1] = "-plugin";
   args[2] = server_name;
   args[3] = "-socket";
   args[4] = sock_name;
   args[5] = NULL;
-
+  if (cconfig->max_idle != NULL) {
+    args[5] = "-max-idle";
+    args[6] = cconfig->max_idle;
+    args[7] = NULL;
+  }
   status = apr_proc_create(&proc, args[0], args, envp, attr, r->pool);
   if (status != APR_SUCCESS) {
     if (APR_STATUS_IS_ENOENT(status))
