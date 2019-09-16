@@ -15,6 +15,9 @@ import (
 	"strings"
 )
 
+// MaxIncludeDepth is the deepest we allow the file-inclusion tree to grow.
+const MaxIncludeDepth = 10
+
 // notify is used to output error messages.
 var notify *log.Logger
 
@@ -41,6 +44,9 @@ func (p *Parameters) PushDirectoryOf(fn string) {
 		notify.Fatal(err)
 	}
 	p.DirStack = append(p.DirStack, dir)
+	if len(p.DirStack) > MaxIncludeDepth+1 { // +1 for the initial directory.
+		notify.Fatal(fmt.Errorf("Inclusion depth exceeded the maximum of %d", MaxIncludeDepth))
+	}
 }
 
 // PopDirectory returns to the previous directory we were in.  It aborts on
