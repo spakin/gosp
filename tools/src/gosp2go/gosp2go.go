@@ -23,13 +23,14 @@ var notify *log.Logger
 
 // Parameters encapsulates the key program parameters.
 type Parameters struct {
-	InFileName  string   // Name of a file from which to read Go Server Page HTML
-	OutFileName string   // Name of a file to which to write the Go code or plugin or HTML output
-	Build       bool     // true=compile the generated Go code
-	Run         bool     // true=execute the generated Go code
-	MaxTop      uint     // Maximum number of go:top blocks allowed per page
-	GoCmd       string   // Go compiler executable (e.g., "/usr/bin/go")
-	DirStack    []string // Stack of directories to which we chdir
+	InFileName     string   // Name of a file from which to read Go Server Page HTML
+	OutFileName    string   // Name of a file to which to write the Go code or plugin or HTML output
+	Build          bool     // true=compile the generated Go code
+	Run            bool     // true=execute the generated Go code
+	MaxTop         uint     // Maximum number of go:top blocks allowed per page
+	GoCmd          string   // Go compiler executable (e.g., "/usr/bin/go")
+	DirStack       []string // Stack of directories to which we chdir
+	RawHttpHeaders bool     // true: output raw HTTP headers; false: outputs headers for the Gosp Apache module
 }
 
 // PushDirectoryOf switches to the parent directory of a given file.  It aborts
@@ -84,6 +85,10 @@ The following options are accepted:
                default); the file type depends on whether --build,
                --run, or neither is also specified
 
+  -H, --raw-headers
+               Output raw HTTP headers instead of specially formatted headers
+               for the Gosp Apache module
+
   -g FILE, --go=FILE
                Use FILE as the Go compiler [default: "go"]
 
@@ -102,6 +107,8 @@ The following options are accepted:
 	flag.UintVar(&p.MaxTop, "t", 1, "Abbreviation of --max-top")
 	flag.StringVar(&p.GoCmd, "go", "go", "Name of the Go executable")
 	flag.StringVar(&p.GoCmd, "g", "go", "Abbreviation of --go")
+	flag.BoolVar(&p.RawHttpHeaders, "raw-headers", false, "Output raw HTTP headers instead of those expected by the Gosp Apache module")
+	flag.BoolVar(&p.RawHttpHeaders, "H", false, "Abbreviation of --raw-headers")
 	flag.Parse()
 
 	// Check the parameters for self-consistency.
@@ -270,7 +277,12 @@ func Run(p *Parameters, goStr string, out io.Writer) {
 	plugFn := plug.Name()
 	Build(p, goStr, plugFn)
 	defer os.Remove(plugFn)
-	cmd := exec.Command("gosp-server", "-plugin", plugFn)
+	var cmd *exec.Cmd
+	if p.RawHttpHeaders {
+		cmd = exec.Command("gosp-server", "-plugin", plugFn, "-raw-headers")
+	} else {
+		cmd = exec.Command("gosp-server", "-plugin", plugFn)
+	}
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()

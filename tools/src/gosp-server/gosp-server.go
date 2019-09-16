@@ -31,17 +31,43 @@ type ServiceRequest struct {
 	ExitNow  bool             // If true, shut down the program cleanly
 }
 
-// LaunchHTMLGenerator starts GospGenerateHTML in a separate goroutine and
-// waits for it to finish.
-func LaunchHTMLGenerator(p *Parameters, gospOut io.Writer, gospReq *gosp.RequestData) {
-	// Spawn GospGenerateHTML, giving it a buffer in which to write HTML
-	// and a channel in which to send metadata.
-	html := bytes.NewBuffer(nil)
-	meta := make(chan gosp.KeyValue, 5)
-	go p.GospGenerateHTML(gospReq, html, meta)
+// okStr represents an HTTP success code as a string.
+var okStr = fmt.Sprint(http.StatusOK)
+
+// writeRawMetadata is a helper routine for LaunchHTMLGenerator that writes
+// HTTP metadata in raw HTTP format.  It returns an HTTP status as a string.
+func writeRawMetadata(gospOut io.Writer, meta chan gosp.KeyValue) string {
+	// Define default header values.
+	contentType := "text/html"
+	headers := make([]string, 0, 3)
+	status := okStr
 
 	// Read metadata from GospGenerateHTML until no more remains.
-	okStr := fmt.Sprint(http.StatusOK)
+	for kv := range meta {
+		switch kv.Key {
+		case "mime-type":
+			contentType = kv.Value
+		case "http-status":
+			status = kv.Value
+		case "header-field":
+			headers = append(headers, kv.Value)
+		}
+	}
+
+	// Output the metadata.
+	fmt.Fprintf(gospOut, "Content-type: %s\n", contentType)
+	for _, h := range headers {
+		fmt.Fprintln(gospOut, h)
+	}
+	fmt.Fprintln(gospOut, "")
+	return status
+}
+
+// writeModGospMetadata is a helper routine for LaunchHTMLGenerator that writes
+// HTTP metadata in the format expected by the Gosp Apache module.  It returns
+// an HTTP status as a string.
+func writeModGospMetadata(gospOut io.Writer, meta chan gosp.KeyValue) string {
+	// Read metadata from GospGenerateHTML until no more remains.
 	status := okStr
 	for kv := range meta {
 		switch kv.Key {
@@ -55,6 +81,27 @@ func LaunchHTMLGenerator(p *Parameters, gospOut io.Writer, gospReq *gosp.Request
 		}
 	}
 	fmt.Fprintln(gospOut, "end-header")
+	return status
+}
+
+// LaunchHTMLGenerator starts GospGenerateHTML in a separate goroutine and
+// waits for it to finish.
+func LaunchHTMLGenerator(p *Parameters, gospOut io.Writer, gospReq *gosp.RequestData) {
+	// Spawn GospGenerateHTML, giving it a buffer in which to write HTML
+	// and a channel in which to send metadata.
+	html := bytes.NewBuffer(nil)
+	meta := make(chan gosp.KeyValue, 5)
+	go p.GospGenerateHTML(gospReq, html, meta)
+
+	// Read metadata from GospGenerateHTML until no more remains.
+	var status string
+	if p.RawHttpHeaders {
+		status = writeRawMetadata(gospOut, meta)
+	} else {
+		status = writeModGospMetadata(gospOut, meta)
+	}
+
+	// Write the generated HTML, but only on success.
 	if status == okStr {
 		fmt.Fprint(gospOut, html)
 	}
@@ -185,6 +232,7 @@ type Parameters struct {
 	FileName         string        // Name of a file from which to read a JSON request
 	PluginName       string        // Name of a plugin file that provides a GospGenerateHTML function
 	AutoKillTime     time.Duration // Amount of idle time after which the program should automatically exit
+	RawHttpHeaders   bool          // true: output raw HTTP headers; false: outputs headers for the Gosp Apache module
 	GospGenerateHTML func(*gosp.RequestData,
 		gosp.Writer,
 		chan<- gosp.KeyValue) // Go Server Page as a function from a plugin
@@ -198,6 +246,7 @@ func ParseCommandLine(p *Parameters) {
 	flag.StringVar(&p.FileName, "file", "", "File name from which to read a JSON request")
 	flag.StringVar(&p.PluginName, "plugin", "", "Name of a plugin compiled from a Go Server Page by gosp2go")
 	flag.DurationVar(&p.AutoKillTime, "max-idle", 5*time.Minute, "Maximum idle time before automatic server exit or 0s for infinite")
+	flag.BoolVar(&p.RawHttpHeaders, "raw-headers", false, "Output raw HTTP headers instead of those expected by the Gosp Apache module")
 	flag.Parse()
 
 	// Validate the result.
