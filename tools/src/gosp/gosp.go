@@ -139,6 +139,8 @@ func LiesInOrBelow(child, parent string) (bool, error) {
 		return true, nil
 	case c[:len(p)] == p && c[len(p)] == filepath.Separator:
 		return true, nil
+	case p == string(filepath.Separator):
+		return true, nil
 	default:
 		return false, nil
 	}
