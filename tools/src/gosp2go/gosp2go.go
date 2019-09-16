@@ -30,7 +30,7 @@ type Parameters struct {
 	MaxTop         uint     // Maximum number of go:top blocks allowed per page
 	GoCmd          string   // Go compiler executable (e.g., "/usr/bin/go")
 	DirStack       []string // Stack of directories to which we chdir
-	RawHttpHeaders bool     // true: output raw HTTP headers; false: outputs headers for the Gosp Apache module
+	HttpHeaderType string   // Format in which to output HTTP headers
 }
 
 // PushDirectoryOf switches to the parent directory of a given file.  It aborts
@@ -107,8 +107,8 @@ The following options are accepted:
 	flag.UintVar(&p.MaxTop, "t", 1, "Abbreviation of --max-top")
 	flag.StringVar(&p.GoCmd, "go", "go", "Name of the Go executable")
 	flag.StringVar(&p.GoCmd, "g", "go", "Abbreviation of --go")
-	flag.BoolVar(&p.RawHttpHeaders, "raw-headers", false, "Output raw HTTP headers instead of those expected by the Gosp Apache module")
-	flag.BoolVar(&p.RawHttpHeaders, "H", false, "Abbreviation of --raw-headers")
+	flag.StringVar(&p.HttpHeaderType, "http-headers", "mod_gosp", "HTTP header format to request from gosp-server")
+	flag.StringVar(&p.HttpHeaderType, "H", "mod_gosp", "Abbreviation of --raw-headers")
 	flag.Parse()
 
 	// Check the parameters for self-consistency.
@@ -278,11 +278,7 @@ func Run(p *Parameters, goStr string, out io.Writer) {
 	Build(p, goStr, plugFn)
 	defer os.Remove(plugFn)
 	var cmd *exec.Cmd
-	if p.RawHttpHeaders {
-		cmd = exec.Command("gosp-server", "-plugin", plugFn, "-raw-headers")
-	} else {
-		cmd = exec.Command("gosp-server", "-plugin", plugFn)
-	}
+	cmd = exec.Command("gosp-server", "-plugin", plugFn, "-http-headers", p.HttpHeaderType)
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()

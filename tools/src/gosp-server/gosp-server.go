@@ -63,6 +63,20 @@ func writeRawMetadata(gospOut io.Writer, meta chan gosp.KeyValue) string {
 	return status
 }
 
+// writeNoMetadata is a helper routine for LaunchHTMLGenerator that discards
+// all metadata.  It might be used when postprocessing the output of CGI
+// scripts, which already output an HTTP header.  writeNoMetadata returns an
+// HTTP status as a string.
+func writeNoMetadata(gospOut io.Writer, meta chan gosp.KeyValue) string {
+	status := okStr
+	for kv := range meta {
+		if kv.Key == "http-status" {
+			status = kv.Value
+		}
+	}
+	return status
+}
+
 // writeModGospMetadata is a helper routine for LaunchHTMLGenerator that writes
 // HTTP metadata in the format expected by the Gosp Apache module.  It returns
 // an HTTP status as a string.
@@ -95,10 +109,13 @@ func LaunchHTMLGenerator(p *Parameters, gospOut io.Writer, gospReq *gosp.Request
 
 	// Read metadata from GospGenerateHTML until no more remains.
 	var status string
-	if p.RawHttpHeaders {
-		status = writeRawMetadata(gospOut, meta)
-	} else {
+	switch p.HttpHeaderType {
+	case "mod_gosp":
 		status = writeModGospMetadata(gospOut, meta)
+	case "raw":
+		status = writeRawMetadata(gospOut, meta)
+	case "none":
+		status = writeNoMetadata(gospOut, meta)
 	}
 
 	// Write the generated HTML, but only on success.
@@ -232,7 +249,7 @@ type Parameters struct {
 	FileName         string        // Name of a file from which to read a JSON request
 	PluginName       string        // Name of a plugin file that provides a GospGenerateHTML function
 	AutoKillTime     time.Duration // Amount of idle time after which the program should automatically exit
-	RawHttpHeaders   bool          // true: output raw HTTP headers; false: outputs headers for the Gosp Apache module
+	HttpHeaderType   string        // Format in which to output HTTP headers
 	GospGenerateHTML func(*gosp.RequestData,
 		gosp.Writer,
 		chan<- gosp.KeyValue) // Go Server Page as a function from a plugin
@@ -242,11 +259,16 @@ type Parameters struct {
 // Parameters struct.  It aborts the program on error.
 func ParseCommandLine(p *Parameters) {
 	// Parse the command line.
-	flag.StringVar(&p.SocketName, "socket", "", "Unix socket (filename) on which to listen for JSON requests")
-	flag.StringVar(&p.FileName, "file", "", "File name from which to read a JSON request")
-	flag.StringVar(&p.PluginName, "plugin", "", "Name of a plugin compiled from a Go Server Page by gosp2go")
-	flag.DurationVar(&p.AutoKillTime, "max-idle", 5*time.Minute, "Maximum idle time before automatic server exit or 0s for infinite")
-	flag.BoolVar(&p.RawHttpHeaders, "raw-headers", false, "Output raw HTTP headers instead of those expected by the Gosp Apache module")
+	flag.StringVar(&p.SocketName, "socket", "",
+		"Unix socket (filename) on which to listen for JSON requests")
+	flag.StringVar(&p.FileName, "file", "",
+		"File name from which to read a JSON request")
+	flag.StringVar(&p.PluginName, "plugin", "",
+		"Name of a plugin compiled from a Go Server Page by gosp2go")
+	flag.DurationVar(&p.AutoKillTime, "max-idle", 5*time.Minute,
+		"Maximum idle time before automatic server exit or 0s for infinite")
+	flag.StringVar(&p.HttpHeaderType, "http-headers", "mod_gosp",
+		`HTTP header format: "mod_gosp" (default), "raw", or "none"`)
 	flag.Parse()
 
 	// Validate the result.
@@ -255,6 +277,11 @@ func ParseCommandLine(p *Parameters) {
 	}
 	if p.SocketName != "" && p.FileName != "" {
 		notify.Fatal("--socket and --file are mutually exclusive")
+	}
+	switch p.HttpHeaderType {
+	case "mod_gosp", "raw", "none":
+	default:
+		notify.Fatalf("%q is not a valid argument to --http-headers", p.HttpHeaderType)
 	}
 }
 
