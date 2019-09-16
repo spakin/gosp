@@ -327,7 +327,9 @@ func main() {
 
 	// Open the input file.
 	inFile := SmartOpen(p.InFileName, false)
-	if p.InFileName != "-" {
+	if p.InFileName == "-" {
+		p.PushDirectoryOf(string(filepath.Separator))
+	} else {
 		defer inFile.Close()
 		p.PushDirectoryOf(p.InFileName)
 	}
