@@ -263,12 +263,17 @@ func Build(p *Parameters, goStr, plugFn string) {
 // Run compiles and runs the generated Go code, sending its output to a given
 // io.Writer.  It aborts on error.
 func Run(p *Parameters, goStr string, out io.Writer) {
-	goFn := MakeTempGo(goStr)
-	defer os.Remove(goFn)
-	cmd := exec.Command(p.GoCmd, "run", goFn)
+	plug, err := ioutil.TempFile("", "gosp-*.go")
+	if err != nil {
+		notify.Fatal(err)
+	}
+	plugFn := plug.Name()
+	Build(p, goStr, plugFn)
+	defer os.Remove(plugFn)
+	cmd := exec.Command("gosp-server", "-plugin", plugFn)
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		notify.Fatal(err)
 	}
