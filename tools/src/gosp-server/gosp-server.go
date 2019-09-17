@@ -85,7 +85,7 @@ func writeModGospMetadata(gospOut io.Writer, meta chan gosp.KeyValue) string {
 	status := okStr
 	for kv := range meta {
 		switch kv.Key {
-		case "mime-type", "http-status", "header-field", "keep-alive", "debug-message":
+		case "mime-type", "http-status", "header-field", "keep-alive", "error-message":
 			fmt.Fprintf(gospOut, "%s %s\n", kv.Key, kv.Value)
 		}
 

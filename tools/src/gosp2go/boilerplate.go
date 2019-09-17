@@ -18,15 +18,16 @@ func GospGenerateHTML(gospReq *gosp.RequestData, gospOut gosp.Writer, gospMeta c
 	// On exit, close the metadata channel.  If the user's code panicked,
 	// change the return code to "internal server error".
 	defer func() {
-		if r := recover(); r != nil {
-			gosp.SetHttpStatus(gospMeta, gosp.StatusInternalServerError)
+		r := recover()
+		if r != nil {
+			gosp.ReportPanic(r, gospMeta)
 		}
 		close(gospMeta)
 	}()
 
 	// Provide functions for passing metadata back to the Web server.
 	GospSetHttpStatus := func(s int) { gosp.SetHttpStatus(gospMeta, s) }
-	GospSetMimeType := func(mt string) { gosp.SetMimeType (gospMeta, mt) }
+	GospSetMimeType := func(mt string) { gosp.SetMimeType(gospMeta, mt) }
 	GospSetHeaderField := func(k, v string, repl bool) {
 		gosp.SetHeaderField(gospMeta, k, v, repl)
 	}

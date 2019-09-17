@@ -355,9 +355,9 @@ static gosp_status_t process_response(request_rec *r, char *response, size_t res
       continue;
     }
 
-    /* Debug message: output it. */
-    if (strncmp(line, "debug-message ", 14) == 0) {
-      ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r,
+    /* Error message: output it. */
+    if (strncmp(line, "error-message ", 14) == 0) {
+      ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_ERR, APR_SUCCESS, r,
                     "%s", line + 14);
       continue;
     }

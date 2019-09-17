@@ -13,6 +13,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime/debug"
+	"strings"
 )
 
 // The following data structure must be kept up-to-date with the
@@ -68,6 +70,23 @@ func SetHeaderField(ch chan<- KeyValue, k, v string, repl bool) {
 	}
 }
 
+// ReportPanic alerts the Web server that the Gosp server encountered an
+// unexpected error.  It should be called from a deferred function in
+// GospGenerateHTML.
+func ReportPanic(r interface{}, ch chan<- KeyValue) {
+	ch <- KeyValue{Key: "error-message", Value: fmt.Sprint(r)}
+	ch <- KeyValue{Key: "error-message", Value: "+------------------------------------------------------------"}
+	for _, tr := range strings.Split(string(debug.Stack()), "\n") {
+		if tr == "" {
+			continue
+		}
+		tr = strings.Replace(tr, "\t", "        ", 1) // Apache doesn't honor tab characters.
+		ch <- KeyValue{Key: "error-message", Value: "| " + tr}
+	}
+	ch <- KeyValue{Key: "error-message", Value: "+------------------------------------------------------------"}
+	SetHttpStatus(ch, http.StatusInternalServerError)
+}
+
 // Writer is merely a renamed io.Writer.
 type Writer interface {
 	io.Writer
@@ -77,9 +96,6 @@ type Writer interface {
 func Fprintf(w Writer, format string, a ...interface{}) (n int, err error) {
 	return fmt.Fprintf(w, format, a...)
 }
-
-// StatusInternalServerError is merely a renamed http.StatusInternalServerError
-var StatusInternalServerError = http.StatusInternalServerError
 
 // evalPartialSymlinks is like filepath.EvalSymlinks but can handle
 // nonexistent files.
