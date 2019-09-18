@@ -8,6 +8,8 @@ EXT_GOPATH := $(abspath .):$(GOPATH)
 GOSP2GO_DEPS = \
 	src/gosp2go/gosp2go.go \
 	src/gosp2go/boilerplate.go \
+	src/gosp2go/params.go \
+	src/gosp2go/utils.go \
 	src/gosp/gosp.go
 GOSP_SERVER_DEPS = \
 	src/gosp-server/gosp-server.go \
