@@ -149,7 +149,7 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
    * appears that we need to await its completion to avoid leaving defunct
    * processes lying around. */
   args = (const char **) apr_palloc(r->pool, 8*sizeof(char *));
-  args[0] = GOSPSERVER;
+  args[0] = cconfig->gosp_server;
   args[1] = "-plugin";
   args[2] = server_name;
   args[3] = "-socket";
@@ -162,11 +162,9 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
   }
   status = apr_proc_create(&proc, args[0], args, envp, attr, r->pool);
   if (status != APR_SUCCESS) {
-    if (APR_STATUS_IS_ENOENT(status))
-      return GOSP_STATUS_NEED_ACTION;
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                          "Failed to run %s with plugin %s",
-                         GOSPSERVER, server_name);
+                         cconfig->gosp_server, server_name);
   }
   if (await_process_completion(r, &proc, server_name) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;

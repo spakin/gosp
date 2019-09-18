@@ -27,7 +27,7 @@ mod_gosp.la: mod_gosp.c utils.c launch.c comm.c gosp.h
 	$(APXS) $(APXSFLAGS) \
 	  -DDEFAULT_GO_COMMAND='\"$(GO)\"' \
 	  -DGOSP2GO='\"$(bindir)/gosp2go\"' \
-	  -DGOSPSERVER='\"$(bindir)/gosp-server\"' \
+	  -DGOSP_SERVER='\"$(bindir)/gosp-server\"' \
 	  -DDEFAULT_GO_PATH='\"$(gospgodir)\"' \
 	  -I. -c mod_gosp.c utils.c launch.c comm.c
 

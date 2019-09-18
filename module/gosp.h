@@ -37,9 +37,9 @@
 # error GOSP2GO needs to be defined as the full filespec for gosp2go.
 #endif
 
-/* Ensure GOSPSERVER is defined, typically on the command line. */
-#ifndef GOSPSERVER
-# error GOSPSERVER needs to be defined as the full filespec for gosp-server.
+/* Ensure GOSP_SERVER is defined, typically on the command line. */
+#ifndef GOSP_SERVER
+# error GOSP_SERVER needs to be defined as the full filespec for gosp-server.
 #endif
 
 /* Ensure DEFAULT_GO_COMMAND is defined, typically on the command line. */
@@ -84,7 +84,8 @@ typedef struct {
 /* Declare a type for our per-context configuration options. */
 typedef struct {
   const char *context;         /* String uniquely naming the context */
-  const char *go_cmd;          /* Go compiler executable */
+  const char *go_cmd;          /* Go compiler executable filespec */
+  const char *gosp_server;     /* gosp-server executable filespec */
   const char *go_path;         /* Value to assign to GOPATH when compiling Gosp pages */
   const char *max_idle;        /* Maximum idle time before a Gosp server automatically exits */
 } gosp_context_config_t;

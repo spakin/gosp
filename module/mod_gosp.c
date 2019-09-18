@@ -36,6 +36,15 @@ const char *gosp_set_go_compiler(cmd_parms *cmd, void *cfg, const char *arg)
   return NULL;
 }
 
+/* Assign the name of the gosp-server command. */
+const char *gosp_set_gosp_server(cmd_parms *cmd, void *cfg, const char *arg)
+{
+  gosp_context_config_t *cconfig;   /* Per-context configuration */
+  cconfig = (gosp_context_config_t *) cfg;
+  cconfig->gosp_server = arg;
+  return NULL;
+}
+
 /* Assign the maximum number of minutes a Gosp server is allowed to be idle. */
 const char *gosp_set_max_idle(cmd_parms *cmd, void *cfg, const char *arg)
 {
@@ -102,6 +111,8 @@ static const command_rec gosp_directives[] =
                  "Value of the GOPATH environment variable to use when building Gosp pages"),
    AP_INIT_TAKE1("GospGoCompiler", gosp_set_go_compiler, NULL, RSRC_CONF|ACCESS_CONF,
                  "Go compiler executable"),
+   AP_INIT_TAKE1("GospServer", gosp_set_gosp_server, NULL, RSRC_CONF|ACCESS_CONF,
+                 "gosp-server executable"),
    AP_INIT_TAKE1("GospMaxIdleTime", gosp_set_max_idle, NULL, RSRC_CONF|ACCESS_CONF,
                  "Maximum idle time before a Gosp server automatically exits"),
    AP_INIT_TAKE1("User", gosp_set_user_id, NULL, RSRC_CONF|ACCESS_CONF,
@@ -129,6 +140,7 @@ static void *gosp_allocate_context_config(apr_pool_t *p, char *ctx)
   cconfig = apr_pcalloc(p, sizeof(gosp_context_config_t));
   cconfig->context = apr_pstrdup(p, ctx ? ctx : "[undefined context]");
   cconfig->go_cmd = DEFAULT_GO_COMMAND;
+  cconfig->gosp_server = GOSP_SERVER;
   return (void *) cconfig;
 }
 
@@ -147,6 +159,7 @@ static void *gosp_merge_context_config(apr_pool_t *p, void *base, void *delta) {
   merged_name = apr_psprintf(p, "Merger of %s and %s", parent->context, child->context);
   merged = (gosp_context_config_t *) gosp_allocate_context_config(p, merged_name);
   MERGE_CHILD_OVER_PARENT(go_cmd);
+  MERGE_CHILD_OVER_PARENT(gosp_server);
   MERGE_CHILD_OVER_PARENT(go_path);
   MERGE_CHILD_OVER_PARENT(max_idle);
   return merged;
