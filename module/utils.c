@@ -131,7 +131,7 @@ gosp_status_t acquire_global_lock(server_rec *s)
                         "Failed to acquire a lock on %s within %d microseconds",
                         sconfig->lock_name, GOSP_LOCK_WAIT_TIME);
 #else
-  status = apr_global_mutex_trylock(sconfig->mutex);
+  status = apr_global_mutex_lock(sconfig->mutex);
   if (status != APR_SUCCESS)
     REPORT_SERVER_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                         "Failed to acquire a lock on %s", sconfig->lock_name);

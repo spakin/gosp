@@ -60,7 +60,7 @@
 /* Define a number of wait-time values (all in microseconds). */
 #define GOSP_SECONDS 1000000
 #define GOSP_RESPONSE_TIMEOUT (600*GOSP_SECONDS)  /* Time to wait to receive a chunk of data from a Gosp server */
-#define GOSP_LOCK_WAIT_TIME     (3*GOSP_SECONDS)  /* Time to wait to acquire a lock */
+#define GOSP_LOCK_WAIT_TIME    (10*GOSP_SECONDS)  /* Time to wait to acquire a lock */
 #define GOSP_LAUNCH_WAIT_TIME   (3*GOSP_SECONDS)  /* Time to wait for a Gosp server to launch */
 #define GOSP_EXIT_WAIT_TIME     (1*GOSP_SECONDS)  /* Time to wait for a Gosp server to exit */
 
