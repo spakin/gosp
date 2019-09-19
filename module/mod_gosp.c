@@ -166,13 +166,24 @@ static void *gosp_merge_context_config(apr_pool_t *p, void *base, void *delta) {
   gosp_context_config_t *merged;
   char *merged_name;
 
+  /* For most fields, simply let the child take precedence over the parent. */
   merged_name = apr_psprintf(p, "Merger of %s and %s", parent->context, child->context);
   merged = (gosp_context_config_t *) gosp_allocate_context_config(p, merged_name);
   MERGE_CHILD_OVER_PARENT(go_cmd);
   MERGE_CHILD_OVER_PARENT(gosp_server);
   MERGE_CHILD_OVER_PARENT(go_path);
   MERGE_CHILD_OVER_PARENT(max_idle);
-  MERGE_CHILD_OVER_PARENT(allowed_imports);
+
+  /* Merge allowed_imports differently if it begins with a "+" or not. */
+  if (child->allowed_imports == NULL || child->allowed_imports[0] != '+')
+    /* Retain only the child's import list. */
+    MERGE_CHILD_OVER_PARENT(allowed_imports);
+  else {
+    /* Append the child's import list to its parent's. */
+    const char *p_imps = parent->allowed_imports == NULL ? "ALL" : parent->allowed_imports;
+    merged->allowed_imports = apr_pstrcat(p, p_imps, ",",
+                                          child->allowed_imports + 1, NULL);
+  }
   return merged;
 }
 

@@ -50,6 +50,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   gosp_server_config_t *sconfig;    /* Server configuration */
   gosp_context_config_t *cconfig;   /* Context configuration */
   const char *work_dir;             /* Top-level work directory */
+  const char *imports;              /* List of allowed imports */
   apr_status_t status;              /* Status of an APR call */
 
   /* Announce what we're about to do. */
@@ -87,6 +88,11 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
     envp = append_string(r->pool, (const char **) environ,
                          apr_pstrcat(r->pool, "GOPATH=", cconfig->go_path, NULL));
 
+  /* Acquire a list of allowed package imports. */
+  imports = cconfig->allowed_imports == NULL ? "ALL" : cconfig->allowed_imports;
+  if (imports[0] == '+')  /* "+" is not meaningful at this point in the execution. */
+    imports++;
+
   /* Spawn the gosp2go process and wait for it to complete. */
   args = (const char **) apr_palloc(r->pool, 10*sizeof(char *));
   args[0] = GOSP2GO;
@@ -96,7 +102,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   args[4] = "--go";
   args[5] = cconfig->go_cmd;
   args[6] = "--allowed";
-  args[7] = cconfig->allowed_imports == NULL ? "ALL" : cconfig->allowed_imports;
+  args[7] = imports;
   args[8] = r->filename;
   args[9] = NULL;
   status = apr_proc_create(&proc, args[0], args, envp, attr, r->pool);
