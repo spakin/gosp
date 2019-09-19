@@ -3,22 +3,26 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 )
 
 // Parameters encapsulates the key program parameters.
 type Parameters struct {
-	InFileName     string   // Name of a file from which to read Go Server Page HTML
-	OutFileName    string   // Name of a file to which to write the Go code or plugin or HTML output
-	Build          bool     // true=compile the generated Go code
-	Run            bool     // true=execute the generated Go code
-	MaxTop         uint     // Maximum number of go:top blocks allowed per page
-	GoCmd          string   // Go compiler executable (e.g., "/usr/bin/go")
-	DirStack       []string // Stack of directories to which we chdir
-	HttpHeaderType string   // Format in which to output HTTP headers
+	InFileName     string    // Name of a file from which to read Go Server Page HTML
+	OutFileName    string    // Name of a file to which to write the Go code or plugin or HTML output
+	Build          bool      // true=compile the generated Go code
+	Run            bool      // true=execute the generated Go code
+	MaxTop         uint      // Maximum number of go:top blocks allowed per page
+	GoCmd          string    // Go compiler executable (e.g., "/usr/bin/go")
+	DirStack       []string  // Stack of directories to which we chdir
+	HttpHeaderType string    // Format in which to output HTTP headers
+	AllowedImports ImportSet // Set of packages the Go code is allowe to import
 }
 
 // PushDirectoryOf switches to the parent directory of a given file.  It aborts
@@ -48,6 +52,51 @@ func (p *Parameters) PopDirectory() {
 		notify.Fatal(err)
 	}
 	p.DirStack = p.DirStack[:nds-1]
+}
+
+// An ImportSet represents a set of package names.  The Boolean value is always
+// true and is used to simplify membership testing.
+type ImportSet map[string]bool
+
+// NewImportSet returns a new ImportSet that allows no packages.
+func NewImportSet() ImportSet {
+	return make(map[string]bool, 16) // Arbitrary initial size
+}
+
+// String returns an ImportSet as a comma-separated list of strings.
+func (s *ImportSet) String() string {
+	str := make([]string, 0, len(*s))
+	for k := range *s {
+		str = append(str, k)
+	}
+	sort.Strings(str)
+	return strings.Join(str, ",")
+}
+
+// Set assigns in turn each package named in a comma-separated list to an
+// ImportSet.  "ALL" indicates that all packages are allowed.  "NONE" indicates
+// that no packages are allowed.
+func (s *ImportSet) Set(lst string) error {
+	if strings.TrimSpace(lst) == "" {
+		return errors.New("Argument must be non-empty")
+	}
+	for _, pkg := range strings.Split(lst, ",") {
+		pkg = strings.TrimSpace(pkg)
+		switch pkg {
+		case "":
+			return fmt.Errorf("Empty element in list %q", lst)
+		case "NONE":
+			*s = NewImportSet()
+		case "ALL":
+			*s = NewImportSet()
+			(*s)["ALL"] = true
+		default:
+			if !(*s)["ALL"] {
+				(*s)[pkg] = true
+			}
+		}
+	}
+	return nil
 }
 
 // ParseCommandLine parses the command line and returns a set of
@@ -80,6 +129,10 @@ The following options are accepted:
   -g FILE, --go=FILE
                Use FILE as the Go compiler [default: "go"]
 
+  -a LIST, --allowed=LIST
+               Specify a comma-separated list of allowed Go imports; if "ALL"
+               (the default), allow all imports; if "NONE", allow no imports
+
 `, os.Args[0])
 		os.Exit(1)
 	}
@@ -97,7 +150,21 @@ The following options are accepted:
 	flag.StringVar(&p.GoCmd, "g", "go", "Abbreviation of --go")
 	flag.StringVar(&p.HttpHeaderType, "http-headers", "mod_gosp", "HTTP header format to request from gosp-server")
 	flag.StringVar(&p.HttpHeaderType, "H", "mod_gosp", "Abbreviation of --raw-headers")
+	p.AllowedImports = NewImportSet()
+	p.AllowedImports["PLACEHOLDER_ALL"] = true // Converted to ALL if --allowed was never used
+	flag.Var(&p.AllowedImports, "allowed", "Comma-separated list of allowed Go imports")
+	flag.Var(&p.AllowedImports, "a", "Abbreviation of --allowed")
 	flag.Parse()
+
+	// Replace PLACEHOLDER_ALL with ALL if it's the only package allowed.
+	if p.AllowedImports["PLACEHOLDER_ALL"] {
+		if len(p.AllowedImports) == 1 {
+			// --allowed was not specified.  Default to --allowed=ALL.
+			p.AllowedImports = NewImportSet()
+			p.AllowedImports["ALL"] = true
+		}
+		delete(p.AllowedImports, "PLACEHOLDER_ALL")
+	}
 
 	// Check the parameters for self-consistency.
 	switch flag.NArg() {

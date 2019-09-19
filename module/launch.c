@@ -88,15 +88,17 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
                          apr_pstrcat(r->pool, "GOPATH=", cconfig->go_path, NULL));
 
   /* Spawn the gosp2go process and wait for it to complete. */
-  args = (const char **) apr_palloc(r->pool, 8*sizeof(char *));
+  args = (const char **) apr_palloc(r->pool, 10*sizeof(char *));
   args[0] = GOSP2GO;
   args[1] = "--build";
   args[2] = "-o";
   args[3] = server_name;
-  args[4] = "-g";
+  args[4] = "--go";
   args[5] = cconfig->go_cmd;
-  args[6] = r->filename;
-  args[7] = NULL;
+  args[6] = "--allowed";
+  args[7] = cconfig->allowed_imports == NULL ? "ALL" : cconfig->allowed_imports;
+  args[8] = r->filename;
+  args[9] = NULL;
   status = apr_proc_create(&proc, args[0], args, envp, attr, r->pool);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,

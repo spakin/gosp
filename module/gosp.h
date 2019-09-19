@@ -88,6 +88,7 @@ typedef struct {
   const char *gosp_server;     /* gosp-server executable filespec */
   const char *go_path;         /* Value to assign to GOPATH when compiling Gosp pages */
   const char *max_idle;        /* Maximum idle time before a Gosp server automatically exits */
+  const char *allowed_imports; /* Comma-separated list of packages that can be imported */
 } gosp_context_config_t;
 
 /* Define access permissions for any files and directories we create. */

@@ -194,6 +194,10 @@ func main() {
 		notify.Fatal(err)
 	}
 	goStr := GospToGo(p, string(in))
+	err = p.ValidateImports(goStr)
+	if err != nil {
+		notify.Fatal(err)
+	}
 
 	// If Run is true, compile and run the Go program, outputting HTML.
 	// Otherwise, if Build is true, compile the Go program, outputting an

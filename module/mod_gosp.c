@@ -54,6 +54,14 @@ const char *gosp_set_max_idle(cmd_parms *cmd, void *cfg, const char *arg)
   return NULL;
 }
 
+/* Assign the set of packages a Go Server Page is allowed to import. */
+const char *gosp_set_allowed_imports(cmd_parms *cmd, void *cfg, const char *arg)
+{
+  gosp_context_config_t *cconfig;   /* Per-context configuration */
+  cconfig = (gosp_context_config_t *) cfg;
+  cconfig->allowed_imports = arg;
+  return NULL;
+}
 
 /* Map a user name to a user ID. */
 const char *gosp_set_user_id(cmd_parms *cmd, void *cfg, const char *arg)
@@ -115,6 +123,8 @@ static const command_rec gosp_directives[] =
                  "gosp-server executable"),
    AP_INIT_TAKE1("GospMaxIdleTime", gosp_set_max_idle, NULL, RSRC_CONF|ACCESS_CONF,
                  "Maximum idle time before a Gosp server automatically exits"),
+   AP_INIT_TAKE1("GospAllowedImports", gosp_set_allowed_imports, NULL, RSRC_CONF|ACCESS_CONF,
+                 "Comma-separated list of packages that can be imported or \"ALL\" or \"NONE\""),
    AP_INIT_TAKE1("User", gosp_set_user_id, NULL, RSRC_CONF|ACCESS_CONF,
                  "The user under which the server will answer requests"),
    AP_INIT_TAKE1("Group", gosp_set_group_id, NULL, RSRC_CONF|ACCESS_CONF,
@@ -162,6 +172,7 @@ static void *gosp_merge_context_config(apr_pool_t *p, void *base, void *delta) {
   MERGE_CHILD_OVER_PARENT(gosp_server);
   MERGE_CHILD_OVER_PARENT(go_path);
   MERGE_CHILD_OVER_PARENT(max_idle);
+  MERGE_CHILD_OVER_PARENT(allowed_imports);
   return merged;
 }
 
