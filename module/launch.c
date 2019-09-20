@@ -88,8 +88,9 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
     envp = append_string(r->pool, (const char **) environ,
                          apr_pstrcat(r->pool, "GOPATH=", cconfig->go_path, NULL));
 
-  /* Acquire a list of allowed package imports. */
-  imports = cconfig->allowed_imports == NULL ? "ALL" : cconfig->allowed_imports;
+  /* Acquire a list of allowed package imports.  If not specified, don't allow
+   * any package to be imported (except gosp, which is always allowed. */
+  imports = cconfig->allowed_imports == NULL ? "NONE" : cconfig->allowed_imports;
   if (imports[0] == '+')  /* "+" is not meaningful at this point in the execution. */
     imports++;
 
