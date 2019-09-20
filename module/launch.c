@@ -54,7 +54,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   apr_status_t status;              /* Status of an APR call */
 
   /* Announce what we're about to do. */
-  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_NOTICE, APR_SUCCESS, r,
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_INFO, APR_SUCCESS, r,
                 "Compiling %s into %s",
                 r->filename, server_name);
 
