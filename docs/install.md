@@ -49,7 +49,7 @@ make prefix=/opt/gosp
 Installing
 ----------
 
-**Caveat #1**: The Go Server Pages Apache module will install into whatever directory Apache modules normally get installed into, regardless of the `prefix` and other directory variables.  On an Ubuntu system, this is likely to be `/usr/lib/apache2/modules`.
+**Caveat #1**: The Go Server Pages Apache module will install into whatever directory Apache modules normally get installed into, regardless of the `prefix` and other directory variables.  On an Ubuntu system, this is likely to be `/usr/lib/apache2/modules`.  (Run `a2query -d` to check.)
 
 **Caveat #2**: When installing, you must specify the same `prefix` and other build settings as when you compiled.  This is because the Apache module needs to know where it will be able to find its helper programs and Go packages.
 
