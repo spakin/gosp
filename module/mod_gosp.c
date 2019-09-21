@@ -335,7 +335,7 @@ static int gosp_handler(request_rec *r)
   sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
 
   /* Identify the name of the Gosp server executable. */
-  server_name = concatenate_filepaths(r->server, r->pool, sconfig->work_dir, "bin",
+  server_name = concatenate_filepaths(r->server, r->pool, sconfig->work_dir, "pages",
                                       apr_pstrcat(r->pool, r->filename, ".so", NULL),
                                       NULL);
   if (server_name == NULL)
