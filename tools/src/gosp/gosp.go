@@ -21,8 +21,8 @@ import (
 // send_request() function in mod_gosp's comm.c.
 
 // RequestData encapsulates Web-server information passed into a Gosp server.
-// Many of its fields come from the client; those should therefore not be used
-// without first checking them for bad or malicious content.
+// Many of its fields come from the client.  Those should therefore not be used
+// without first checking them for invalid or malicious content.
 type RequestData struct {
 	Scheme         string            // HTTP scheme ("http" or "https")
 	LocalHostname  string            // Name of the local host
