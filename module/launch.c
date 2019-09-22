@@ -52,6 +52,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   const char *work_dir;             /* Top-level work directory */
   const char *imports;              /* List of allowed imports */
   apr_status_t status;              /* Status of an APR call */
+  int i;
 
   /* Announce what we're about to do. */
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_INFO, APR_SUCCESS, r,
@@ -95,17 +96,22 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
     imports++;
 
   /* Spawn the gosp2go process and wait for it to complete. */
-  args = (const char **) apr_palloc(r->pool, 10*sizeof(char *));
-  args[0] = GOSP2GO;
-  args[1] = "--build";
-  args[2] = "-o";
-  args[3] = server_name;
-  args[4] = "--go";
-  args[5] = cconfig->go_cmd;
-  args[6] = "--allowed";
-  args[7] = imports;
-  args[8] = r->filename;
-  args[9] = NULL;
+  args = (const char **) apr_palloc(r->pool, 12*sizeof(char *));
+  i = 0;
+  args[i++] = GOSP2GO;
+  args[i++] = "--build";
+  args[i++] = "-o";
+  args[i++] = server_name;
+  args[i++] = "--go";
+  args[i++] = cconfig->go_cmd;
+  args[i++] = "--allowed";
+  args[i++] = imports;
+  if (cconfig->max_top != NULL) {
+    args[i++] = "--max-top";
+    args[i++] = cconfig->max_top;
+  }
+  args[i++] = r->filename;
+  args[i++] = NULL;
   status = apr_proc_create(&proc, args[0], args, envp, attr, r->pool);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
@@ -127,6 +133,7 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
   const char **args;                /* Process command-line arguments */
   gosp_context_config_t *cconfig;   /* Context configuration */
   apr_status_t status;              /* Status of an APR call */
+  int i;
 
   /* Announce what we're about to do. */
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_INFO, APR_SUCCESS, r,
@@ -158,17 +165,17 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
    * appears that we need to await its completion to avoid leaving defunct
    * processes lying around. */
   args = (const char **) apr_palloc(r->pool, 8*sizeof(char *));
-  args[0] = cconfig->gosp_server;
-  args[1] = "-plugin";
-  args[2] = server_name;
-  args[3] = "-socket";
-  args[4] = sock_name;
-  args[5] = NULL;
+  i = 0;
+  args[i++] = cconfig->gosp_server;
+  args[i++] = "-plugin";
+  args[i++] = server_name;
+  args[i++] = "-socket";
+  args[i++] = sock_name;
   if (cconfig->max_idle != NULL) {
-    args[5] = "-max-idle";
-    args[6] = cconfig->max_idle;
-    args[7] = NULL;
+    args[i++] = "-max-idle";
+    args[i++] = cconfig->max_idle;
   }
+  args[i++] = NULL;
   status = apr_proc_create(&proc, args[0], args, envp, attr, r->pool);
   if (status != APR_SUCCESS) {
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,

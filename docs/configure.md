@@ -42,6 +42,7 @@ The Go Server Pages Apache module processes the following directives:
 | `GospWorkDir`        | `/var/cache/apache2/mod_gosp`               | Name of a directory in which Gosp can generate files needed during execution |
 | `GospAllowedImports` | `NONE`                                      | Comma-separated list of packages that can be imported or `ALL` or `NONE`     |
 | `GospGoPath`         | *empty*                                     | Value of the `GOPATH` environment variable to use when building a page       |
+| `GospMaxTop`         | `1`                                         | Maximum number of `?go:top` blocks allowed per page                          |
 | `GospMaxIdleTime`    | `0m`                                        | Maximum idle time before a Gosp server automatically exits (0m = infinite)   |
 | `GospServer`         | *some_path*`/bin/gosp-server`               | `gosp-server` executable                                                     |
 | `GospGoCompiler`     | *some_path*`/bin/go`                        | Go compiler executable                                                       |
@@ -63,6 +64,8 @@ GospAllowedImports time,fmt,html,strings
 most pages can import only the `time`, `fmt`, `html`, and `strings` packages.  Pages served from beneath the `/home/trusted` directory, however, can additionally import the `os` package.  (Without the `+`, pages beneath `/home/trusted` would be able to import *only* the `os` package.)
 
 **`GospGoPath`** sets the `GOPATH` variable as specified during page compilation.  It can be useful for pointing to a library of common routines (e.g., for typesetting page headers or footers) and for exposing to Go code individual "safe" functions taken from "dangerous" packages.
+
+**`GospMaxTop`** limits the number of top-level blocks of Go code (function/method declarations, `import` blocks, etc.) allowed per page.  The thinking is that if an attacker somehow managed to inject code on a page, this would limit the harm that could be caused.
 
 **`GospMaxIdleTime`** provides an automatic cleanup mechanism.  To avoid leaving one Go Server Page process running indefinitely per Web page, these processes can exit automatically after `GospMaxIdleTime` of no usage.  The only downside is the (reasonably low) cost of a process launch the next time the page is accessed after a long period of no accesses.  Times are specified as a number followed by a suffix of `s` for seconds, `m` for minutes, or `h` for hours.  `GospMaxIdleTime` should not be set too small or a process could self-terminate before sending back the page's contents.  A few minutes (say, `5m`) is a good value for `GospMaxIdleTime`.
 

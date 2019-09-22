@@ -54,6 +54,15 @@ const char *gosp_set_max_idle(cmd_parms *cmd, void *cfg, const char *arg)
   return NULL;
 }
 
+/* Assign the maximum number of ?go:top blocks allowed on a single page. */
+const char *gosp_set_max_top(cmd_parms *cmd, void *cfg, const char *arg)
+{
+  gosp_context_config_t *cconfig;   /* Per-context configuration */
+  cconfig = (gosp_context_config_t *) cfg;
+  cconfig->max_top = arg;
+  return NULL;
+}
+
 /* Assign the set of packages a Go Server Page is allowed to import. */
 const char *gosp_set_allowed_imports(cmd_parms *cmd, void *cfg, const char *arg)
 {
@@ -123,6 +132,8 @@ static const command_rec gosp_directives[] =
                  "gosp-server executable"),
    AP_INIT_TAKE1("GospMaxIdleTime", gosp_set_max_idle, NULL, RSRC_CONF|ACCESS_CONF,
                  "Maximum idle time before a Gosp server automatically exits"),
+   AP_INIT_TAKE1("GospMaxTop", gosp_set_max_top, NULL, RSRC_CONF|ACCESS_CONF,
+                 "Maximum number of top-level blocks allowed per page"),
    AP_INIT_TAKE1("GospAllowedImports", gosp_set_allowed_imports, NULL, RSRC_CONF|ACCESS_CONF,
                  "Comma-separated list of packages that can be imported or \"ALL\" or \"NONE\""),
    AP_INIT_TAKE1("User", gosp_set_user_id, NULL, RSRC_CONF|ACCESS_CONF,
@@ -173,6 +184,7 @@ static void *gosp_merge_context_config(apr_pool_t *p, void *base, void *delta) {
   MERGE_CHILD_OVER_PARENT(gosp_server);
   MERGE_CHILD_OVER_PARENT(go_path);
   MERGE_CHILD_OVER_PARENT(max_idle);
+  MERGE_CHILD_OVER_PARENT(max_top);
 
   /* Merge allowed_imports differently if it begins with a "+" or not. */
   if (child->allowed_imports == NULL || child->allowed_imports[0] != '+')
