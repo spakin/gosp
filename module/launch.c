@@ -52,7 +52,6 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   const char *work_dir;             /* Top-level work directory */
   const char *imports;              /* List of allowed imports */
   apr_status_t status;              /* Status of an APR call */
-  int i;
 
   /* Announce what we're about to do. */
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_INFO, APR_SUCCESS, r,
@@ -97,21 +96,18 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
 
   /* Spawn the gosp2go process and wait for it to complete. */
   args = (const char **) apr_palloc(r->pool, 12*sizeof(char *));
-  i = 0;
-  args[i++] = GOSP2GO;
-  args[i++] = "--build";
-  args[i++] = "-o";
-  args[i++] = server_name;
-  args[i++] = "--go";
-  args[i++] = cconfig->go_cmd;
-  args[i++] = "--allowed";
-  args[i++] = imports;
-  if (cconfig->max_top != NULL) {
-    args[i++] = "--max-top";
-    args[i++] = cconfig->max_top;
-  }
-  args[i++] = r->filename;
-  args[i++] = NULL;
+  args[0] = GOSP2GO;
+  args[1] = "--build";
+  args[2] = "-o";
+  args[3] = server_name;
+  args[4] = "--go";
+  args[5] = cconfig->go_cmd;
+  args[6] = "--allowed";
+  args[7] = imports;
+  args[8] = "--max-top";
+  args[9] = cconfig->max_top == NULL ? "1000000000" : cconfig->max_top;
+  args[10] = r->filename;
+  args[11] = NULL;
   status = apr_proc_create(&proc, args[0], args, envp, attr, r->pool);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,

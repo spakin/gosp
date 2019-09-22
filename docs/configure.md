@@ -42,10 +42,10 @@ The Go Server Pages Apache module processes the following directives:
 | `GospWorkDir`        | `/var/cache/apache2/mod_gosp`               | Name of a directory in which Gosp can generate files needed during execution |
 | `GospAllowedImports` | `NONE`                                      | Comma-separated list of packages that can be imported or `ALL` or `NONE`     |
 | `GospGoPath`         | *empty*                                     | Value of the `GOPATH` environment variable to use when building a page       |
-| `GospMaxTop`         | `1`                                         | Maximum number of `?go:top` blocks allowed per page                          |
 | `GospMaxIdleTime`    | `0m`                                        | Maximum idle time before a Gosp server automatically exits (0m = infinite)   |
 | `GospServer`         | *some_path*`/bin/gosp-server`               | `gosp-server` executable                                                     |
 | `GospGoCompiler`     | *some_path*`/bin/go`                        | Go compiler executable                                                       |
+| `GospMaxTop`         | `1000000000`                                | Maximum number of `?go:top` blocks allowed per page                          |
 
 The module also honors the [`User`](https://httpd.apache.org/docs/current/mod/mod_unixd.html#user) and [`Group`](https://httpd.apache.org/docs/current/mod/mod_unixd.html#group) directives defined by the [`mod_unixd`](https://httpd.apache.org/docs/current/mod/mod_unixd.html) module.
 
@@ -65,11 +65,11 @@ most pages can import only the `time`, `fmt`, `html`, and `strings` packages.  P
 
 **`GospGoPath`** sets the `GOPATH` variable as specified during page compilation.  It can be useful for pointing to a library of common routines (e.g., for typesetting page headers or footers) and for exposing to Go code individual "safe" functions taken from "dangerous" packages.
 
-**`GospMaxTop`** limits the number of top-level blocks of Go code (function/method declarations, `import` blocks, etc.) allowed per page.  The thinking is that if an attacker somehow managed to inject code on a page, this would limit the harm that could be caused.
-
 **`GospMaxIdleTime`** provides an automatic cleanup mechanism.  To avoid leaving one Go Server Page process running indefinitely per Web page, these processes can exit automatically after `GospMaxIdleTime` of no usage.  The only downside is the (reasonably low) cost of a process launch the next time the page is accessed after a long period of no accesses.  Times are specified as a number followed by a suffix of `s` for seconds, `m` for minutes, or `h` for hours.  `GospMaxIdleTime` should not be set too small or a process could self-terminate before sending back the page's contents.  A few minutes (say, `5m`) is a good value for `GospMaxIdleTime`.
 
 **`GospServer`** points to the `gosp-server` executable.  It should automatically be set correctly.  However, you might consider replacing it with a script that imposes memory or CPU usage limits
 (e.g., with [the Bash shell's `ulimit` command](https://linux.die.net/man/1/bash) or the [LimitCPU](http://limitcpu.sourceforge.net/) tool) then launches the real `gosp-server`.
 
 **`GospGoCompiler`** specifies the full path to the Go compiler.  It should automatically be set correctly and probably never needs to be changed.
+
+**`GospMaxTop`** limits the number of top-level blocks of Go code (function/method declarations, `import` blocks, etc.) allowed per page.  The thinking is that if an attacker somehow managed to inject code on a page, this would limit the harm that could be caused.  This is probably of limited use for pages served directly by the Web server, as opposed to pages generated manually via the `gosp2go` command-line tool.  This is why `GospMaxTop` defaults to such a large number.
