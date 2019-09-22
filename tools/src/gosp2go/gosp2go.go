@@ -48,7 +48,10 @@ func ProcessGospIncludes(p *Parameters, s []byte) []byte {
 		if err != nil {
 			notify.Fatal(err)
 		}
-		f.Close()
+		err = f.Close()
+		if err != nil {
+			notify.Fatal(err)
+		}
 
 		// Recursively process the child from the child's directory.
 		p.PushDirectoryOf(fn)

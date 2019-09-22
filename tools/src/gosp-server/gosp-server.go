@@ -173,8 +173,8 @@ func ResetKillClock(t *time.Timer, d time.Duration) {
 func StartServer(p *Parameters) error {
 	// Server code should write only to the io.Writer it's given and not
 	// read at all.
-	os.Stdin.Close()
-	os.Stdout.Close()
+	_ = os.Stdin.Close()
+	_ = os.Stdout.Close()
 
 	// Listen on the named Unix-domain socket.
 	sock, err := filepath.Abs(p.SocketName)
@@ -211,7 +211,10 @@ func StartServer(p *Parameters) error {
 			// Parse the request as a JSON object.
 			defer wg.Done()
 			defer conn.Close()
-			conn.SetDeadline(time.Now().Add(10 * time.Second))
+			err = conn.SetDeadline(time.Now().Add(10 * time.Second))
+			if err != nil {
+				return
+			}
 			dec := json.NewDecoder(conn)
 			var sr ServiceRequest
 			err = dec.Decode(&sr)
@@ -227,7 +230,7 @@ func StartServer(p *Parameters) error {
 				atomic.StoreInt32(&done, 1)
 				c, err := net.Dial("unix", sock)
 				if err == nil {
-					c.Close()
+					_ = c.Close()
 				}
 				return
 			}

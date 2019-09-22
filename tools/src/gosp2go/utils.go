@@ -20,7 +20,10 @@ func MakeTempGo(goStr string) string {
 		notify.Fatal(err)
 	}
 	fmt.Fprintln(goFile, goStr)
-	goFile.Close()
+	err = goFile.Close()
+	if err != nil {
+		notify.Fatal(err)
+	}
 	return goFile.Name()
 }
 
