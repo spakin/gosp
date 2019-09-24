@@ -9,8 +9,11 @@ prefix = /usr/local
 exec_prefix = $(prefix)
 bindir = $(exec_prefix)/bin
 datarootdir = $(prefix)/share
+mandir = $(datarootdir)/man
+man1dir = $(mandir)/man1
 gospdir = $(datarootdir)/gosp
 gospgodir = $(gospdir)/go
+AWK = awk
 APXS = apxs
 APXSFLAGS =
 GOFLAGS =
@@ -21,6 +24,7 @@ GO = $(shell which go)
 
 ###########################################################################
 
+VERSION = 0.9.0
 SHELL = /bin/sh
 export
 

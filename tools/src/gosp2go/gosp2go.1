@@ -1,0 +1,53 @@
+.TH GOSP2GO "1" "" "" "User Commands"
+.SH NAME
+gosp2go \- compile a Go Server Page to Go code
+.SH SYNOPSIS
+.B gosp2go
+[\fI\,options\/\fR] [\fI\,input_file.gosp\/\fR]
+.SH DESCRIPTION
+\fBgosp2go\fR is typically invoked by the Go Server Pages Apache
+module to compile a Go Server Page to a plugin that can be launched
+with \fBgosp-server\fR.  However, it can also be invoked directly, for
+example to process the output of a CGI program.
+.SH OPTIONS
+.TP
+\fB\-b\fR, \fB\-\-build\fR
+Compile the generated Go code to a plugin
+.TP
+\fB\-r\fR, \fB\-\-run\fR
+Both compile and, using \fBgosp-server\fR, execute the generated Go code
+.HP
+\fB\-t\fR \fInum\fR, \fB\-\-max\-top\fR=\fI\,num\/\fR
+.IP
+Allow at most \fInum\fR \f(CW<?go:top\fR .\|.\|. \f(CW?>\fR blocks per
+file [default: \f(CW1\fR]
+.HP
+\fB\-o\fR \fIfile\fR, \fB\-\-output\fR=\fI\,file\/\fR
+.IP
+Write output to file \fIfile\fR ("\f(CW\-\fR" = standard output, the
+default); the file type depends on whether \fB\-\-build\fR,
+\fB\-\-run\fR, or neither is also specified
+.HP
+\fB\-H\fR, \fB\-\-raw\-headers\fR
+.IP
+Output raw HTTP headers instead of specially formatted headers
+for the Go Server Pages Apache module
+.HP
+\fB\-g\fR \fIfile\fR, \fB\-\-go\fR=\fI\,file\/\fR
+.IP
+Use \fIfile\fR as the Go compiler [default: \f(CWgo\fR]
+.HP
+\fB\-a\fR \fIlist\fR, \fB\-\-allowed\fR=\fI\,list\/\fR
+.IP
+Specify a comma\-separated list of allowed Go imports; if \f(CWALL\fR
+(the default), allow all imports; if \f(CWNONE\fR, allow no imports
+.TP
+\fB\-\-version\fR
+Output the \fBgosp2go\fR version number and exit
+.TP
+\fB\-\-help\fR
+Output \fBgosp2go\fR usage information and exit
+.SH "SEE ALSO"
+\fBgosp-server\fP(1)
+.SH AUTHOR
+Scott Pakin, \fIscott+gosp@pakin.org\fR

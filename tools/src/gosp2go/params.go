@@ -12,6 +12,10 @@ import (
 	"strings"
 )
 
+// Version defines the Go Server Pages version number.  It should be overridden
+// by the Makefile.
+var Version = "?.?.?"
+
 // Parameters encapsulates the key program parameters.
 type Parameters struct {
 	InFileName     string    // Name of a file from which to read Go Server Page HTML
@@ -111,7 +115,8 @@ The following options are accepted:
 
   -b, --build  Compile the generated Go code to a plugin
 
-  -r, --run    Both compile and execute the generated Go code
+  -r, --run    Both compile and, using gosp-sever, execute the generated
+               Go code
 
   -t NUM, --max-top=NUM
                Allow at most NUM <?go:top ... ?> blocks per file
@@ -124,7 +129,7 @@ The following options are accepted:
 
   -H, --raw-headers
                Output raw HTTP headers instead of specially formatted headers
-               for the Gosp Apache module
+               for the Go Server Pages Apache module
 
   -g FILE, --go=FILE
                Use FILE as the Go compiler [default: "go"]
@@ -133,11 +138,15 @@ The following options are accepted:
                Specify a comma-separated list of allowed Go imports; if "ALL"
                (the default), allow all imports; if "NONE", allow no imports
 
+  --version    Output the gosp2go version number and exit
+
+  --help       Output gosp2go usage information and exit
 `, os.Args[0])
 		os.Exit(1)
 	}
 
 	// Parse the command line.
+	wantVersion := flag.Bool("version", false, "Output the version number and exit")
 	flag.StringVar(&p.OutFileName, "outfile", "-", `Name of output file ("-" = standard output); type depends on the other options specified`)
 	flag.StringVar(&p.OutFileName, "o", "-", "Abbreviation of --outfile")
 	flag.BoolVar(&p.Build, "build", false, "Compile the generated Go code to an executable program")
@@ -155,6 +164,12 @@ The following options are accepted:
 	flag.Var(&p.AllowedImports, "allowed", "Comma-separated list of allowed Go imports")
 	flag.Var(&p.AllowedImports, "a", "Abbreviation of --allowed")
 	flag.Parse()
+
+	// If requested, output the version number and exit.
+	if *wantVersion {
+		fmt.Fprintf(os.Stderr, "gosp2go (Go Server Pages) %s\n", Version)
+		os.Exit(1)
+	}
 
 	// Replace PLACEHOLDER_ALL with ALL if it's the only package allowed.
 	if p.AllowedImports["PLACEHOLDER_ALL"] {

@@ -22,6 +22,10 @@ import (
 	"time"
 )
 
+// Version defines the Go Server Pages version number.  It should be overridden
+// by the Makefile.
+var Version = "?.?.?"
+
 // notify is used to output error messages.
 var notify *log.Logger
 
@@ -262,6 +266,7 @@ type Parameters struct {
 // Parameters struct.  It aborts the program on error.
 func ParseCommandLine(p *Parameters) {
 	// Parse the command line.
+	wantVersion := flag.Bool("version", false, "Output the version number and exit")
 	flag.StringVar(&p.SocketName, "socket", "",
 		"Unix socket (filename) on which to listen for JSON requests")
 	flag.StringVar(&p.FileName, "file", "",
@@ -271,8 +276,14 @@ func ParseCommandLine(p *Parameters) {
 	flag.DurationVar(&p.AutoKillTime, "max-idle", 5*time.Minute,
 		"Maximum idle time before automatic server exit or 0s for infinite")
 	flag.StringVar(&p.HttpHeaderType, "http-headers", "mod_gosp",
-		`HTTP header format: "mod_gosp" (default), "raw", or "none"`)
+		`HTTP header format: "mod_gosp", "raw", or "none"`)
 	flag.Parse()
+
+	// If requested, output the version number and exit.
+	if *wantVersion {
+		fmt.Fprintf(os.Stderr, "gosp-server (Go Server Pages) %s\n", Version)
+		os.Exit(1)
+	}
 
 	// Validate the result.
 	if p.PluginName == "" {
