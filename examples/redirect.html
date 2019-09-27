@@ -41,8 +41,8 @@ writeUrl(gospOut, url)
 <?go:block
 // Determine if we need to redirect the request.
 if strings.Index(gospReq.QueryArgs, "redirected=yes") == -1 {
-	GospSetHeaderField("Location", url + "?redirected=yes", true)
-	GospSetHttpStatus(http.StatusTemporaryRedirect)
+	gosp.SetHeaderField(gospMeta, "Location", url + "?redirected=yes", true)
+	gosp.SetHttpStatus(gospMeta, http.StatusTemporaryRedirect)
 }
 ?>
   </body>

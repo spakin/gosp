@@ -78,5 +78,3 @@ Go Server Pages defines a `gosp` Go package that serves two purposes:
 2. It exposes a few key functions and data types to Go Server Pages so even a page that is not authorized to import any Go packages whatsoever (see [Configuring Go Server Pages](configure.md)) can still produce Web-page data and can still open for reading any file that lies in the same directory or a subdirectory.
 
 The source code for the helper package lies in the [`gosp`](https://github.com/spakin/gosp/tree/master/tools/src/gosp) directory.  Look there for the definition of `gosp.RequestData`, the set of all client and server data passed in from the Apache module for use by a Go Server Page.
-
-Although the `gosp` package defines `gosp.SetHttpStatus`, `gosp.SetMimeType`, and `gosp.SetHeaderField`, functions, a Go Server Page can more conveniently access these via the boilerplate-defined `GospSetHttpStatus`, `GospSetMimeType`, and `GospSetHeaderField` wrappers, which don't expose `GospGenerateHTML`'s `gospMeta` argument.

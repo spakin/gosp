@@ -24,13 +24,5 @@ func GospGenerateHTML(gospReq *gosp.RequestData, gospOut gosp.Writer, gospMeta c
 		close(gospMeta)
 	}()
 
-	// Provide functions for passing metadata back to the Web server.
-	GospSetHttpStatus := func(s int) { gosp.SetHttpStatus(gospMeta, s) }
-	GospSetMimeType := func(mt string) { gosp.SetMimeType(gospMeta, mt) }
-	GospSetHeaderField := func(k, v string, repl bool) {
-		gosp.SetHeaderField(gospMeta, k, v, repl)
-	}
-	_, _, _ = GospSetHttpStatus, GospSetMimeType, GospSetHeaderField
-
 	// Express the Gosp page in Go.
 `

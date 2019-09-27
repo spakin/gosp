@@ -45,11 +45,11 @@ func renderImage(w io.Writer, iType string, img image.Image) error {
 ?><?go:block
 iType, ok := gospReq.PostData["image_type"]
 if ok {
-	GospSetMimeType("image/" + iType)
+	gosp.SetMimeType(gospMeta, "image/" + iType)
 	img := drawGradient()
 	err := renderImage(gospOut, iType, img)
 	if err != nil {
-		GospSetHttpStatus(http.StatusBadRequest)
+		gosp.SetHttpStatus(gospMeta, http.StatusBadRequest)
 	}
 } else {
 	// All HTML must be output conditionally because we don't want it

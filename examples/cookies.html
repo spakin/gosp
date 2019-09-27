@@ -22,7 +22,7 @@ if len(ms) >= 2 {
 	var err error
 	tally, err = strconv.Atoi(ms[1])
 	if err != nil {
-		GospSetHttpStatus(http.StatusBadRequest)
+		gosp.SetHttpStatus(gospMeta, http.StatusBadRequest)
 		return
 	}
 }
@@ -35,13 +35,13 @@ case 0:
 case 1:
 	fmt.Fprintln(gospOut, "<p>You've visited this page once before.</p>")
 default:
-	fmt.Fprintf(gospOut, "<p>You've visited this page %d times.</p>", tally)
+	fmt.Fprintf(gospOut, "<p>You've visited this page %d times before.</p>", tally)
 }
 
 // Increment the page-visit tally for next time.  We do so using a
 // session cookie.
 val := fmt.Sprintf("Tally=%d; Path=/; HttpOnly; SameSite=Strict", tally+1)
-GospSetHeaderField("Set-Cookie", val, false)
+gosp.SetHeaderField(gospMeta, "Set-Cookie", val, false)
 ?>
 
     <p>(Try refreshing the page in your browser.)</p>
