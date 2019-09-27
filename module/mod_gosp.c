@@ -329,7 +329,8 @@ static int gosp_handler(request_rec *r)
   if (r->header_only)
     return DECLINED;
 
-  /* Issue an HTTP error if the requested Gosp file doesn't exist. */
+  /* Issue an HTTP File Not Found (404) error if the requested Gosp file
+   * doesn't exist. */
   status = apr_stat(&finfo, r->filename, 0, r->pool);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(HTTP_NOT_FOUND, APLOG_INFO, status,
