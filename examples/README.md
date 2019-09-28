@@ -27,4 +27,6 @@ The examples, sorted roughly from most basic to most advanced, are described bel
 
 * [mime-types.html](mime-types.html).  As a more sophisticated variant of [post.html](post.html), this page asks the user to select an image type from the set {`PNG`, `JPEG`, `GIF`}.  It then generates an image of the selected type, sets the page's [MIME type](https://en.wikipedia.org/wiki/Media_type) accordingly, and sends the image to the client.
 
+* [cookies.html](cookies-types.html).  A "cookie" is a small chunk of data that a Web server can send to a client to store.  This cookie can later be retrieved by the Web server.  This page presents the client with a cookie that tallies the number of times the page has been visited.
+
 * [package.html](package.html).  It is often convenient to define a set of common page operations such as constructing a menu bar or page footer and put these in a helper package that various Go Server Pages can import.  This page assumes that [helper.go](helper.go) appears in its `GOPATH` (specified using the [`GospGoPath` configuration option](https://spakin.github.io/gosp/configure.md)).  It does an `import "helper"` and twice invokes its `helper.Bottles` function.
