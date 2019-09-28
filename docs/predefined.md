@@ -40,11 +40,11 @@ type RequestData struct {
 
 The `gosp` package makes available three functions that can be used to pass metadata back to the Web server:
 ```go
-func SetHttpStatus(⬜, s int)
-func SetMimeType(⬜, mt string)
-func SetHeaderField(⬜, k, v string, repl bool)
+func SetHttpStatus(m Metadata, s int)
+func SetMimeType(m Metadata, mt string)
+func SetHeaderField(m Metadata, k, v string, repl bool)
 ```
-where "⬜" represents an opaque type (currently a `chan<- gosp.KeyValue`).  Always pass the variable `gospMeta` (see Variables below) as the first argument to each of these three functions.
+Always pass the variable `gospMeta` (see Variables below) as the first argument to each of these three functions.
 
 `gosp.SetHttpStatus` indicates the HTTP status code the Web server should return to the client.  The status code defaults to 200 ("OK") but can be set to any of the codes defined in the [HTTP Status Code Registry](https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml).  If the Go Server Page is allowed to `import "net/http"` it can use any of the [`Status` constants defined by `net/http`](https://golang.org/pkg/net/http/#pkg-constants) instead of specifying a status code numerically.  Calling `gosp.SetHttpStatus` repeatedly is allowed.  Only the final value takes effect.
 
@@ -57,6 +57,6 @@ Other useful exports from the `gosp` package include `gosp.Fprintf`, `gosp.Write
 Variables
 ---------
 
-Three variables that are available within all `?go:block` and `?go:expr` markup are `gospReq`, `gospOut`, and `gospMeta`.  `gospReq` is of type `*gosp.RequestData` (presented above) and encapsulates a large set of data provided by the Web server in response to a client request.  Many of the fields correspond to parts of the URL provided by the client and should therefore be sanitized before use in any sensitive operation.  `gospOut` is a `gosp.Writer` that represents the contents of the Go Server Page.  Writing to `gospOut` (e.g., with `gosp.Fprintf(gospOut, …)`) injects text into the page right where the `?go:block` or `?go:expr` appeared.  `gospMeta` should be treated as an opaque value that is needed only as the first argument to `gosp.SetHttpStatus`, `gosp.SetMimeType`, and `gosp.SetHeaderField`.
+Three variables that are available within all `?go:block` and `?go:expr` markup are `gospReq`, `gospOut`, and `gospMeta`.  `gospReq` is of type `*gosp.RequestData` (presented above) and encapsulates a large set of data provided by the Web server in response to a client request.  Many of the fields correspond to parts of the URL provided by the client and should therefore be sanitized before use in any sensitive operation.  `gospOut` is a `gosp.Writer` that represents the contents of the Go Server Page.  Writing to `gospOut` (e.g., with `gosp.Fprintf(gospOut, …)`) injects text into the page right where the `?go:block` or `?go:expr` appeared.  `gospMeta`, of type `gosp.Metadata`, should be treated as an opaque value that is used only as the first argument to `gosp.SetHttpStatus`, `gosp.SetMimeType`, and `gosp.SetHeaderField`.
 
 Functions defined by `?go:top` markup do not have access to `gospReq`, `gospOut`, or `gospMeta`.  These must be passed in as parameters if needed.

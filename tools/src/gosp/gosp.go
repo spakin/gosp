@@ -50,13 +50,16 @@ type KeyValue struct {
 	Value string
 }
 
+// Metadata is a channel on which we can send HTTP metadata.
+type Metadata chan<- KeyValue
+
 // SetHttpStatus tells the Web server what HTTP status code it should return.
-func SetHttpStatus(ch chan<- KeyValue, s int) {
+func SetHttpStatus(ch Metadata, s int) {
 	ch <- KeyValue{Key: "http-status", Value: fmt.Sprint(s)}
 }
 
 // SetMimeType tells the Web server what MIME type it should return.
-func SetMimeType(ch chan<- KeyValue, mt string) {
+func SetMimeType(ch Metadata, mt string) {
 	ch <- KeyValue{Key: "mime-type", Value: mt}
 }
 
@@ -64,7 +67,7 @@ func SetMimeType(ch chan<- KeyValue, mt string) {
 // in the HTTP header.  If repl is true, the value replaces any prior value for
 // the field.  If repl is false, the field and value are appended to the
 // existing set of {field name, value} pairs.
-func SetHeaderField(ch chan<- KeyValue, k, v string, repl bool) {
+func SetHeaderField(ch Metadata, k, v string, repl bool) {
 	ch <- KeyValue{
 		Key:   "header-field",
 		Value: fmt.Sprintf("%v %s %s", repl, k, v),
@@ -74,7 +77,7 @@ func SetHeaderField(ch chan<- KeyValue, k, v string, repl bool) {
 // ReportPanic alerts the Web server that the Gosp server encountered an
 // unexpected error.  It should be called from a deferred function in
 // GospGenerateHTML.
-func ReportPanic(r interface{}, ch chan<- KeyValue) {
+func ReportPanic(r interface{}, ch Metadata) {
 	ch <- KeyValue{Key: "error-message", Value: fmt.Sprint(r)}
 	ch <- KeyValue{Key: "error-message", Value: "+------------------------------------------------------------"}
 	for _, tr := range strings.Split(string(debug.Stack()), "\n") {

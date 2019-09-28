@@ -259,7 +259,7 @@ type Parameters struct {
 	HttpHeaderType   string        // Format in which to output HTTP headers
 	GospGenerateHTML func(*gosp.RequestData,
 		gosp.Writer,
-		chan<- gosp.KeyValue) // Go Server Page as a function from a plugin
+		gosp.Metadata) // Go Server Page as a function from a plugin
 }
 
 // ParseCommandLine parses the command line to fill in some of the fields of a
@@ -311,7 +311,7 @@ func LoadPlugin(p *Parameters) {
 		notify.Fatal(err)
 	}
 	var ok bool
-	p.GospGenerateHTML, ok = ggh.(func(*gosp.RequestData, gosp.Writer, chan<- gosp.KeyValue))
+	p.GospGenerateHTML, ok = ggh.(func(*gosp.RequestData, gosp.Writer, gosp.Metadata))
 	if !ok {
 		notify.Fatalf("the GospGenerateHTML function in %s has type %T instead of type %T",
 			p.PluginName, ggh, p.GospGenerateHTML)
