@@ -38,6 +38,7 @@ type RequestData struct {
 	RemoteIp       string            // IP address of the remote host
 	Filename       string            // Local filename of the Gosp page
 	PostData       map[string]string // {Key, value} pairs sent by a POST request
+	GetData        map[string]string // {Key, value} pairs sent by a GET request (parsed version of QueryArgs)
 	HeaderData     map[string]string // Request headers as {key, value} pairs
 	AdminEmail     string            // Email address of the Web server administrator
 	Environment    map[string]string // Environment variables passed in from the server

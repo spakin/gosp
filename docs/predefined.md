@@ -17,23 +17,24 @@ The `gosp` package is automatically imported.  It defines a few functions intend
 The most useful declaration is `gosp.RequestData`, a type that encapsulates Web-server information passed to a Go Server Page.  Note that many of its fields come from the client.  Those should therefore not be used without first checking them for invalid or malicious content.
 ```go
 type RequestData struct {
-    Scheme         string            // HTTP scheme ("http" or "https")
-    LocalHostname  string            // Name of the local host
-    Port           int               // Port number to which the request was issued
-    Uri            string            // Path portion of the URI
-    PathInfo       string            // Additional text following the Gosp filename
-    QueryArgs      string            // Query arguments from the request
-    Url            string            // Complete URL requested
-    Method         string            // Request method ("GET", "POST", etc.)
-    RequestLine    string            // First line of the request (e.g., "GET / HTTP/1.1")
-    RequestTime    int64             // Request time in nanoseconds since the Unix epoch
-    RemoteHostname string            // Name of the remote host
-    RemoteIp       string            // IP address of the remote host
-    Filename       string            // Local filename of the Gosp page
-    PostData       map[string]string // {Key, value} pairs sent by a POST request
-    HeaderData     map[string]string // Request headers as {key, value} pairs
-    AdminEmail     string            // Email address of the Web server administrator
-    Environment    map[string]string // Environment variables passed in from the server
+	Scheme         string            // HTTP scheme ("http" or "https")
+	LocalHostname  string            // Name of the local host
+	Port           int               // Port number to which the request was issued
+	Uri            string            // Path portion of the URI
+	PathInfo       string            // Additional text following the Gosp filename
+	QueryArgs      string            // Query arguments from the request
+	Url            string            // Complete URL requested
+	Method         string            // Request method ("GET", "POST", etc.)
+	RequestLine    string            // First line of the request (e.g., "GET / HTTP/1.1")
+	RequestTime    int64             // Request time in nanoseconds since the Unix epoch
+	RemoteHostname string            // Name of the remote host
+	RemoteIp       string            // IP address of the remote host
+	Filename       string            // Local filename of the Gosp page
+	PostData       map[string]string // {Key, value} pairs sent by a POST request
+	GetData        map[string]string // {Key, value} pairs sent by a GET request (parsed version of QueryArgs)
+	HeaderData     map[string]string // Request headers as {key, value} pairs
+	AdminEmail     string            // Email address of the Web server administrator
+	Environment    map[string]string // Environment variables passed in from the server
 }
 ```
 

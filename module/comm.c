@@ -157,23 +157,89 @@ static int send_table_item(void *rec, const char *key, const char *value)
   return 1;
 }
 
+/* Send an entire table into a socket as JSON-encoded {key, value} pairs. */
+static int send_table(request_rec *r, apr_socket_t *sock,
+                      const char *field_name, apr_table_t *table)
+{
+  table_item_data_t item_data;  /* Data to pass to each table item */
+  apr_status_t status;          /* Status of an APR call */
+
+  /* Initialize the table walk. */
+  item_data.request = r;
+  item_data.socket = sock;
+  item_data.first = 1;
+
+  /* Walk the table, sending each {key, value} pair in turn. */
+  SEND_STRING("    \"%s\": {", field_name);
+  if (apr_table_do(send_table_item, (void *) &item_data, table, NULL) == FALSE)
+    return GOSP_STATUS_FAIL;
+  SEND_STRING("\n    },\n");
+  return GOSP_STATUS_OK;
+}
+
+/* Parse the GET arguments into a table.  Return NULL on failure. */
+static apr_table_t *parse_get_args(request_rec *r)
+{
+  apr_table_t *tbl;   /* Table of {key, value} mappings */
+  char *query;        /* GET query */
+  char *kvstr;        /* A single "key=value" string */
+  char *amplast;      /* apr_strtok() state associated with kvstr */
+  char *key;          /* A single key */
+  char *value;        /* A single value */
+  char *eqlast;       /* apr_strtok() state associated with key */
+
+  /* Prepare our input string and output table. */
+  query = apr_pstrdup(r->pool, r->args);
+  tbl = apr_table_make(r->pool, 10);  /* 10 is arbitrary. */
+
+  /* Parse the query arguments. */
+  if (r->args == NULL)
+    return tbl;
+  while (1) {
+    /* Split the query into zero or more "&"-separated strings. */
+    kvstr = apr_strtok(query, "&", &amplast);
+    if (kvstr == NULL)
+      break;
+    query = NULL;
+
+    /* Parse the query as "key=value".  Either key or value or both can be
+     * empty. */
+    if (kvstr[0] == '=') {
+      /* Weird case, but we ought to check for it. */
+      key = "";
+      value = apr_strtok(kvstr, "=", &eqlast);
+    }
+    else {
+      key = apr_strtok(kvstr, "=", &eqlast);
+      if (key == NULL)
+        continue;
+      value = eqlast;
+    }
+    if (value == NULL)
+      value = "";
+
+    /* Store the {key, value} pair in the table. */
+    apr_table_set(tbl, key, value);
+  }
+  return tbl;
+}
+
 /* Send HTTP connection information to a socket.  The connection information
  * must be kept up-to-date with the GospRequest struct in boilerplate.go. */
 gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
 {
-  table_item_data_t item_data;  /* Data to pass to each table item */
   apr_status_t status;          /* Status of an APR call */
   const char *rhost;            /* Name of remote host */
   const char *lhost;            /* Name of local host as used in the request */
   int port;                     /* Port number to which the request was issued */
   const char *url;              /* Complete URL requested */
+  apr_table_t *get_data;        /* Parsed GET query */
 
   /* Prepare some data we'll need below. */
   rhost = ap_get_remote_host(r->connection, r->per_dir_config, REMOTE_NAME, NULL);
   lhost = ap_get_server_name_for_url(r);
   port = ap_get_server_port(r);
-  item_data.request = r;
-  item_data.socket = sock;
+  get_data = parse_get_args(r);
 
   /* For the Gosp page's convenience, combine the various URL components into a
    * complete URL. */
@@ -202,22 +268,13 @@ gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
   SEND_STRING("    \"Filename\": \"%s\",\n", escape_for_json(r, r->filename));
   if (send_post_data(r, sock) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
-  SEND_STRING("    \"HeaderData\": {");
-  item_data.first = 1;
-  if (apr_table_do(send_table_item, (void *) &item_data, r->headers_in, NULL) == FALSE)
+  if (send_table(r, sock, "GetData", get_data) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
-  SEND_STRING("\n    },\n");
-  SEND_STRING("    \"Environment\": {");
-  item_data.first = 1;
-  if (apr_table_do(send_table_item, (void *) &item_data, r->subprocess_env, NULL) == FALSE)
+  if (send_table(r, sock, "HeaderData", r->headers_in) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
-  SEND_STRING("\n    },\n");
-  SEND_STRING("    \"AdminEmail\": \"%s\",\n", escape_for_json(r, r->server->server_admin));
-  SEND_STRING("    \"Environment\": {");
-  item_data.first = 1;
-  if (apr_table_do(send_table_item, (void *) &item_data, r->subprocess_env, NULL) == FALSE)
+  if (send_table(r, sock, "Environment", r->subprocess_env) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
-  SEND_STRING("\n    }\n");
+  SEND_STRING("    \"AdminEmail\": \"%s\"\n", escape_for_json(r, r->server->server_admin));
   SEND_STRING("  }\n");
   SEND_STRING("}\n");
   return GOSP_STATUS_OK;
