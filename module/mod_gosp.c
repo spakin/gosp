@@ -253,11 +253,11 @@ static void gosp_child_init(apr_pool_t *pool, server_rec *s)
                  "Failed to reconnect to lock file %s", sconfig->lock_name);
 }
 
-/* This function is called if the Gosp file is newer than the Gosp server.  It
+/* This function is called if the Gosp file is newer than the Gosp plugin.  It
  * kills the Gosp server, compiles the plugin if necessary, launches the Gosp
  * server, and retries serving the requested page. */
 static int rebuild_release_retry(request_rec *r, const char *sock_name,
-                                 const char *server_name)
+                                 const char *plugin_name)
 {
   apr_time_t begin_time;           /* Time at which we began waiting for the server to launch */
   gosp_status_t gstatus;           /* Status of an internal Gosp call */
@@ -268,10 +268,10 @@ static int rebuild_release_retry(request_rec *r, const char *sock_name,
   if (acquire_global_lock(r->server) != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
 
-  /* Check again if the Gosp server is newer than the Gosp file.  If so, then
+  /* Check again if the Gosp plugin is newer than the Gosp file.  If so, then
    * another process must have performed all the work while we were waiting for
    * the lock.  In this case, release the lock and handle the request. */
-  if (is_newer_than(r, r->filename, server_name) == 0) {
+  if (is_newer_than(r, r->filename, plugin_name) == 0) {
     if (release_global_lock(r->server) != GOSP_STATUS_OK)
       return HTTP_INTERNAL_SERVER_ERROR;
     gstatus = simple_request_response(r, sock_name);
@@ -281,22 +281,22 @@ static int rebuild_release_retry(request_rec *r, const char *sock_name,
       return HTTP_INTERNAL_SERVER_ERROR;
   }
 
-  /* Kill the Gosp server, and remove its socket and executable. */
-  gstatus = kill_gosp_server(r, sock_name, server_name);
+  /* Kill the Gosp server, and remove its socket and plugin. */
+  gstatus = kill_gosp_server(r, sock_name, plugin_name);
   if (gstatus != GOSP_STATUS_OK) {
     (void) release_global_lock(r->server);
     return HTTP_INTERNAL_SERVER_ERROR;
   }
 
   /* Compile the Gosp plugin. */
-  gstatus = compile_gosp_server(r, server_name);
+  gstatus = compile_gosp_server(r, plugin_name);
   if (gstatus != GOSP_STATUS_OK) {
     (void) release_global_lock(r->server);
     return HTTP_INTERNAL_SERVER_ERROR;
   }
 
-  /* At this point, the Gosp plugin exists.  Launch it. */
-  gstatus = launch_gosp_process(r, server_name, sock_name);
+  /* At this point, the Gosp plugin exists.  Launch it with gosp-server. */
+  gstatus = launch_gosp_process(r, plugin_name, sock_name);
   if (gstatus != GOSP_STATUS_OK) {
     (void) release_global_lock(r->server);
     return HTTP_INTERNAL_SERVER_ERROR;
@@ -332,7 +332,7 @@ static int gosp_handler(request_rec *r)
 {
   apr_finfo_t finfo;               /* File information for the requested file */
   char *sock_name;                 /* Name of the socket on which the Gosp server is listening */
-  char *server_name;               /* Name of the Gosp server executable */
+  char *plugin_name;               /* Name of the plugin for the requested file */
   gosp_server_config_t *sconfig;   /* Server configuration */
   apr_status_t status;             /* Status of an APR call */
   gosp_status_t gstatus;           /* Status of an internal Gosp call */
@@ -362,17 +362,17 @@ static int gosp_handler(request_rec *r)
                          "Failed to construct a socket name");
   sock_name = apr_pstrcat(r->pool, sock_name, ".sock", NULL);
 
-  /* Identify the name of the Gosp server executable. */
-  server_name = concatenate_filepaths(r->server, r->pool, sconfig->work_dir, "pages",
+  /* Identify the name of the Gosp plugin. */
+  plugin_name = concatenate_filepaths(r->server, r->pool, sconfig->work_dir, "pages",
                                       apr_pstrcat(r->pool, r->filename, ".so", NULL),
                                       NULL);
-  if (server_name == NULL)
+  if (plugin_name == NULL)
     REPORT_REQUEST_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, APR_SUCCESS,
-                         "Failed to construct the name of the Gosp server");
+                         "Failed to construct the name of the Gosp plugin");
 
   /* If the Gosp server is newer than the Gosp file (the common case) we simply
    * handle the request and return. */
-  if (is_newer_than(r, r->filename, server_name) == 0) {
+  if (is_newer_than(r, r->filename, plugin_name) == 0) {
     gstatus = simple_request_response(r, sock_name);
     if (gstatus == GOSP_STATUS_OK)
       return r->status == HTTP_OK ? OK : r->status;
@@ -380,9 +380,9 @@ static int gosp_handler(request_rec *r)
       return HTTP_INTERNAL_SERVER_ERROR;
   }
 
-  /* The Gosp file is newer than the Gosp server.  Kill the old server,
+  /* The Gosp file is newer than the Gosp plugin.  Kill the old server,
    * recompile it, relaunch it, and retry the request. */
-  return rebuild_release_retry(r, sock_name, server_name);
+  return rebuild_release_retry(r, sock_name, plugin_name);
 }
 
 /* Invoke gosp_handler at the end of every request. */

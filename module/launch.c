@@ -39,8 +39,8 @@ static gosp_status_t await_process_completion(request_rec *r, apr_proc_t *proc, 
   return GOSP_STATUS_OK;
 }
 
-/* Use gosp2go to compile a Go Server Page into an executable program. */
-gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
+/* Use gosp2go to compile a Go Server Page into a plugin. */
+gosp_status_t compile_gosp_server(request_rec *r, const char *plugin_name)
 {
   apr_procattr_t *attr;             /* Process attributes */
   apr_proc_t proc;                  /* Launched process */
@@ -56,10 +56,10 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   /* Announce what we're about to do. */
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_INFO, APR_SUCCESS, r,
                 "Compiling %s into %s",
-                r->filename, server_name);
+                r->filename, plugin_name);
 
   /* Ensure we have a place to write the executable. */
-  if (create_directories_for(r->server, r->pool, server_name, 0) != GOSP_STATUS_OK)
+  if (create_directories_for(r->server, r->pool, plugin_name, 0) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
 
   /* Prepare a Go build cache. */
@@ -99,7 +99,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
   args[0] = GOSP2GO;
   args[1] = "--build";
   args[2] = "-o";
-  args[3] = server_name;
+  args[3] = plugin_name;
   args[4] = "--go";
   args[5] = cconfig->go_cmd;
   args[6] = "--allowed";
@@ -121,7 +121,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *server_name)
  * GOSP_STATUS_OK on success, GOSP_STATUS_NEED_ACTION if the executable wasn't
  * found (and presumably needs to be built), and GOSP_STATUS_FAIL if an
  * unexpected error occurred (and the request needs to be aborted). */
-gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const char *sock_name)
+gosp_status_t launch_gosp_process(request_rec *r, const char *plugin_name, const char *sock_name)
 {
   apr_proc_t proc;                  /* Launched process */
   apr_procattr_t *attr;             /* Process attributes */
@@ -132,8 +132,9 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
   int i;
 
   /* Announce what we're about to do. */
+  cconfig = (gosp_context_config_t *) ap_get_module_config(r->per_dir_config, &gosp_module);
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_INFO, APR_SUCCESS, r,
-                "Launching Gosp process %s", server_name);
+                "Launching %s to server %s", cconfig->gosp_server, plugin_name);
 
   /* Ensure we have a place to write the socket. */
   if (create_directories_for(r->server, r->pool, sock_name, 0) != GOSP_STATUS_OK)
@@ -150,7 +151,6 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
               "Specifying that a Gosp process should not inherit its parent's environment");
 
   /* Establish an environment for the child. */
-  cconfig = (gosp_context_config_t *) ap_get_module_config(r->per_dir_config, &gosp_module);
   if (cconfig->go_path == NULL)
     envp = (const char **) environ;
   else
@@ -164,7 +164,7 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
   i = 0;
   args[i++] = cconfig->gosp_server;
   args[i++] = "-plugin";
-  args[i++] = server_name;
+  args[i++] = plugin_name;
   args[i++] = "-socket";
   args[i++] = sock_name;
   if (cconfig->max_idle != NULL) {
@@ -176,16 +176,16 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
   if (status != APR_SUCCESS) {
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
                          "Failed to run %s with plugin %s",
-                         cconfig->gosp_server, server_name);
+                         cconfig->gosp_server, plugin_name);
   }
-  if (await_process_completion(r, &proc, server_name) != GOSP_STATUS_OK)
+  if (await_process_completion(r, &proc, plugin_name) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
   return GOSP_STATUS_OK;
 }
 
 /* Kill a running Gosp server.  Return GOSP_STATUS_OK if the Gosp server is no
  * longer running, GOSP_STATUS_FAIL if it might be. */
-gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char *server_name)
+gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char *plugin_name)
 {
   apr_status_t status;        /* Status of an APR call */
 
@@ -201,10 +201,10 @@ gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char
   }
 
   /* Remove the server executable. */
-  status = apr_file_remove(server_name, r->pool);
+  status = apr_file_remove(plugin_name, r->pool);
   if (status != APR_SUCCESS && !APR_STATUS_IS_ENOENT(status)) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
-                  "Failed to remove Gosp server %s", server_name);
+                  "Failed to remove Gosp plugin %s", plugin_name);
     return GOSP_STATUS_FAIL;
   }
   return GOSP_STATUS_OK;
