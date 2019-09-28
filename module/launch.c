@@ -189,6 +189,9 @@ gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char
 {
   apr_status_t status;        /* Status of an APR call */
 
+  /* Ask the server to shut down cleanly. */
+  (void) send_termination_request(r, sock_name);
+
   /* Remove the socket. */
   status = apr_file_remove(sock_name, r->pool);
   if (status != APR_SUCCESS && !APR_STATUS_IS_ENOENT(status)) {

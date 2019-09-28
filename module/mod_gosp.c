@@ -253,13 +253,86 @@ static void gosp_child_init(apr_pool_t *pool, server_rec *s)
                  "Failed to reconnect to lock file %s", sconfig->lock_name);
 }
 
+/* This function is called if the Gosp file is newer than the Gosp server.  It
+ * kills the Gosp server, compiles the plugin if necessary, launches the Gosp
+ * server, and retries serving the requested page. */
+static int rebuild_release_retry(request_rec *r, const char *sock_name,
+                                 const char *server_name)
+{
+  apr_time_t begin_time;           /* Time at which we began waiting for the server to launch */
+  gosp_status_t gstatus;           /* Status of an internal Gosp call */
+
+  /* The Gosp file is newer than the Gosp server.  We therefore have a lot of
+   * work to do.  To ensure that only process does the work we first acquire
+   * the global lock. */
+  if (acquire_global_lock(r->server) != GOSP_STATUS_OK)
+    return HTTP_INTERNAL_SERVER_ERROR;
+
+  /* Check again if the Gosp server is newer than the Gosp file.  If so, then
+   * another process must have performed all the work while we were waiting for
+   * the lock.  In this case, release the lock and handle the request. */
+  if (is_newer_than(r, r->filename, server_name) == 0) {
+    if (release_global_lock(r->server) != GOSP_STATUS_OK)
+      return HTTP_INTERNAL_SERVER_ERROR;
+    gstatus = simple_request_response(r, sock_name);
+    if (gstatus == GOSP_STATUS_OK)
+      return r->status == HTTP_OK ? OK : r->status;
+    if (gstatus == GOSP_STATUS_FAIL)
+      return HTTP_INTERNAL_SERVER_ERROR;
+  }
+
+  /* Kill the Gosp server, and remove its socket and executable. */
+  gstatus = kill_gosp_server(r, sock_name, server_name);
+  if (gstatus != GOSP_STATUS_OK) {
+    (void) release_global_lock(r->server);
+    return HTTP_INTERNAL_SERVER_ERROR;
+  }
+
+  /* Compile the Gosp plugin. */
+  gstatus = compile_gosp_server(r, server_name);
+  if (gstatus != GOSP_STATUS_OK) {
+    (void) release_global_lock(r->server);
+    return HTTP_INTERNAL_SERVER_ERROR;
+  }
+
+  /* At this point, the Gosp plugin exists.  Launch it. */
+  gstatus = launch_gosp_process(r, server_name, sock_name);
+  if (gstatus != GOSP_STATUS_OK) {
+    (void) release_global_lock(r->server);
+    return HTTP_INTERNAL_SERVER_ERROR;
+  }
+
+  /* Try again to have the Gosp server handle the request.  Wait up to
+   * GOSP_LAUNCH_WAIT_TIME for the executable to finish launching before giving
+   * up.  We retain the lock because we don't want unrelated requests to the
+   * same page to fail because they didn't know the server is in the process of
+   * launching. */
+  begin_time = apr_time_now();
+  while (apr_time_now() - begin_time < GOSP_LAUNCH_WAIT_TIME) {
+    /* Keep retrying while we wait for the server to launch. */
+    gstatus = simple_request_response(r, sock_name);
+    if (gstatus == GOSP_STATUS_OK)
+      break;
+    if (gstatus == GOSP_STATUS_FAIL) {
+      (void) release_global_lock(r->server);
+      return HTTP_INTERNAL_SERVER_ERROR;
+    }
+    apr_sleep(1000);
+  }
+
+  /* Release the lock and return. */
+  gstatus = release_global_lock(r->server);
+  if (gstatus != GOSP_STATUS_OK)
+    return HTTP_INTERNAL_SERVER_ERROR;
+  return r->status == HTTP_OK ? OK : r->status;
+}
+
 /* Handle requests of type "gosp" by passing them to the gosp2go tool. */
 static int gosp_handler(request_rec *r)
 {
-  apr_finfo_t finfo;               /* File information for the rquested file */
+  apr_finfo_t finfo;               /* File information for the requested file */
   char *sock_name;                 /* Name of the socket on which the Gosp server is listening */
   char *server_name;               /* Name of the Gosp server executable */
-  apr_time_t begin_time;           /* Time at which we began waiting for the server to launch */
   gosp_server_config_t *sconfig;   /* Server configuration */
   apr_status_t status;             /* Status of an APR call */
   gosp_status_t gstatus;           /* Status of an internal Gosp call */
@@ -307,73 +380,9 @@ static int gosp_handler(request_rec *r)
       return HTTP_INTERNAL_SERVER_ERROR;
   }
 
-  /* The Gosp file is newer than the Gosp server.  We therefore have a lot of
-   * work to do.  To ensure that only process does the work we first acquire
-   * the global lock. */
-  if (acquire_global_lock(r->server) != GOSP_STATUS_OK)
-    return HTTP_INTERNAL_SERVER_ERROR;
-
-  /* Check again if the Gosp server is newer than the Gosp file.  If so, then
-   * another process must have performed all the work while we were waiting for
-   * the lock.  In this case, release the lock and handle the request. */
-  if (is_newer_than(r, r->filename, server_name) == 0) {
-    if (release_global_lock(r->server) != GOSP_STATUS_OK)
-      return HTTP_INTERNAL_SERVER_ERROR;
-    gstatus = simple_request_response(r, sock_name);
-    if (gstatus == GOSP_STATUS_OK)
-      return r->status == HTTP_OK ? OK : r->status;
-    if (gstatus == GOSP_STATUS_FAIL)
-      return HTTP_INTERNAL_SERVER_ERROR;
-  }
-
-  /* Kill the Gosp server, and remove its socket and executable. */
-  gstatus = kill_gosp_server(r, sock_name, server_name);
-  if (gstatus != GOSP_STATUS_OK) {
-    (void) release_global_lock(r->server);
-    return HTTP_INTERNAL_SERVER_ERROR;
-  }
-
-  /* Check if the Gosp server executable already exists.  If not, compile it. */
-  status = apr_stat(&finfo, server_name, 0, r->pool);
-  if (status != APR_SUCCESS) {
-    /* The Gosp server doesn't appear to have been compiled.  Compile it. */
-    gstatus = compile_gosp_server(r, server_name);
-    if (gstatus != GOSP_STATUS_OK) {
-      (void) release_global_lock(r->server);
-      return HTTP_INTERNAL_SERVER_ERROR;
-    }
-  }
-
-  /* At this point, the Gosp server executable exists.  Launch it. */
-  gstatus = launch_gosp_process(r, server_name, sock_name);
-  if (gstatus != GOSP_STATUS_OK) {
-    (void) release_global_lock(r->server);
-    return HTTP_INTERNAL_SERVER_ERROR;
-  }
-
-  /* Try again to have the Gosp server handle the request.  Wait up to
-   * GOSP_LAUNCH_WAIT_TIME for the executable to finish launching before giving
-   * up.  We retain the lock because we don't want unrelated requests to the
-   * same page to fail because they didn't know the server is in the process of
-   * launching. */
-  begin_time = apr_time_now();
-  while (apr_time_now() - begin_time < GOSP_LAUNCH_WAIT_TIME) {
-    /* Keep retrying while we wait for the server to launch. */
-    gstatus = simple_request_response(r, sock_name);
-    if (gstatus == GOSP_STATUS_OK)
-      break;
-    if (gstatus == GOSP_STATUS_FAIL) {
-      (void) release_global_lock(r->server);
-      return HTTP_INTERNAL_SERVER_ERROR;
-    }
-    apr_sleep(1000);
-  }
-
-  /* Release the lock and return. */
-  gstatus = release_global_lock(r->server);
-  if (gstatus != GOSP_STATUS_OK)
-    return HTTP_INTERNAL_SERVER_ERROR;
-  return r->status == HTTP_OK ? OK : r->status;
+  /* The Gosp file is newer than the Gosp server.  Kill the old server,
+   * recompile it, relaunch it, and retry the request. */
+  return rebuild_release_retry(r, sock_name, server_name);
 }
 
 /* Invoke gosp_handler at the end of every request. */

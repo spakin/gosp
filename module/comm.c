@@ -280,8 +280,7 @@ gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
   return GOSP_STATUS_OK;
 }
 
-/* Ask a Gosp server to shut down cleanly.  The termination command must be
- * kept up-to-date with the GospRequest struct in boilerplate.go. */
+/* Ask a Gosp server to shut down cleanly. */
 gosp_status_t send_termination_request(request_rec *r, const char *sock_name)
 {
   char *response;             /* Response string */
