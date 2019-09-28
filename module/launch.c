@@ -183,52 +183,26 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *server_name, const
   return GOSP_STATUS_OK;
 }
 
-/* Kill a running Gosp server.  We assume this is called because the Gosp page
- * is newer than the Gosp server. */
+/* Kill a running Gosp server.  Return GOSP_STATUS_OK if the Gosp server is no
+ * longer running, GOSP_STATUS_FAIL if it might be. */
 gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char *server_name)
 {
-  gosp_status_t errcode = GOSP_STATUS_OK;  /* Error code to return */
   apr_status_t status;        /* Status of an APR call */
-  gosp_status_t gstatus;      /* Status of an internal Gosp call */
 
-  /* Work within a critical section to ensure the Gosp server is killed exactly
-   * once. */
-  if (acquire_global_lock(r->server) != GOSP_STATUS_OK)
+  /* Remove the socket. */
+  status = apr_file_remove(sock_name, r->pool);
+  if (status != APR_SUCCESS && !APR_STATUS_IS_ENOENT(status)) {
+    ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
+                  "Failed to remove socket %s", sock_name);
     return GOSP_STATUS_FAIL;
-
-  /* On any error, first release the lock. */
-  do {
-    /* Check that the server was not already recompiled by another process. */
-    if (is_newer_than(r, r->filename, server_name) == 1) {
-      gstatus = send_termination_request(r, sock_name);
-      if (gstatus != GOSP_STATUS_OK) {
-        errcode = GOSP_STATUS_FAIL;
-        break;
-      }
-    }
-
-    /* Remove the socket. */
-    status = apr_file_remove(sock_name, r->pool);
-    if (status != APR_SUCCESS && !APR_STATUS_IS_ENOENT(status)) {
-      ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
-                    "Failed to remove socket %s", sock_name);
-      errcode = GOSP_STATUS_FAIL;
-      break;
-    }
-
-    /* Remove the server executable. */
-    status = apr_file_remove(server_name, r->pool);
-    if (status != APR_SUCCESS && !APR_STATUS_IS_ENOENT(status)) {
-      ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
-                    "Failed to remove Gosp server %s", server_name);
-      errcode = GOSP_STATUS_FAIL;
-      break;
-    }
   }
-  while (0);
 
-  /* Release the lock and return. */
-  if (release_global_lock(r->server) != GOSP_STATUS_OK)
+  /* Remove the server executable. */
+  status = apr_file_remove(server_name, r->pool);
+  if (status != APR_SUCCESS && !APR_STATUS_IS_ENOENT(status)) {
+    ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
+                  "Failed to remove Gosp server %s", server_name);
     return GOSP_STATUS_FAIL;
-  return errcode;
+  }
+  return GOSP_STATUS_OK;
 }
