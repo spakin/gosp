@@ -37,15 +37,15 @@ Supported directives
 
 The Go Server Pages Apache module processes the following directives:
 
-| Directive            | Default                                     | Meaning                                                                      |
-| :----------------    | :--------------------------------------     | :--------------------------------------------------------------------------- |
-| `GospWorkDir`        | `/var/cache/apache2/mod_gosp`               | Name of a directory in which Gosp can generate files needed during execution |
-| `GospAllowedImports` | `NONE`                                      | Comma-separated list of packages that can be imported or `ALL` or `NONE`     |
-| `GospGoPath`         | *empty*                                     | Value of the `GOPATH` environment variable to use when building a page       |
-| `GospMaxIdleTime`    | `0m`                                        | Maximum idle time before a Gosp server automatically exits (0m = infinite)   |
-| `GospServer`         | *some_path*`/bin/gosp-server`               | `gosp-server` executable                                                     |
-| `GospGoCompiler`     | *some_path*`/bin/go`                        | Go compiler executable                                                       |
-| `GospMaxTop`         | `1000000000`                                | Maximum number of `?go:top` blocks allowed per page                          |
+| Directive            | Default                                     | Meaning                                                                             |
+| :----------------    | :--------------------------------------     | :---------------------------------------------------------------------------------- |
+| `GospWorkDir`        | `/var/cache/apache2/mod_gosp`               | Name of a directory in which Gosp can generate files needed during execution        |
+| `GospAllowedImports` | `NONE`                                      | Comma-separated list of packages that are allowed to be imported or `ALL` or `NONE` |
+| `GospGoPath`         | *empty*                                     | Value of the `GOPATH` environment variable to use when building a page              |
+| `GospMaxIdleTime`    | `0m`                                        | Maximum idle time before a Gosp server automatically exits (0m = infinite)          |
+| `GospServer`         | *some_path*`/bin/gosp-server`               | `gosp-server` executable                                                            |
+| `GospGoCompiler`     | *some_path*`/bin/go`                        | Go compiler executable                                                              |
+| `GospMaxTop`         | `1000000000`                                | Maximum number of `?go:top` blocks allowed per page                                 |
 
 The module also honors the [`User`](https://httpd.apache.org/docs/current/mod/mod_unixd.html#user) and [`Group`](https://httpd.apache.org/docs/current/mod/mod_unixd.html#group) directives defined by the [`mod_unixd`](https://httpd.apache.org/docs/current/mod/mod_unixd.html) module.
 
