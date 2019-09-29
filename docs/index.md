@@ -44,6 +44,6 @@ Learn more
 * [Installation](install.md)
 * [Configuration](configure.md)
 * [Including Go code on a Web page](markup.md)
-* [Predefined packages, variables, and functions](predefined.md)
+* [Predefined packages and variables](predefined.md)
 * [Security](security.md)
 * [Overview of the implementation](implementation.md)

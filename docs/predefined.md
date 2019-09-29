@@ -1,5 +1,5 @@
 ---
-title: Predefined values
+title: Predefined items
 ---
 
 Predefined packages and variables

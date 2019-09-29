@@ -1,6 +1,7 @@
 ---
 title: Implementation
 has_children: true
+has_toc: false
 ---
 
 Implementation
