@@ -1,0 +1,26 @@
+#! /bin/bash
+
+#########################################
+# Copy LICENSE.md to docs/license.md    #
+# By Scott Pakin <scott+gosp@pakin.org> #
+#########################################
+
+# Usage
+# -----
+#
+# Add the following to .git/hooks/pre-commit:
+#
+#   ./git-scripts/copy-license
+#   git add docs/license.md
+
+cat <<HEADER > docs/license.md
+---
+title: Copyright and license
+nav_exclude: true
+---
+
+Copyright and license (BSD 3-clause clear)
+==========================================
+HEADER
+
+grep -v -A1 'The Clear BSD License' LICENSE.md >> docs/license.md

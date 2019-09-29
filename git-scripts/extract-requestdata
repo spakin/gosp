@@ -10,7 +10,7 @@
 # Usage
 # -----
 #
-# Put the following in .git/hooks/pre-commit:
+# Add the following to .git/hooks/pre-commit:
 #
 #   ./git-scripts/extract-requestdata 
 #   git add docs/predefined.md
