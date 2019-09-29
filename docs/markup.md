@@ -1,6 +1,6 @@
 ---
 title: Markup
-nav_order: 4
+order: 4
 ---
 
 Including Go code on a Web page

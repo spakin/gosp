@@ -1,6 +1,6 @@
 ---
 title: Configuration
-nav_order: 3
+order: 3
 ---
 
 Configuring Go Server Pages

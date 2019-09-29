@@ -1,6 +1,6 @@
 ---
 title: Home
-nav_order: 1
+order: 1
 ---
 
 Go Server Pages
