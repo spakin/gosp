@@ -1,6 +1,7 @@
 ---
 title: Whitespace removal
 parent: Markup
+nav_order: 5
 ---
 
 Whitespace removal

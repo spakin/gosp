@@ -20,8 +20,8 @@ Go code is embedded on a Web page using a set of specialized markup commands.  T
 
 For details, see the following pages:
 
-* [Expressions](expressions.md) (`?go:expr … ?>`)
-* [Statements](statements.md) (`?go:block … ?>`)
-* [Top-level code](top_level.md) (`?go:top … ?>`)
-* [File inclusion](file_inclusion.md) (`?go:include … ?>`)
-* [Whitespace removal](whitespace.md)
+* [Expressions](markup/expressions.md) (`?go:expr … ?>`)
+* [Statements](markup/statements.md) (`?go:block … ?>`)
+* [Top-level code](markup/top_level.md) (`?go:top … ?>`)
+* [File inclusion](markup/file_inclusion.md) (`?go:include … ?>`)
+* [Whitespace removal](markup/whitespace.md)
