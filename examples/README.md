@@ -1,7 +1,7 @@
 Go Server Pages examples
 ========================
 
-This directory provides a number of examples of the types of tasks one can accomplish by embedding Go code on a Web page.  In order to actually test these examples, you will need to install and configure Go Server Pages.  [See the documentation](https://spakin.github.io/gosp) for instructions.
+This directory provides a number of examples of the types of tasks one can accomplish by embedding Go code on a Web page.  In order to actually test these examples, you will need to install and configure Go Server Pages.  [See the Go Server Pages documentation](https://spakin.github.io/gosp) for instructions.
 
 The examples, sorted roughly from most basic to most advanced, are described below.  Note that many of these use **import** to import various Go packages.  The Web server needs to be configured to authorize this action, as described in [Configuring Go Server Pages](https://spakin.github.io/gosp/configure.md).
 
