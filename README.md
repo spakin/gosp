@@ -53,6 +53,11 @@ Go Server Pages is designed for simplicity.  Only the following new markup is in
 | &lt;?go:top *code* ?&gt;     | Declare file-level code *code* (`import`, `func`, `const`, etc.) |
 | &lt;?go:include *file* ?&gt; | Include local file *file* as if it were pasted in |
 
+Documentation
+-------------
+
+Documentation can be found at https://spakin.github.io/gosp/.
+
 Requirements
 ------------
 
