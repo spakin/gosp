@@ -1,6 +1,7 @@
 ---
 title: Page compiler
 parent: Implementation
+nav_order: 2
 ---
 
 Page compiler
