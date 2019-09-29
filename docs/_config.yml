@@ -10,10 +10,10 @@ aux_links:
 
 footer_content: "Copyright &copy; 2019 Scott Pakin"
 
-logo: "/assets/img/gosp-logo-small.png"
-
 defaults:
   - scope:
       path: "assets/img"
     values:
       image: true
+
+logo: "assets/img/gosp-logo-small.png"
