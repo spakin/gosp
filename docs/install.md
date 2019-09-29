@@ -1,6 +1,5 @@
 ---
 title: Installation
-order: 2
 ---
 
 Installing Go Server Pages

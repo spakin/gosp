@@ -1,6 +1,5 @@
 ---
 title: Markup
-order: 4
 ---
 
 Including Go code on a Web page

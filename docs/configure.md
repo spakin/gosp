@@ -1,6 +1,5 @@
 ---
 title: Configuration
-order: 3
 ---
 
 Configuring Go Server Pages

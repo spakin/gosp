@@ -1,6 +1,5 @@
 ---
 title: Implementation overview
-order: 6
 ---
 
 Implementation overview
