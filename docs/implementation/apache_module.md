@@ -19,7 +19,7 @@ Go Server Pages integrates with the [Apache Web server](https://httpd.apache.org
 
 The following flowchart illustrates the Go Server Pages module's control flow when processing a request from a client:
 
-![Module control flow](assets/img/gosp-flowchart.svg "Go Server Pages module control flow")
+![Module control flow](../assets/img/gosp-flowchart.svg "Go Server Pages module control flow")
 
 The left side of the flowchart corresponds to the common case of an up-to-date version of the Go Server Pages plugin already being running.  The right side of the flowchart corresponds to the plugin not existing, in which case it is compiled and launched; or outdated, in which case it is stopped, recompiled, and launched.  While not shown in the figure, the actions on the right side of the figure are protected by a mutex to ensure that concurrent accesses to an outdated or nonexistent plugin do not trigger multiple compilations or launches of the same plugin.
 

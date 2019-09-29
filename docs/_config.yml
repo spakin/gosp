@@ -5,7 +5,7 @@ title: Go Server Pages
 description: Embed Go code within HTML
 
 aux_links:
-  "Download *Go Server Pages* from GitHub":
+  "Download <em>Go Server Pages</em> from GitHub":
     - "//github.com/spakin/gosp"
 
 footer_content: "Copyright &copy; 2019 Scott Pakin"
