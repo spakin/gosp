@@ -31,7 +31,7 @@ Here's a trivial example of a Go Server Page:
 
 The only difference from ordinary HTML in the above is the `<?go:expr 2*2*2*3*3*5*7 ?>` markup.  This tells the Web server to evaluate `2*2*2*3*3*5*7` as a Go expression and replace the tag with the result, producing
 
-    I like the number 2520 because it's…
+    I like the number 2520 because it's divisible by each integer from 1 to 10.
 
 in the HTML sent back to the user's Web browser.  The user has no way of knowing that `2520` was generated dynamically, not entered statically in the HTML.
 

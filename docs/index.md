@@ -6,7 +6,9 @@ nav_order: 1
 Go Server Pages
 ===============
 
-Go Server Pages, or "Gosp" for short, is a mechanism for dynamically generating Web pages via server-side code execution.  If you're familiar with [PHP](https://www.php.net/) or [JavaServer Pages](https://en.wikipedia.org/wiki/JavaServer_Pages), Go Server Pages is just like those but based on the [Go programming language](https://golang.org/).  The basic idea is that you can embed Go code right in the middle of an HTML document—or in fact any type of document that your Web server can serve.  The Web server executes the code and includes its output in the page, right where the code originally appeared.  The process is completely invisible to clients, making Go Server Pages 100% compatible with every Web browser in existence.
+Go Server Pages, or "Gosp" for short, let you embed [Go](https://golang.org/) code right in the middle of an HTML document—or in fact any type of document that your Web server can serve.  The Web server executes the code and includes its output in the page, right where the code originally appeared.  The process is completely invisible to clients, making Go Server Pages 100% compatible with every Web browser in existence.
+
+If you're familiar with [PHP](https://www.php.net/) or [JavaServer Pages](https://en.wikipedia.org/wiki/JavaServer_Pages), Go Server Pages is just like those but based on the [Go programming language](https://golang.org/).
 
 Example
 -------
