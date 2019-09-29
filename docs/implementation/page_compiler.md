@@ -1,5 +1,6 @@
 ---
 title: Page compiler
+parent: Implementation
 ---
 
 Page compiler
