@@ -30,4 +30,4 @@ for i := 0; i < 5; i++ {
 </ul>
 ```
 
-`return` (with no arguments) is allowed.  No further Go markup will be executed, after a `return`, and no further HTML will be returned to the client.
+`return` (with no arguments) is allowed.  No further Go markup will be executed after a `return`, and no further HTML will be returned to the client.
