@@ -37,7 +37,7 @@ in the HTML sent back to the user's Web browser.  The user has no way of knowing
 
 [More examples](https://github.com/spakin/gosp/tree/master/examples) are available for your perusal.
 
-Go Server Pages is free and open-source software, released under a [BSD Clear license](license.md).  [Download Go Server Pages from GitHub](https://github.com/spakin/gosp) today.
+Go Server Pages is free and open-source software, released under a [BSD Clear license](license.md).  [Download Go Server Pages](https://github.com/spakin/gosp) from GitHub today.
 
 Learn more
 ----------
