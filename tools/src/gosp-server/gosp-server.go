@@ -127,6 +127,12 @@ func LaunchHTMLGenerator(p *Parameters, gospOut io.Writer, gospReq *gosp.Request
 	meta := make(chan gosp.KeyValue, 5)
 	go p.GospGenerateHTML(gospReq, html, meta)
 
+	// Tell the server what we think its JSON request is.
+	meta <- gosp.KeyValue{
+		Key:   "debug-message",
+		Value: sanitizeString(fmt.Sprintf("Handling %#v", *gospReq)),
+	}
+
 	// Read metadata from GospGenerateHTML until no more remains.
 	var status string
 	switch p.HttpHeaderType {
