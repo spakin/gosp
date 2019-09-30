@@ -17,9 +17,11 @@ import (
 	"os"
 	"path/filepath"
 	"plugin"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
 )
 
 // Version defines the Go Server Pages version number.  It should be overridden
@@ -81,6 +83,18 @@ func writeNoMetadata(gospOut io.Writer, meta chan gosp.KeyValue) string {
 	return status
 }
 
+// sanitizeString is a helper routine for writeModGospMetadata that replaces a
+// string's newlines, tabs, and other whitespace characters with ordinary
+// spaces.
+func sanitizeString(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return ' '
+		}
+		return r
+	}, s)
+}
+
 // writeModGospMetadata is a helper routine for LaunchHTMLGenerator that writes
 // HTTP metadata in the format expected by the Gosp Apache module.  It returns
 // an HTTP status as a string.
@@ -89,8 +103,10 @@ func writeModGospMetadata(gospOut io.Writer, meta chan gosp.KeyValue) string {
 	status := okStr
 	for kv := range meta {
 		switch kv.Key {
-		case "mime-type", "http-status", "header-field", "keep-alive", "error-message":
-			fmt.Fprintf(gospOut, "%s %s\n", kv.Key, kv.Value)
+		case "mime-type", "http-status", "header-field", "keep-alive", "error-message", "debug-message":
+			k := sanitizeString(kv.Key)
+			v := sanitizeString(kv.Value)
+			fmt.Fprintln(gospOut, k, v)
 		}
 
 		// Keep track of the current HTTP status code.

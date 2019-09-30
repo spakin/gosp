@@ -74,6 +74,14 @@ func SetHeaderField(ch Metadata, k, v string, repl bool) {
 	}
 }
 
+// LogDebugMessage asks the Web server to write a debug message to its log file.
+func LogDebugMessage(ch Metadata, m string) {
+	ch <- KeyValue{
+		Key:   "debug-message",
+		Value: m,
+	}
+}
+
 // ReportPanic alerts the Web server that the Gosp server encountered an
 // unexpected error.  It should be called from a deferred function in
 // GospGenerateHTML.
