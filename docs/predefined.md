@@ -39,19 +39,22 @@ type RequestData struct {
 }
 ```
 
-The `gosp` package makes available three functions that can be used to pass metadata back to the Web server:
+The `gosp` package makes available four functions that can be used to pass metadata back to the Web server:
 ```go
 func SetHttpStatus(m Metadata, s int)
 func SetMimeType(m Metadata, mt string)
 func SetHeaderField(m Metadata, k, v string, repl bool)
+func LogDebugMessage(m Metadata, s string)
 ```
-Always pass the variable `gospMeta` (see Variables below) as the first argument to each of these three functions.
+Always pass the variable `gospMeta` (see Variables below) as the first argument to each of these four functions.
 
 `gosp.SetHttpStatus` indicates the HTTP status code the Web server should return to the client.  The status code defaults to 200 ("OK") but can be set to any of the codes defined in the [HTTP Status Code Registry](https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml).  If the Go Server Page is allowed to `import "net/http"` it can use any of the [`Status` constants defined by `net/http`](https://golang.org/pkg/net/http/#pkg-constants) instead of specifying a status code numerically.  Calling `gosp.SetHttpStatus` repeatedly is allowed.  Only the final value takes effect.
 
 `gosp.SetMimeType` specifies the document's [MIME type](https://en.wikipedia.org/wiki/Media_type).  The MIME type defaults to `text/html`.  A Go Server Page can thereby change the MIME type and return data of that type.  For example, it can specify `text/plain` and return plain text or `image/png` and return a binary [PNG image](https://en.wikipedia.org/wiki/Portable_Network_Graphics).  Calling `gosp.SetMimeType` repeatedly is allowed.  Only the final value takes effect.
 
 `gosp.SetHeaderField` provides a very general capability.  It enables a Go Server Page to send arbitrary [HTTP response header fields](https://en.wikipedia.org/wiki/List_of_HTTP_header_fields#Standard_response_fields) back to the client.  The arguments are the field name, the value to assign to that field, and a Boolean that indicates whether the value should replace the prior value associated with the field (`true`) as opposed to being appended to the prior value (`false`).  Some uses of `gosp.SetHeaderField` include transmitting cookies to the client and setting caching properties for the page.  Calling `gosp.SetHeaderField` repeatedly is allowed.
+
+`gosp.LogDebugMessage` asks the Web server to write a debug-level message to its log file (typically `error.log`).  Apache must be configured with [`LogLevel debug`](https://httpd.apache.org/docs/current/mod/core.html#loglevel) for this to work.  See also [Debugging tips](debugging.md).
 
 Other useful exports from the `gosp` package include `gosp.Fprintf`, `gosp.Writer`, and `gosp.Open`.  `gosp.Fprintf` is exactly the same as [`fmt.Fprintf`](https://golang.org/pkg/fmt/#Fprintf) but does not require importing the [`fmt`](https://golang.org/pkg/fmt) package.  (As mentioned in [Configuring Go Server Pages](configure.md), package imports other than `gosp` are forbidden unless explicitly allowed by the Web administrator.)  Similarly, `gosp.Writer` wraps [`io.Writer`](https://golang.org/pkg/io/#Writer) without requiring that a page import the [`io`](https://golang.org/pkg/io) package.  `gosp.Open` behaves similarly to [`os.Open`](https://golang.org/pkg/os/#Open).  However, only files that lie in the same directory or a subdirectory of the Go Server Page that invokes `gosp.Open` can be opened.  A file can be checked explicitly for this property with the `gosp.LiesInOrBelow` function.
 

@@ -49,4 +49,5 @@ Learn more
 * [Including Go code on a Web page](markup.md)
 * [Predefined packages and variables](predefined.md)
 * [Security](security.md)
+* [Debugging tips](debugging.md)
 * [Overview of the implementation](implementation.md)
