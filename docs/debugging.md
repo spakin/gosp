@@ -28,4 +28,4 @@ Provide whatever fields from `gosp.RequestData` your particular Go Server Page a
 
 Configuring Apache with [`LogLevel debug`](https://httpd.apache.org/docs/current/mod/core.html#loglevel) will cause Go Server Pages to write a `Handling gosp.RequestData{…}` line to the Apache error-log file (e.g., `error.log`).  This can be helpful for diagnosing requests that lead to incorrect behavior.
 
-Finally, a Go Server Page can invoke [`gosp.LogDebugMessage`](https://godoc.org/github.com/spakin/gosp/tools/src/gosp#LogDebugMessage) to write a debug message to the Apache error-log file, for example with `gosp.LogDebugMessage(gospMeta, "About to do something dangerous")`.  Debug messages appear only if Apache is configured with `LogLevel debug`.
+Finally, a Go Server Page can invoke [`gosp.LogDebugMessage`](https://godoc.org/github.com/spakin/gosp/src/gosp#LogDebugMessage) to write a debug message to the Apache error-log file, for example with `gosp.LogDebugMessage(gospMeta, "About to do something dangerous")`.  Debug messages appear only if Apache is configured with `LogLevel debug`.
