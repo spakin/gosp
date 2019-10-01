@@ -20,7 +20,7 @@ use strict;
 
 # Read the RequestData definition from gosp.go.
 undef $/;
-open(GOSP, "<", "tools/src/gosp/gosp.go") || die $!;
+open(GOSP, "<", "src/gosp/gosp.go") || die $!;
 my $gosp = <GOSP>;
 close GOSP or die;
 die if $gosp !~ m,^type RequestData struct.*?^\},ms;

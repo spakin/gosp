@@ -29,23 +29,20 @@ SHELL = /bin/sh
 export
 
 all:
-	$(MAKE) -C tools
-	$(MAKE) -C module
+	$(MAKE) -C src
 
 clean:
-	$(MAKE) -C tools clean
-	$(MAKE) -C module clean
+	$(MAKE) -C src clean
 
 # WARNING: "make install" does not honor prefix or DESTDIR when installing the
 # Apache module.  It always installs the module into the current Apache modules
 # directory.
 install: all
-	$(MAKE) -C tools install
-	$(MAKE) -C module install
+	$(MAKE) -C src install
 
-# Due the the awkwardness warned about above, "make install-no-module" installs
+# Due to the awkwardness warned about above, "make install-no-module" installs
 # everything except the Apache module.
 install-no-module: all
-	$(MAKE) -C tools install
+	$(MAKE) -C src install-no-module
 
 .PHONY: all clean install install-no-module
