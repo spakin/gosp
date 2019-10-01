@@ -11,6 +11,7 @@ bindir = $(exec_prefix)/bin
 datarootdir = $(prefix)/share
 mandir = $(datarootdir)/man
 man1dir = $(mandir)/man1
+docdir = $(datarootdir)/doc/gosp
 gospdir = $(datarootdir)/gosp
 gospgodir = $(gospdir)/go
 AWK = awk
@@ -102,7 +103,7 @@ bin/gosp-server: $(addprefix src/,$(GOSP_SERVER_DEPS))
 
 # Note that we need to rebuild gosp-server as part of "make install" so it uses
 # the exact same GOPATH as any plugins we later build with gosp2go.
-install-no-module: bin/gosp2go bin/gosp-server install-man
+install-no-module: bin/gosp2go bin/gosp-server install-man install-doc
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(bindir)
 	$(INSTALL) -m 0755 bin/gosp2go $(DESTDIR)$(bindir)
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(gospgodir)
@@ -120,6 +121,11 @@ install-man: src/gosp2go/gosp2go.1 src/gosp-server/gosp-server.1
 	cat src/gosp-server/gosp-server.1 | $(AWK) 'NR == 1 {printf ".TH GOSP-SERVER \"1\" \"%s\" \"v%s\" \"User Commands\"\n", DATE, VERSION} NR > 1' DATE="$$(date +'%B %Y')" VERSION="$(VERSION)" > $(DESTDIR)$(man1dir)/gosp-server.1
 	chmod 0644 $(DESTDIR)$(man1dir)/gosp-server.1
 
+install-doc:
+	$(INSTALL) -m 0755 -d $(DESTDIR)$(docdir)/examples
+	for fname in examples/* ; do $(INSTALL) -m 0644 $$fname $(DESTDIR)$(docdir)/examples ; done
+	$(INSTALL) -m 0644 README.md LICENSE.md $(DESTDIR)$(docdir)
+
 # WARNING: "make install" does not honor prefix or DESTDIR.  It always
 # installs into the current Apache modules directory.
 install: install-no-module src/module/mod_gosp.la
@@ -136,4 +142,4 @@ clean:
 	$(RM) $(addprefix src/module/,$(MODULE_GENFILES))
 
 
-.PHONY: all install-no-module install-man install clean
+.PHONY: all install-no-module install-man install-doc install clean
