@@ -35,6 +35,8 @@ The only difference from ordinary HTML in the above is the `<?go:expr 2*2*2*3*3*
 
 in the HTML sent back to the user's Web browser.  The user has no way of knowing that `2520` was generated dynamically, not entered statically in the HTML.
 
+[See more examples](examples).
+
 Usage
 -----
 
