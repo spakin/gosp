@@ -4,9 +4,11 @@ title: Go Server Pages
 
 description: Embed Go code within HTML
 
+baseurl: https://gosp.pakin.org/
+
 aux_links:
   "Download <em>Go Server Pages</em> from GitHub":
-    - "//github.com/spakin/gosp"
+    - "https://github.com/spakin/gosp"
 
 footer_content: 'Copyright &copy; 2019 <a href="https://www.pakin.org/~scott/">Scott Pakin</a>.<br />
 The gopher in the Go Server Pages logo was designed by
