@@ -4,8 +4,6 @@ title: Go Server Pages
 
 description: Embed Go code within HTML
 
-baseurl: "/"
-
 aux_links:
   "Download <em>Go Server Pages</em> from GitHub":
     - "https://github.com/spakin/gosp"
