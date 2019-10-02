@@ -58,7 +58,7 @@ Always pass the variable `gospMeta` (see Variables below) as the first argument 
 
 Other useful exports from the `gosp` package include `gosp.Fprintf`, `gosp.Writer`, and `gosp.Open`.  `gosp.Fprintf` is exactly the same as [`fmt.Fprintf`](https://golang.org/pkg/fmt/#Fprintf) but does not require importing the [`fmt`](https://golang.org/pkg/fmt) package.  (As mentioned in [Configuring Go Server Pages](configure.md), package imports other than `gosp` are forbidden unless explicitly allowed by the Web administrator.)  Similarly, `gosp.Writer` wraps [`io.Writer`](https://golang.org/pkg/io/#Writer) without requiring that a page import the [`io`](https://golang.org/pkg/io) package.  `gosp.Open` behaves similarly to [`os.Open`](https://golang.org/pkg/os/#Open).  However, only files that lie in the same directory or a subdirectory of the Go Server Page that invokes `gosp.Open` can be opened.  A file can be checked explicitly for this property with the `gosp.LiesInOrBelow` function.
 
-See the [`gosp` package documentation](https://godoc.org/github.com/spakin/gosp/tools/src/gosp) for documentation of the complete set of exported symbols.
+See the [`gosp` package documentation](https://godoc.org/github.com/spakin/gosp/src/gosp) for documentation of the complete set of exported symbols.
 
 Variables
 ---------

@@ -7,7 +7,7 @@ nav_order: 1
 Apache module
 =============
 
-Go Server Pages integrates with the [Apache Web server](https://httpd.apache.org/) in the form of an Apache module.  The source code for the Apache module lies in the [`module`](https://github.com/spakin/gosp/tree/master/module) directory.  The module performs a number of tasks:
+Go Server Pages integrates with the [Apache Web server](https://httpd.apache.org/) in the form of an Apache module.  The source code for the Apache module lies in the [`module`](https://github.com/spakin/gosp/tree/master/src/module) directory.  The module performs a number of tasks:
 
 * processing Go Server Pages-related directives appearing in the configuration file,
 

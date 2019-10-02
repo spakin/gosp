@@ -13,4 +13,4 @@ The back-end server accepts requests in [JSON](https://json.org/) format, specif
 
 If run with `--socket`=*filename*, `gosp-server` accepts JSON requests from local (e.g., Unix-domain) socket *filename* and sends back its response via a corresponding local socket.  This is how the Apache module launches `gosp-server`.  If run with `--file`=*filename*, `gosp-server` reads a JSON request from file *filename* and outputs its response to the standard output device.  If neither `--socket` nor `--file` is specified, `gosp-server` passes an empty request to `GospGenerateHTML`.  This is how `gosp2go` launches `gosp-server`.
 
-The source code for the back-end server lies in the [`gosp-server`](https://github.com/spakin/gosp/tree/master/tools/src/gosp-server) directory. 
+The source code for the back-end server lies in the [`gosp-server`](https://github.com/spakin/gosp/tree/master/src/gosp-server) directory. 
