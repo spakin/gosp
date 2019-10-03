@@ -103,13 +103,10 @@ func (s *ImportSet) Set(lst string) error {
 	return nil
 }
 
-// ParseCommandLine parses the command line and returns a set of
-// parameters.  It aborts on error, first outputting a usage string.
-func ParseCommandLine() *Parameters {
-	// Prepare custom usage output.
-	var p Parameters
-	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), `Usage: %s [options] [input_file.gosp]
+// showUsage displays command-line usage in a human-friendly format then exits
+// with an error code.  It is intended to be assigned to flag.Usage.
+func showUsage() {
+	fmt.Fprintf(flag.CommandLine.Output(), `Usage: %s [options] [input_file.gosp]
 
 The following options are accepted:
 
@@ -142,10 +139,37 @@ The following options are accepted:
 
   --help       Output gosp2go usage information and exit
 `, os.Args[0])
-		os.Exit(1)
-	}
+	os.Exit(1)
+}
 
+// checkParams is a helper function for ParseCommandLine that ensures that the
+// given parameters are self-consistent.  It gives a usage message and aborts
+// if not.
+func checkParams(p *Parameters) {
+	switch flag.NArg() {
+	case 0:
+		p.InFileName = "-"
+	case 1:
+		p.InFileName = flag.Arg(0)
+	default:
+		flag.Usage()
+	}
+	if p.Build && p.Run {
+		fmt.Fprintf(flag.CommandLine.Output(), "%s: --build and --run are mutually exclusive.\n\n", os.Args[0])
+		flag.Usage()
+	}
+	if p.Build && (p.OutFileName == "" || p.OutFileName == "-") {
+		fmt.Fprintf(flag.CommandLine.Output(), "%s: An output filename must be specified when --build is used.\n\n", os.Args[0])
+		flag.Usage()
+	}
+}
+
+// ParseCommandLine parses the command line and returns a set of
+// parameters.  It aborts on error, first outputting a usage string.
+func ParseCommandLine() *Parameters {
 	// Parse the command line.
+	var p Parameters
+	flag.Usage = showUsage
 	wantVersion := flag.Bool("version", false, "Output the version number and exit")
 	flag.StringVar(&p.OutFileName, "outfile", "-", `Name of output file ("-" = standard output); type depends on the other options specified`)
 	flag.StringVar(&p.OutFileName, "o", "-", "Abbreviation of --outfile")
@@ -182,21 +206,6 @@ The following options are accepted:
 	}
 
 	// Check the parameters for self-consistency.
-	switch flag.NArg() {
-	case 0:
-		p.InFileName = "-"
-	case 1:
-		p.InFileName = flag.Arg(0)
-	default:
-		flag.Usage()
-	}
-	if p.Build && p.Run {
-		fmt.Fprintf(flag.CommandLine.Output(), "%s: --build and --run are mutually exclusive.\n\n", os.Args[0])
-		flag.Usage()
-	}
-	if p.Build && (p.OutFileName == "" || p.OutFileName == "-") {
-		fmt.Fprintf(flag.CommandLine.Output(), "%s: An output filename must be specified when --build is used.\n\n", os.Args[0])
-		flag.Usage()
-	}
+	checkParams(&p)
 	return &p
 }

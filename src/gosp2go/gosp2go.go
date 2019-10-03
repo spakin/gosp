@@ -88,10 +88,11 @@ func GospToGo(p *Parameters, s string) string {
 		}
 
 		// Extract Go code into either top or body.
+		codeNeedsNL := i2 < i3 && b[i3-1] != '\n'
 		switch dir {
 		case "top":
 			// Top-level Go code.
-			if i2 < i3 && b[i3-1] != '\n' {
+			if codeNeedsNL {
 				top = append(top, code+"\n")
 			} else {
 				top = append(top, code)
@@ -99,7 +100,7 @@ func GospToGo(p *Parameters, s string) string {
 		case "block":
 			// Zero or more statements.
 			body = append(body, code)
-			if i2 < i3 && b[i3-1] != '\n' {
+			if codeNeedsNL {
 				body = append(body, "\n")
 			}
 		case "expr":

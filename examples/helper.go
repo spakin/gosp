@@ -22,7 +22,7 @@ of beer on the wall.</p>`)
 		default:
 			fmt.Fprintf(w, `<p>%d bottles of beer on the wall,
 %d bottles of beer.  If one of those bottles should happen to fall,
-%d bottles of beer on the wall.</p>` + "\n",
+%d bottles of beer on the wall.</p>`+"\n",
 				i, i, i-1)
 		}
 	}
