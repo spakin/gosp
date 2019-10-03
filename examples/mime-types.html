@@ -45,11 +45,11 @@ func renderImage(w io.Writer, iType string, img image.Image) error {
 ?><?go:block
 iType, ok := gospReq.PostData["image_type"]
 if ok {
-	gosp.SetMimeType(gospMeta, "image/" + iType)
+	gosp.SetMIMEType(gospMeta, "image/" + iType)
 	img := drawGradient()
 	err := renderImage(gospOut, iType, img)
 	if err != nil {
-		gosp.SetHttpStatus(gospMeta, http.StatusBadRequest)
+		gosp.SetHTTPStatus(gospMeta, http.StatusBadRequest)
 	}
 } else {
 	// All HTML must be output conditionally because we don't want it
@@ -62,7 +62,7 @@ if ok {
   </head>
 
   <body>
-    <form action="<?go:expr gospReq.Uri ?>" method="post">
+    <form action="<?go:expr gospReq.URI ?>" method="post">
       <p>Image type:
 	<select name="image_type">
 	  <option value="png">PNG</option>

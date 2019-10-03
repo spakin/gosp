@@ -27,15 +27,15 @@ type RequestData struct {
 	Scheme         string            // HTTP scheme ("http" or "https")
 	LocalHostname  string            // Name of the local host
 	Port           int               // Port number to which the request was issued
-	Uri            string            // Path portion of the URI
+	URI            string            // Path portion of the URI
 	PathInfo       string            // Additional text following the Gosp filename
 	QueryArgs      string            // Query arguments from the request
-	Url            string            // Complete URL requested
+	URL            string            // Complete URL requested
 	Method         string            // Request method ("GET", "POST", etc.)
 	RequestLine    string            // First line of the request (e.g., "GET / HTTP/1.1")
 	RequestTime    int64             // Request time in nanoseconds since the Unix epoch
 	RemoteHostname string            // Name of the remote host
-	RemoteIp       string            // IP address of the remote host
+	RemoteIP       string            // IP address of the remote host
 	Filename       string            // Local filename of the Gosp page
 	PostData       map[string]string // {Key, value} pairs sent by a POST request
 	GetData        map[string]string // {Key, value} pairs sent by a GET request (parsed version of QueryArgs)
@@ -53,13 +53,13 @@ type KeyValue struct {
 // Metadata is a channel on which we can send HTTP metadata.
 type Metadata chan<- KeyValue
 
-// SetHttpStatus tells the Web server what HTTP status code it should return.
-func SetHttpStatus(ch Metadata, s int) {
+// SetHTTPStatus tells the Web server what HTTP status code it should return.
+func SetHTTPStatus(ch Metadata, s int) {
 	ch <- KeyValue{Key: "http-status", Value: fmt.Sprint(s)}
 }
 
-// SetMimeType tells the Web server what MIME type it should return.
-func SetMimeType(ch Metadata, mt string) {
+// SetMIMEType tells the Web server what MIME type it should return.
+func SetMIMEType(ch Metadata, mt string) {
 	ch <- KeyValue{Key: "mime-type", Value: mt}
 }
 
@@ -96,7 +96,7 @@ func ReportPanic(r interface{}, ch Metadata) {
 		ch <- KeyValue{Key: "error-message", Value: "| " + tr}
 	}
 	ch <- KeyValue{Key: "error-message", Value: "+------------------------------------------------------------"}
-	SetHttpStatus(ch, http.StatusInternalServerError)
+	SetHTTPStatus(ch, http.StatusInternalServerError)
 }
 
 // Writer is merely a renamed io.Writer.

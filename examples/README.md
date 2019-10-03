@@ -13,7 +13,7 @@ The examples, sorted roughly from most basic to most advanced, are described bel
 
 * [trivial-top.html](trivial-top.html).  This page first uses `<?go:top` … `?>` markup to import the `fmt` and `io` packages and define a `SayHelloFrom` function.  Later in the page, it invokes `SayHelloFrom` within `<?go:block` … `?>` markup.
 
-* [trivial-error.html](trivial-error.html).  Don't be surprised if accessing this page returns an error message.  That's what it's supposed to do.  It invokes `gosp.SetHttpStatus` to return an HTTP Too Many Requests (429) error code.  (Too Many Requests was chosen arbitrarily.)
+* [trivial-error.html](trivial-error.html).  Don't be surprised if accessing this page returns an error message.  That's what it's supposed to do.  It invokes `gosp.SetHTTPStatus` to return an HTTP Too Many Requests (429) error code.  (Too Many Requests was chosen arbitrarily.)
 
 * [plain-text.txt](plain-text.txt).  Go Server Pages do not need to be HTML.  This example demonstrates that a plain-text file can also include server-side Go code.
 
@@ -21,7 +21,7 @@ The examples, sorted roughly from most basic to most advanced, are described bel
 
 * [include.html](include.html).  This page invokes `<?go:include include-1.inc ?>` to include the file [include-1.inc](include-1.inc).  include-1.inc in turn invokes `<?go:include includes/include-2.inc ?>` to include the file [includes/include-2.inc](includes/include-2.inc).  The result is as if each included file had been pasted into its including file.
 
-* [redirect.html](redirect.html).  This page shows how to use `gosp.SetHeaderField` and `gosp.SetHttpStatus` to redirect the client to a different page.
+* [redirect.html](redirect.html).  This page shows how to use `gosp.SetHeaderField` and `gosp.SetHTTPStatus` to redirect the client to a different page.
 
 * [post.html](post.html).  This page asks the user for his/her name then reloads the page with the name passed to it via an HTTP `POST` operation.  Given a name, the page outputs it.
 

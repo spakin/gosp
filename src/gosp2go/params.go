@@ -25,7 +25,7 @@ type Parameters struct {
 	MaxTop         uint      // Maximum number of go:top blocks allowed per page
 	GoCmd          string    // Go compiler executable (e.g., "/usr/bin/go")
 	DirStack       []string  // Stack of directories to which we chdir
-	HttpHeaderType string    // Format in which to output HTTP headers
+	HTTPHeaderType string    // Format in which to output HTTP headers
 	AllowedImports ImportSet // Set of packages the Go code is allowe to import
 }
 
@@ -157,8 +157,8 @@ The following options are accepted:
 	flag.UintVar(&p.MaxTop, "t", 1, "Abbreviation of --max-top")
 	flag.StringVar(&p.GoCmd, "go", "go", "Name of the Go executable")
 	flag.StringVar(&p.GoCmd, "g", "go", "Abbreviation of --go")
-	flag.StringVar(&p.HttpHeaderType, "http-headers", "mod_gosp", "HTTP header format to request from gosp-server")
-	flag.StringVar(&p.HttpHeaderType, "H", "mod_gosp", "Abbreviation of --raw-headers")
+	flag.StringVar(&p.HTTPHeaderType, "http-headers", "mod_gosp", "HTTP header format to request from gosp-server")
+	flag.StringVar(&p.HTTPHeaderType, "H", "mod_gosp", "Abbreviation of --raw-headers")
 	p.AllowedImports = NewImportSet()
 	p.AllowedImports["PLACEHOLDER_ALL"] = true // Converted to ALL if --allowed was never used
 	flag.Var(&p.AllowedImports, "allowed", "Comma-separated list of allowed Go imports")

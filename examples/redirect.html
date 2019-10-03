@@ -21,7 +21,7 @@ func writeUrl(w io.Writer, url string) {
 
     <blockquote>
       <?go:block
-url := gospReq.Url      // URL, excluding the query arguments
+url := gospReq.URL      // URL, excluding the query arguments
 if len(gospReq.QueryArgs) > 0 {
 	url = url[:len(url)-len(gospReq.QueryArgs)-1]
 }
@@ -41,7 +41,7 @@ writeUrl(gospOut, url)
 // Determine if we need to redirect the request.
 if (gospReq.GetData["redirected"] != "yes") {
 	gosp.SetHeaderField(gospMeta, "Location", url + "?redirected=yes", true)
-	gosp.SetHttpStatus(gospMeta, http.StatusTemporaryRedirect)
+	gosp.SetHTTPStatus(gospMeta, http.StatusTemporaryRedirect)
 }
 ?>
   </body>

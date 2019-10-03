@@ -135,7 +135,7 @@ func LaunchHTMLGenerator(p *Parameters, gospOut io.Writer, gospReq *gosp.Request
 
 	// Read metadata from GospGenerateHTML until no more remains.
 	var status string
-	switch p.HttpHeaderType {
+	switch p.HTTPHeaderType {
 	case "mod_gosp":
 		status = writeModGospMetadata(gospOut, meta)
 	case "raw":
@@ -278,7 +278,7 @@ type Parameters struct {
 	FileName         string        // Name of a file from which to read a JSON request
 	PluginName       string        // Name of a plugin file that provides a GospGenerateHTML function
 	AutoKillTime     time.Duration // Amount of idle time after which the program should automatically exit
-	HttpHeaderType   string        // Format in which to output HTTP headers
+	HTTPHeaderType   string        // Format in which to output HTTP headers
 	GospGenerateHTML func(*gosp.RequestData,
 		gosp.Writer,
 		gosp.Metadata) // Go Server Page as a function from a plugin
@@ -297,7 +297,7 @@ func ParseCommandLine(p *Parameters) {
 		"Name of a plugin compiled from a Go Server Page by gosp2go")
 	flag.DurationVar(&p.AutoKillTime, "max-idle", 5*time.Minute,
 		"Maximum idle time before automatic server exit or 0s for infinite")
-	flag.StringVar(&p.HttpHeaderType, "http-headers", "mod_gosp",
+	flag.StringVar(&p.HTTPHeaderType, "http-headers", "mod_gosp",
 		`HTTP header format: "mod_gosp", "raw", or "none"`)
 	flag.Parse()
 
@@ -314,10 +314,10 @@ func ParseCommandLine(p *Parameters) {
 	if p.SocketName != "" && p.FileName != "" {
 		notify.Fatal("--socket and --file are mutually exclusive")
 	}
-	switch p.HttpHeaderType {
+	switch p.HTTPHeaderType {
 	case "mod_gosp", "raw", "none":
 	default:
-		notify.Fatalf("%q is not a valid argument to --http-headers", p.HttpHeaderType)
+		notify.Fatalf("%q is not a valid argument to --http-headers", p.HTTPHeaderType)
 	}
 }
 

@@ -22,7 +22,7 @@ if len(ms) >= 2 {
 	var err error
 	tally, err = strconv.Atoi(ms[1])
 	if err != nil {
-		gosp.SetHttpStatus(gospMeta, http.StatusBadRequest)
+		gosp.SetHTTPStatus(gospMeta, http.StatusBadRequest)
 		return
 	}
 }
