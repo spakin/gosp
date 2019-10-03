@@ -1,4 +1,5 @@
 bin/
+gosp-*.tar.gz
 src/module/.libs/
 src/module/comm.lo
 src/module/comm.slo

@@ -15,10 +15,12 @@ docdir = $(datarootdir)/doc/gosp
 gospdir = $(datarootdir)/gosp
 gospgodir = $(gospdir)/go
 AWK = awk
+GIT = git
+TAR = tar
+INSTALL = install
 APXS = apxs
 APXSFLAGS =
 GOFLAGS =
-INSTALL = install
 
 # GO should be defined as the absolute path of the go command.
 GO = $(shell which go)
@@ -133,6 +135,26 @@ install: install-no-module src/module/mod_gosp.la
 
 ###########################################################################
 
+# -------------------------------- #
+# Create a Go Server Pages tarball #
+# -------------------------------- #
+
+DISTFILES = $(shell $(GIT) ls-files)
+TARBASE = gosp-$(VERSION)
+
+dist: $(TARBASE).tar.gz
+
+$(TARBASE).tar.gz: $(DISTFILES)
+	$(RM) -r $(TARBASE) $(TARBASE).tar.gz
+	mkdir $(TARBASE)
+	for d in $(DISTFILES) ; do \
+	  $(INSTALL) -D -m 0644 $$d $(TARBASE)/$$d ; \
+	done
+	$(TAR) -czf $(TARBASE).tar.gz $(TARBASE)
+	$(RM) -r $(TARBASE)
+
+###########################################################################
+
 # --------------------------------------- #
 # Delete any file we know how to generate #
 # --------------------------------------- #
@@ -142,4 +164,4 @@ clean:
 	$(RM) $(addprefix src/module/,$(MODULE_GENFILES))
 
 
-.PHONY: all install-no-module install-man install-doc install clean
+.PHONY: all install-no-module install-man install-doc install dist clean
