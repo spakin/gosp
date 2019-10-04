@@ -150,7 +150,7 @@ DISTFILES = \
 	README.md \
 	LICENSE.md \
 	Makefile \
-	$(addprefix src/module/,$(MODULE_C_SOURCES))
+	$(addprefix src/module/,$(MODULE_C_SOURCES) gosp.h)
 
 dist:
 	$(RM) -r $(TARBASE) $(TARBASE).tar.gz
