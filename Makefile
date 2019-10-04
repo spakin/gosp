@@ -162,8 +162,8 @@ $(TARBASE).tar.gz: $(DISTFILES)
 
 clean:
 	$(RM) bin/gosp2go bin/gosp-server
-	rmdir bin
+	-rmdir bin
 	$(RM) $(addprefix src/module/,$(MODULE_GENFILES))
-	rmdir src/module/.libs
+	-rmdir src/module/.libs
 
 .PHONY: all install-no-module install-man install-doc install dist clean
