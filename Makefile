@@ -40,20 +40,21 @@ all: bin/gosp2go bin/gosp-server src/module/mod_gosp.la
 # --------------------------------------------------------- #
 
 MODULE_GENFILES = \
+	.libs/comm.o \
+	.libs/launch.o \
+	.libs/mod_gosp.la \
+	.libs/mod_gosp.lai \
+	.libs/mod_gosp.o \
+	.libs/mod_gosp.so \
+	.libs/utils.o \
 	comm.lo \
 	comm.slo \
 	launch.lo \
-	launch.o \
 	launch.slo \
 	mod_gosp.la \
-	mod_gosp.la \
-	mod_gosp.lai \
 	mod_gosp.lo \
-	mod_gosp.o \
 	mod_gosp.slo \
-	mod_gosp.so \
 	utils.lo \
-	utils.o \
 	utils.slo
 
 MODULE_C_SOURCES = \
@@ -161,7 +162,8 @@ $(TARBASE).tar.gz: $(DISTFILES)
 
 clean:
 	$(RM) bin/gosp2go bin/gosp-server
+	rmdir bin
 	$(RM) $(addprefix src/module/,$(MODULE_GENFILES))
-
+	rmdir src/module/.libs
 
 .PHONY: all install-no-module install-man install-doc install dist clean
