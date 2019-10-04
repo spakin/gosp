@@ -15,7 +15,6 @@ docdir = $(datarootdir)/doc/gosp
 gospdir = $(datarootdir)/gosp
 gospgodir = $(gospdir)/go
 AWK = awk
-GIT = git
 TAR = tar
 INSTALL = install
 APXS = apxs
@@ -140,14 +139,26 @@ install: install-no-module src/module/mod_gosp.la
 # Create a Go Server Pages tarball #
 # -------------------------------- #
 
-DISTFILES = $(shell $(GIT) ls-files)
 TARBASE = gosp-$(VERSION)
+DISTDIRS = \
+	docs \
+	examples \
+	src/gosp \
+	src/gosp2go \
+	src/gosp-server
+DISTFILES = \
+	README.md \
+	LICENSE.md \
+	Makefile \
+	$(addprefix src/module/,$(MODULE_C_SOURCES))
 
-dist: $(TARBASE).tar.gz
-
-$(TARBASE).tar.gz: $(DISTFILES)
+dist:
 	$(RM) -r $(TARBASE) $(TARBASE).tar.gz
 	mkdir $(TARBASE)
+	for d in $(DISTDIRS) ; do \
+	  $(INSTALL) -d -m 0755 $(TARBASE)/$$d ; \
+	  cp -ra $$d/* $(TARBASE)/$$d/ ; \
+	done
 	for d in $(DISTFILES) ; do \
 	  $(INSTALL) -D -m 0644 $$d $(TARBASE)/$$d ; \
 	done
@@ -156,14 +167,13 @@ $(TARBASE).tar.gz: $(DISTFILES)
 
 ###########################################################################
 
-# --------------------------------------- #
-# Delete any file we know how to generate #
-# --------------------------------------- #
+# ----------------------------------------- #
+# Delete any file we know how to regenerate #
+# ----------------------------------------- #
 
 clean:
-	$(RM) bin/gosp2go bin/gosp-server
-	-rmdir bin
+	$(RM) -r bin
 	$(RM) $(addprefix src/module/,$(MODULE_GENFILES))
-	-rmdir src/module/.libs
+	$(RM) -r src/module/.libs
 
 .PHONY: all install-no-module install-man install-doc install dist clean
