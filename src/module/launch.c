@@ -19,6 +19,7 @@
 
 extern char **environ;   /* Process environment passed to the Apache module */
 
+/* Wait for a process to complete. */
 static gosp_status_t await_process_completion(request_rec *r, apr_proc_t *proc, const char *proc_name)
 {
   int exit_code;              /* gosp2go return code */
@@ -37,6 +38,17 @@ static gosp_status_t await_process_completion(request_rec *r, apr_proc_t *proc, 
                          "Nonzero exit code (%d) from %s",
                          exit_code, proc_name);
   return GOSP_STATUS_OK;
+}
+
+/* Log a NULL-terminated command line to the log file. */
+static void log_command_line(request_rec *r, const char **args)
+{
+  char *msg = "Command line:";
+  const char **a;
+
+  for (a = args; *a != NULL; a++)
+    msg = apr_pstrcat(r->pool, msg, " ", *a, NULL);
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r, "%s", msg);
 }
 
 /* Use gosp2go to compile a Go Server Page into a plugin. */
@@ -108,6 +120,7 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *plugin_name)
   args[9] = cconfig->max_top == NULL ? "1000000000" : cconfig->max_top;
   args[10] = r->filename;
   args[11] = NULL;
+  log_command_line(r, args);
   status = apr_proc_create(&proc, args[0], args, envp, attr, r->pool);
   if (status != APR_SUCCESS)
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
@@ -172,6 +185,7 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *plugin_name, const
     args[i++] = cconfig->max_idle;
   }
   args[i++] = NULL;
+  log_command_line(r, args);
   status = apr_proc_create(&proc, args[0], args, envp, attr, r->pool);
   if (status != APR_SUCCESS) {
     REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
