@@ -30,12 +30,7 @@ Compiling
 
 Go Server Pages builds with a plain-vanilla `Makefile`.  The first stanza of the [Go Server Pages `Makefile`](https://github.com/spakin/gosp/blob/master/Makefile) lists various installation directories, commands, and flags that can be overridden during the build process.
 
-Decide where you want to install Go Server Pages.  The default prefix is `/usr/local`.  By default, the build system installs helper programs in a `bin` subdirectory of the prefix directory and Go packages in a `share/gosp/go` subdirectory, to wit
-
-	/usr/local/share/gosp/go/src/gosp/gosp.go
-	/usr/local/share/gosp/go/pkg/linux_amd64/gosp.a
-	/usr/local/bin/gosp-server
-	/usr/local/bin/gosp2go
+Decide where you want to install Go Server Pages.  The default prefix is `/usr/local`.  By default, the build system installs helper programs in a `bin` subdirectory of the prefix directory, Go packages in a `lib/gosp/go` subdirectory, manual pages in a `share/man` subdirectory, and other documentation in a `share/doc/gosp` subdirectory.  For example, the source code for the `gosp` package will be installed by default as `/usr/local/lib/gosp/go/src/gosp/gosp.go`.
 
 If those directories are acceptable, simply run
 ```bash
