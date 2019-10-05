@@ -13,12 +13,12 @@ Prerequisites
 
 To date, Go Server Pages has been tested only on Linux, specifically [Ubuntu](https://ubuntu.com/).  I'd think it *should* work on macOS, but I'd guess it probably won't work on Windows.  Please [let me know](mailto:scott+gosp@pakin.org) your experience with installing Go Server Pages on a platform other than Linux.  Here's what you'll need:
 
-1. **Apache**.  Go Server Pages is written as an Apache module so we assume you already have the [Apache Web server](https://httpd.apache.org/) installed and configured.  Compiling the Go Server Pages module requires [`apxs`, the APache eXtenSion tool](https://httpd.apache.org/docs/current/programs/apxs.html).  In Ubuntu, this can be installed with
+1. **Apache**.  Go Server Pages is written as an Apache module so we assume you already have the [Apache Web server](https://httpd.apache.org/) (version 2.4+) installed and configured.  Compiling the Go Server Pages module requires [`apxs`, the APache eXtenSion tool](https://httpd.apache.org/docs/current/programs/apxs.html).  In Ubuntu, this can be installed with
 ```bash
 sudo apt install apache2-dev
 ```
 
-2. **Go**.  [Download a Go compiler](https://golang.org/dl/) to compile the various components of Go Server Pages that are written in [Go](https://golang.org/).  We assume the availability of a [`go` command](https://golang.org/cmd/go/) for invoking the compiler and associated tools.
+2. **Go**.  [Download a Go compiler](https://golang.org/dl/) (version 1.13+) to compile the various components of Go Server Pages that are written in [Go](https://golang.org/).  We assume the availability of a [`go` command](https://golang.org/cmd/go/) for invoking the compiler and associated tools.
 
 3. A C compiler (needed to build the Apache module) and [GNU Make](https://www.gnu.org/software/make/).  In Ubuntu, that means
 ```bash
