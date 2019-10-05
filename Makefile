@@ -140,27 +140,22 @@ install: install-no-module src/module/mod_gosp.la
 # -------------------------------- #
 
 TARBASE = gosp-$(VERSION)
-DISTDIRS = \
-	docs \
-	examples \
-	src/gosp \
-	src/gosp2go \
-	src/gosp-server
 DISTFILES = \
 	README.md \
 	LICENSE.md \
 	Makefile \
+	docs \
+	examples \
+	src/gosp \
+	src/gosp2go \
+	src/gosp-server \
 	$(addprefix src/module/,$(MODULE_C_SOURCES) gosp.h)
 
 dist:
 	$(RM) -r $(TARBASE) $(TARBASE).tar.gz
-	mkdir $(TARBASE)
-	for d in $(DISTDIRS) ; do \
-	  $(INSTALL) -d -m 0755 $(TARBASE)/$$d ; \
-	  cp -ra $$d/* $(TARBASE)/$$d/ ; \
-	done
-	for d in $(DISTFILES) ; do \
-	  $(INSTALL) -D -m 0644 $$d $(TARBASE)/$$d ; \
+	for f in $(DISTFILES) ; do \
+	  $(INSTALL) -d -m 0755 $$(dirname $(TARBASE)/$$f) ; \
+	  cp -ra $$f $(TARBASE)/$$f ; \
 	done
 	$(TAR) -czf $(TARBASE).tar.gz $(TARBASE)
 	$(RM) -r $(TARBASE)
