@@ -125,7 +125,7 @@ install-man: src/gosp2go/gosp2go.1 src/gosp-server/gosp-server.1
 
 install-doc:
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(docdir)/examples
-	for fname in examples/* ; do $(INSTALL) -m 0644 $$fname $(DESTDIR)$(docdir)/examples ; done
+	cp -ra examples/* $(DESTDIR)$(docdir)/examples
 	$(INSTALL) -m 0644 README.md LICENSE.md $(DESTDIR)$(docdir)
 
 # WARNING: "make install" does not honor prefix or DESTDIR.  It always
