@@ -182,7 +182,6 @@ static void *gosp_merge_context_config(apr_pool_t *p, void *base, void *delta) {
   merged = (gosp_context_config_t *) gosp_allocate_context_config(p, merged_name);
   MERGE_CHILD_OVER_PARENT(go_cmd);
   MERGE_CHILD_OVER_PARENT(gosp_server);
-  MERGE_CHILD_OVER_PARENT(go_path);
   MERGE_CHILD_OVER_PARENT(max_idle);
   MERGE_CHILD_OVER_PARENT(max_top);
 
@@ -193,8 +192,21 @@ static void *gosp_merge_context_config(apr_pool_t *p, void *base, void *delta) {
   else {
     /* Append the child's import list to its parent's. */
     const char *p_imps = parent->allowed_imports == NULL ? "ALL" : parent->allowed_imports;
-    merged->allowed_imports = apr_pstrcat(p, p_imps, ",",
-                                          child->allowed_imports + 1, NULL);
+    merged->allowed_imports = apr_pstrcat(p, p_imps, ",", child->allowed_imports + 1, NULL);
+  }
+
+  /* Merge go_path differently if it begins with a "+" or not. */
+  if (child->go_path == NULL || child->go_path[0] != '+' || parent->go_path == NULL)
+    /* Retain only the child's Go path. */
+    MERGE_CHILD_OVER_PARENT(go_path);
+  else {
+    /* Prepend the child's Go path to its parent's. */
+#ifdef WIN32
+    const char *path_sep = ";";
+#else
+    const char *path_sep = ":";
+#endif
+    merged->go_path = apr_pstrcat(p, child->go_path + 1, path_sep, parent->go_path, NULL);
   }
   return merged;
 }

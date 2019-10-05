@@ -66,6 +66,16 @@ most pages can import only the `time`, `fmt`, `html`, and `strings` packages.  P
 
 **`GospGoPath`** sets the `GOPATH` variable as specified during page compilation.  It can be useful for pointing to a library of common routines (e.g., for typesetting page headers or footers) and for exposing to Go code individual "safe" functions taken from "dangerous" packages.
 
+As a special case, if the argument to `GospGoPath` begins with a `+`, the path is prepended to its parent's path.  For example, given the configuration
+```ApacheConf
+GospGoPath /var/www/go:/usr/local/lib/gosp/go
+
+<Directory "/var/www/special/">
+    GospGoPath +/var/www/special/go
+</Directory>
+```
+most pages will compile with `GOPATH=/var/www/go:/usr/local/lib/gosp/go`, but pages located in the filesystem under `/var/www/special/` will compile with `GOPATH=/var/www/special/go:/var/www/go:/usr/local/lib/gosp/go`.  (Without the `+`, pages beneath `/var/www/special` would have *only* `/var/www/special/go` in their `GOPATH`.)
+
 **`GospMaxIdleTime`** provides an automatic cleanup mechanism.  To avoid leaving one Go Server Page process running indefinitely per Web page, these processes can exit automatically after `GospMaxIdleTime` of no usage.  The only downside is the (reasonably low) cost of a process launch the next time the page is accessed after a long period of no accesses.  Times are specified as a number followed by a suffix of `s` for seconds, `m` for minutes, or `h` for hours.  `GospMaxIdleTime` should not be set too small or a process could self-terminate before sending back the page's contents.  A few minutes (say, `5m`) is a good value for `GospMaxIdleTime`.
 
 **`GospServer`** points to the `gosp-server` executable.  It should automatically be set correctly.  However, you might consider replacing it with a script that imposes memory or CPU usage limits
