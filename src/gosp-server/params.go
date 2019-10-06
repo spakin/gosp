@@ -27,6 +27,7 @@ type Parameters struct {
 	AutoKillTime     time.Duration  // Amount of idle time after which the program should automatically exit
 	WriteMetadata    MetadataWriter // Function that writes HTTP metadata in some particular format
 	GospGeneratePage PageGenerator  // Go Server Page as a function from a plugin
+	DryRun           bool           // If true, exit the program after parsing the command line and loading the plugin
 }
 
 // ParseCommandLine parses the command line to fill in some of the fields of a
@@ -42,6 +43,8 @@ func ParseCommandLine(p *Parameters) {
 		"Name of a plugin compiled from a Go Server Page by gosp2go")
 	flag.DurationVar(&p.AutoKillTime, "max-idle", 5*time.Minute,
 		"Maximum idle time before automatic server exit or 0s for infinite")
+	flag.BoolVar(&p.DryRun, "dry-run", false,
+		"If specified, exit before serving any files")
 	hType := flag.String("http-headers", "mod_gosp",
 		`HTTP header format: "mod_gosp", "raw", or "none"`)
 	flag.Parse()

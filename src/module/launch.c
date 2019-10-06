@@ -51,13 +51,52 @@ static void log_command_line(request_rec *r, const char **args)
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_DEBUG, APR_SUCCESS, r, "%s", msg);
 }
 
+/* Launch a process and wait for it to complete. */
+static gosp_status_t launch_and_wait(request_rec *r, const char **args, int detach)
+{
+  apr_proc_t proc;                  /* Launched process */
+  const char **envp;                /* Process environment */
+  apr_procattr_t *attr;             /* Process attributes */
+  gosp_context_config_t *cconfig;   /* Context configuration */
+  apr_status_t status;              /* Status of an APR call */
+
+  /* Prepare the process attributes. */
+  LAUNCH_CALL(apr_procattr_create(&attr, r->pool),
+              "Creating %s process attributes failed", args[0]);
+  LAUNCH_CALL(apr_procattr_error_check_set(attr, 1),
+              "Specifying that there should be extra error checking for a %s process", args[0]);
+  LAUNCH_CALL(apr_procattr_cmdtype_set(attr, APR_PROGRAM),
+              "Specifying that a %s process should not inherit its parent's environment", args[0]);
+  if (detach)
+    LAUNCH_CALL(apr_procattr_detach_set(attr, 1),
+                "Specifying that a %s process should detach from its parent", args[0]);
+
+  /* Establish an environment for the child. */
+  cconfig = (gosp_context_config_t *) ap_get_module_config(r->per_dir_config, &gosp_module);
+  if (cconfig->go_path == NULL)
+    envp = append_string(r->pool, (const char **) environ,
+                         apr_pstrcat(r->pool, "GOPATH=", DEFAULT_GO_PATH, NULL));
+  else
+    envp = append_string(r->pool, (const char **) environ,
+                         apr_pstrcat(r->pool, "GOPATH=", cconfig->go_path, NULL));
+
+  /* Spawn the process and wait for it to complete.  It appears we need to do
+   * this even for detached process to avoid leaving defunct processes lying
+   * around. */
+  log_command_line(r, args);
+  status = apr_proc_create(&proc, args[0], args, envp, attr, r->pool);
+  if (status != APR_SUCCESS)
+    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
+                         "Failed to run %s", args[0]);
+  if (await_process_completion(r, &proc, args[0]) != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
+  return GOSP_STATUS_OK;
+}
+
 /* Use gosp2go to compile a Go Server Page into a plugin. */
 gosp_status_t compile_gosp_server(request_rec *r, const char *plugin_name)
 {
-  apr_procattr_t *attr;             /* Process attributes */
-  apr_proc_t proc;                  /* Launched process */
   const char **args;                /* Process command-line arguments */
-  const char **envp;                /* Process environment */
   char *go_cache;                   /* Directory for the Go build cache */
   gosp_server_config_t *sconfig;    /* Server configuration */
   gosp_context_config_t *cconfig;   /* Context configuration */
@@ -83,30 +122,14 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *plugin_name)
   LAUNCH_CALL(apr_env_set("GOCACHE", go_cache, r->pool),
               "Setting GOCACHE=%s failed", go_cache);
 
-  /* Prepare the process attributes. */
-  LAUNCH_CALL(apr_procattr_create(&attr, r->pool),
-              "Creating " GOSP2GO " process attributes failed");
-  LAUNCH_CALL(apr_procattr_error_check_set(attr, 1),
-              "Specifying that there should be extra error checking for " GOSP2GO);
-  LAUNCH_CALL(apr_procattr_cmdtype_set(attr, APR_PROGRAM),
-              "Specifying that " GOSP2GO " should not inherit its parent's environment");
-
-  /* Establish an environment for the child. */
-  cconfig = (gosp_context_config_t *) ap_get_module_config(r->per_dir_config, &gosp_module);
-  if (cconfig->go_path == NULL)
-    envp = append_string(r->pool, (const char **) environ,
-                         apr_pstrcat(r->pool, "GOPATH=", DEFAULT_GO_PATH, NULL));
-  else
-    envp = append_string(r->pool, (const char **) environ,
-                         apr_pstrcat(r->pool, "GOPATH=", cconfig->go_path, NULL));
-
   /* Acquire a list of allowed package imports.  If not specified, don't allow
    * any package to be imported (except gosp, which is always allowed. */
+  cconfig = (gosp_context_config_t *) ap_get_module_config(r->per_dir_config, &gosp_module);
   imports = cconfig->allowed_imports == NULL ? "NONE" : cconfig->allowed_imports;
   if (imports[0] == '+')  /* "+" is not meaningful at this point in the execution. */
     imports++;
 
-  /* Spawn the gosp2go process and wait for it to complete. */
+  /* Construct the argument list. */
   args = (const char **) apr_palloc(r->pool, 12*sizeof(char *));
   args[0] = GOSP2GO;
   args[1] = "--build";
@@ -120,60 +143,32 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *plugin_name)
   args[9] = cconfig->max_top == NULL ? "1000000000" : cconfig->max_top;
   args[10] = r->filename;
   args[11] = NULL;
-  log_command_line(r, args);
-  status = apr_proc_create(&proc, args[0], args, envp, attr, r->pool);
-  if (status != APR_SUCCESS)
-    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
-                         "Failed to run " GOSP2GO);
-  if (await_process_completion(r, &proc, GOSP2GO) != GOSP_STATUS_OK)
-    return GOSP_STATUS_FAIL;
-  return GOSP_STATUS_OK;
+
+  /* Spawn gosp2go and wait for it to complete. */
+  return launch_and_wait(r, args, FALSE);
 }
 
 /* Launch a Go Server Page process to handle the current page.  Return
- * GOSP_STATUS_OK on success, GOSP_STATUS_NEED_ACTION if the executable wasn't
+ * GOSP_STATUS_OK on success, GOSP_STATUS_NEED_ACTION if the plugin wasn't
  * found (and presumably needs to be built), and GOSP_STATUS_FAIL if an
  * unexpected error occurred (and the request needs to be aborted). */
-gosp_status_t launch_gosp_process(request_rec *r, const char *plugin_name, const char *sock_name)
+gosp_status_t launch_gosp_server(request_rec *r, const char *plugin_name, const char *sock_name)
 {
-  apr_proc_t proc;                  /* Launched process */
-  apr_procattr_t *attr;             /* Process attributes */
-  const char **envp;                /* Process environment */
   const char **args;                /* Process command-line arguments */
   gosp_context_config_t *cconfig;   /* Context configuration */
-  apr_status_t status;              /* Status of an APR call */
   int i;
 
   /* Announce what we're about to do. */
   cconfig = (gosp_context_config_t *) ap_get_module_config(r->per_dir_config, &gosp_module);
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_INFO, APR_SUCCESS, r,
-                "Launching %s to server %s", cconfig->gosp_server, plugin_name);
+                "Launching %s to serve %s", cconfig->gosp_server, plugin_name);
 
   /* Ensure we have a place to write the socket. */
   if (create_directories_for(r->server, r->pool, sock_name, 0) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
 
-  /* Prepare the process attributes. */
-  LAUNCH_CALL(apr_procattr_create(&attr, r->pool),
-              "Creating Gosp process attributes failed");
-  LAUNCH_CALL(apr_procattr_detach_set(attr, 1),
-              "Specifying that a Gosp process should detach from its parent");
-  LAUNCH_CALL(apr_procattr_error_check_set(attr, 1),
-              "Specifying that there should be extra error checking for a Gosp process");
-  LAUNCH_CALL(apr_procattr_cmdtype_set(attr, APR_PROGRAM),
-              "Specifying that a Gosp process should not inherit its parent's environment");
-
-  /* Establish an environment for the child. */
-  if (cconfig->go_path == NULL)
-    envp = (const char **) environ;
-  else
-    envp = append_string(r->pool, (const char **) environ,
-                         apr_pstrcat(r->pool, "GOPATH=", cconfig->go_path, NULL));
-
-  /* Spawn the Gosp process.  Even though the "detatch" attribute is set, it
-   * appears that we need to await its completion to avoid leaving defunct
-   * processes lying around. */
-  args = (const char **) apr_palloc(r->pool, 8*sizeof(char *));
+  /* Construct the argument list. */
+  args = (const char **) apr_palloc(r->pool, 9*sizeof(char *));
   i = 0;
   args[i++] = cconfig->gosp_server;
   args[i++] = "-plugin";
@@ -184,17 +179,20 @@ gosp_status_t launch_gosp_process(request_rec *r, const char *plugin_name, const
     args[i++] = "-max-idle";
     args[i++] = cconfig->max_idle;
   }
+  args[i++] = "-dry-run";  /* This is removed below. */
   args[i++] = NULL;
-  log_command_line(r, args);
-  status = apr_proc_create(&proc, args[0], args, envp, attr, r->pool);
-  if (status != APR_SUCCESS) {
-    REPORT_REQUEST_ERROR(GOSP_STATUS_FAIL, APLOG_ERR, status,
-                         "Failed to run %s with plugin %s",
-                         cconfig->gosp_server, plugin_name);
-  }
-  if (await_process_completion(r, &proc, plugin_name) != GOSP_STATUS_OK)
+
+  /* Spawn gosp-server in the foreground with -dry-run.  This is so if it
+   * fails we'll log a useful error message. */
+  if (launch_and_wait(r, args, FALSE) != GOSP_STATUS_OK)
     return GOSP_STATUS_FAIL;
-  return GOSP_STATUS_OK;
+
+  /* Spawn gosp-server in the background without -dry-run.  If it fails, we'll
+   * have no good of knowing, but we hope to have caught all common errors with
+   * the foreground launch. */
+  i -= 2;
+  args[i++] = NULL;
+  return launch_and_wait(r, args, TRUE);
 }
 
 /* Kill a running Gosp server.  Return GOSP_STATUS_OK if the Gosp server is no

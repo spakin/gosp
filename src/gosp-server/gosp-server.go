@@ -44,6 +44,9 @@ func main() {
 	var p Parameters
 	ParseCommandLine(&p)
 	LoadPlugin(&p)
+	if p.DryRun {
+		os.Exit(0)
+	}
 
 	// Process requests from a file or a socket, as directed by the user.
 	os.Stdin = nil

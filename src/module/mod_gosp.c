@@ -274,9 +274,8 @@ static int rebuild_release_retry(request_rec *r, const char *sock_name,
   apr_time_t begin_time;           /* Time at which we began waiting for the server to launch */
   gosp_status_t gstatus;           /* Status of an internal Gosp call */
 
-  /* The Gosp file is newer than the Gosp server.  We therefore have a lot of
-   * work to do.  To ensure that only process does the work we first acquire
-   * the global lock. */
+  /* We have a lot of work to do.  To ensure that only one process does the
+   * work we first acquire the global lock. */
   if (acquire_global_lock(r->server) != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
 
@@ -308,7 +307,7 @@ static int rebuild_release_retry(request_rec *r, const char *sock_name,
   }
 
   /* At this point, the Gosp plugin exists.  Launch it with gosp-server. */
-  gstatus = launch_gosp_process(r, plugin_name, sock_name);
+  gstatus = launch_gosp_server(r, plugin_name, sock_name);
   if (gstatus != GOSP_STATUS_OK) {
     (void) release_global_lock(r->server);
     return HTTP_INTERNAL_SERVER_ERROR;
@@ -382,7 +381,7 @@ static int gosp_handler(request_rec *r)
     REPORT_REQUEST_ERROR(HTTP_INTERNAL_SERVER_ERROR, APLOG_ERR, APR_SUCCESS,
                          "Failed to construct the name of the Gosp plugin");
 
-  /* If the Gosp server is newer than the Gosp file (the common case) we simply
+  /* If the Gosp plugin is newer than the Gosp file (the common case) we simply
    * handle the request and return. */
   if (is_newer_than(r, r->filename, plugin_name) == 0) {
     gstatus = simple_request_response(r, sock_name);

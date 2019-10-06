@@ -131,7 +131,7 @@ extern gosp_status_t compile_gosp_server(request_rec *r, const char *plugin_name
 extern gosp_status_t connect_socket(request_rec *r, const char *sock_name, apr_socket_t **sock);
 extern gosp_status_t create_directories_for(server_rec *s, apr_pool_t *pool, const char *fname, int is_dir);
 extern gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char *plugin_name);
-extern gosp_status_t launch_gosp_process(request_rec *r, const char *plugin_name, const char *sock_name);
+extern gosp_status_t launch_gosp_server(request_rec *r, const char *plugin_name, const char *sock_name);
 extern gosp_status_t receive_response(request_rec *r, apr_socket_t *sock, char **response, size_t *resp_len);
 extern gosp_status_t release_global_lock(server_rec *s);
 extern gosp_status_t send_request(request_rec *r, apr_socket_t *sock);

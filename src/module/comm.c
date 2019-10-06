@@ -326,7 +326,7 @@ gosp_status_t send_termination_request(request_rec *r, const char *sock_name)
     status = apr_proc_kill(&proc, 0);
     if (APR_TO_OS_ERROR(status) == ESRCH)
       return GOSP_STATUS_OK;
-    apr_sleep(1000);
+    apr_sleep(100000);
   }
 
   /* The process did not exist by itself.  Kill it. */
