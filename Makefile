@@ -87,6 +87,9 @@ GOSP2GO_DEPS = \
 	gosp/gosp.go
 GOSP_SERVER_DEPS = \
 	gosp-server/gosp-server.go \
+	gosp-server/params.go \
+	gosp-server/write-meta.go \
+	gosp-server/serve.go \
 	gosp/gosp.go
 VERSION_FLAG = -ldflags="-X main.Version=$(VERSION)"
 
@@ -114,7 +117,7 @@ install-no-module: bin/gosp2go bin/gosp-server install-man install-doc
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(gospgodir)/src/gosp
 	$(INSTALL) -m 0644 src/gosp/gosp.go $(DESTDIR)$(gospgodir)/src/gosp
 	env GOPATH="$(DESTDIR)$(gospgodir):$(GOPATH)" $(GO) install $(GOFLAGS) gosp
-	env GOPATH="$(DESTDIR)$(gospgodir):$(GOPATH)" $(GO) build $(GOFLAGS) -o "$(DESTDIR)$(bindir)/gosp-server" src/gosp-server/gosp-server.go
+	env GOPATH="$(DESTDIR)$(gospgodir):$(EXT_GOPATH)" $(GO) build $(GOFLAGS) -o "$(DESTDIR)$(bindir)/gosp-server" gosp-server
 
 # Install the man pages for gosp2go and gosp-server.
 install-man: src/gosp2go/gosp2go.1 src/gosp-server/gosp-server.1
