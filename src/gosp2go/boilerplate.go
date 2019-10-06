@@ -12,8 +12,8 @@ import "gosp"
 `
 
 // body begins the function that was converted from a Go Server Page to Go.
-var bodyBegin = `// GospGenerateHTML represents the user's Go Server page, converted to Go.
-func GospGenerateHTML(gospReq *gosp.RequestData, gospOut gosp.Writer, gospMeta gosp.Metadata) {
+var bodyBegin = `// GospGeneratePage represents the user's Go Server page, converted to Go.
+func GospGeneratePage(gospReq *gosp.RequestData, gospOut gosp.Writer, gospMeta gosp.Metadata) {
 	// On exit, close the metadata channel.  If the user's code panicked,
 	// change the return code to "internal server error".
 	defer func() {

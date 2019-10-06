@@ -10,7 +10,7 @@ import (
 	"unicode"
 )
 
-// writeRawMetadata is a helper routine for LaunchHTMLGenerator that writes
+// writeRawMetadata is a helper routine for LaunchPageGenerator that writes
 // HTTP metadata in raw HTTP format.  It returns an HTTP status as a string.
 func writeRawMetadata(gospOut io.Writer, meta chan gosp.KeyValue) string {
 	// Define default header values.
@@ -18,7 +18,7 @@ func writeRawMetadata(gospOut io.Writer, meta chan gosp.KeyValue) string {
 	headers := make([]string, 0, 3)
 	status := okStr
 
-	// Read metadata from GospGenerateHTML until no more remains.
+	// Read metadata from GospGeneratePage until no more remains.
 	for kv := range meta {
 		switch kv.Key {
 		case "mime-type":
@@ -39,7 +39,7 @@ func writeRawMetadata(gospOut io.Writer, meta chan gosp.KeyValue) string {
 	return status
 }
 
-// writeNoMetadata is a helper routine for LaunchHTMLGenerator that discards
+// writeNoMetadata is a helper routine for LaunchPageGenerator that discards
 // all metadata.  It might be used when postprocessing the output of CGI
 // scripts, which already output an HTTP header.  writeNoMetadata returns an
 // HTTP status as a string.
@@ -65,11 +65,11 @@ func sanitizeString(s string) string {
 	}, s)
 }
 
-// writeModGospMetadata is a helper routine for LaunchHTMLGenerator that writes
+// writeModGospMetadata is a helper routine for LaunchPageGenerator that writes
 // HTTP metadata in the format expected by the Gosp Apache module.  It returns
 // an HTTP status as a string.
 func writeModGospMetadata(gospOut io.Writer, meta chan gosp.KeyValue) string {
-	// Read metadata from GospGenerateHTML until no more remains.
+	// Read metadata from GospGeneratePage until no more remains.
 	status := okStr
 	for kv := range meta {
 		switch kv.Key {

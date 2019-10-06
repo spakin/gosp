@@ -18,23 +18,23 @@ var Version = "?.?.?"
 // notify is used to output error messages.
 var notify *log.Logger
 
-// LoadPlugin opens the plugin file and stores its GospGenerateHTML function as
+// LoadPlugin opens the plugin file and stores its GospGeneratePage function as
 // a program parameter.  It aborts the program on error.
 func LoadPlugin(p *Parameters) {
 	pl, err := plugin.Open(p.PluginName)
 	if err != nil {
 		notify.Fatal(err)
 	}
-	gghSym, err := pl.Lookup("GospGenerateHTML")
+	gghSym, err := pl.Lookup("GospGeneratePage")
 	if err != nil {
 		notify.Fatal(err)
 	}
 	ggh, ok := gghSym.(func(*gosp.RequestData, gosp.Writer, gosp.Metadata))
 	if !ok {
-		notify.Fatalf("the GospGenerateHTML function in %s has type %T instead of type %T",
-			p.PluginName, ggh, p.GospGenerateHTML)
+		notify.Fatalf("the GospGeneratePage function in %s has type %T instead of type %T",
+			p.PluginName, ggh, p.GospGeneratePage)
 	}
-	p.GospGenerateHTML = PageGenerator(ggh)
+	p.GospGeneratePage = PageGenerator(ggh)
 }
 
 func main() {
@@ -53,7 +53,7 @@ func main() {
 	case p.SocketName != "":
 		err = StartServer(&p)
 	default:
-		LaunchHTMLGenerator(&p, os.Stdout, nil)
+		LaunchPageGenerator(&p, os.Stdout, nil)
 	}
 	if err != nil {
 		notify.Fatal(err)

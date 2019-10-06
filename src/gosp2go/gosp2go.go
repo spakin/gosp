@@ -71,7 +71,7 @@ func GospToGo(p *Parameters, s string) string {
 		// Find the indexes of the first Gosp directive.
 		idxs := re.FindSubmatchIndex(b)
 		if idxs == nil {
-			// No more directives.  Process any HTML text.
+			// No more directives.  Process any page text.
 			if len(b) > 0 {
 				body = append(body, fmt.Sprintf(`gosp.Fprintf(gospOut, "%%s", %q)`+"\n", b))
 			}
@@ -82,7 +82,7 @@ func GospToGo(p *Parameters, s string) string {
 		code := string(b[i2:i3])   // Inner Go code
 		tSpace := string(b[i4:i5]) // Trailing white space
 
-		// Extract any HTML text preceding the Gosp code.
+		// Extract any page text preceding the Gosp code.
 		if i0 > 5 {
 			body = append(body, fmt.Sprintf(`gosp.Fprintf(gospOut, "%%s", %q)`+"\n", b[:i0-5]))
 		}
@@ -203,12 +203,13 @@ func main() {
 		notify.Fatal(err)
 	}
 
-	// If Run is true, compile and run the Go program, outputting HTML.
-	// Otherwise, if Build is true, compile the Go program, outputting an
-	// executable file.  Otherwise, output the Go source code itself.
+	// If Run is true, compile and run the Go program, outputting the page
+	// data (typically HTML).  Otherwise, if Build is true, compile the Go
+	// program, outputting an executable file.  Otherwise, output the Go
+	// source code itself.
 	switch {
 	case p.Run:
-		// Run the Go program and output HTML.
+		// Run the Go program and output a Web page.
 		Run(p, goStr, outFile)
 	case p.Build:
 		// Compile the Go program and output an executable file.

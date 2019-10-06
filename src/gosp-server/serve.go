@@ -26,14 +26,14 @@ type ServiceRequest struct {
 // okStr represents an HTTP success code as a string.
 var okStr = fmt.Sprint(http.StatusOK)
 
-// LaunchHTMLGenerator starts GospGenerateHTML in a separate goroutine and
+// LaunchPageGenerator starts GospGeneratePage in a separate goroutine and
 // waits for it to finish.
-func LaunchHTMLGenerator(p *Parameters, gospOut io.Writer, gospReq *gosp.RequestData) {
-	// Spawn GospGenerateHTML, giving it a buffer in which to write HTML
-	// and a channel in which to send metadata.
+func LaunchPageGenerator(p *Parameters, gospOut io.Writer, gospReq *gosp.RequestData) {
+	// Spawn GospGeneratePage, giving it a buffer in which to write the
+	// page data and a channel in which to send metadata.
 	html := bytes.NewBuffer(nil)
 	meta := make(chan gosp.KeyValue, 5)
-	go p.GospGenerateHTML(gospReq, html, meta)
+	go p.GospGeneratePage(gospReq, html, meta)
 
 	// Tell the server what we think its JSON request is.
 	meta <- gosp.KeyValue{
@@ -41,10 +41,10 @@ func LaunchHTMLGenerator(p *Parameters, gospOut io.Writer, gospReq *gosp.Request
 		Value: sanitizeString(fmt.Sprintf("Handling %#v", gospReq)),
 	}
 
-	// Read metadata from GospGenerateHTML until no more remains.
+	// Read metadata from GospGeneratePage until no more remains.
 	status := p.WriteMetadata(gospOut, meta)
 
-	// Write the generated HTML, but only on success.
+	// Write the generated page, but only on success.
 	if status == okStr {
 		fmt.Fprint(gospOut, html)
 	}
@@ -63,7 +63,7 @@ func chdirOrAbort(fn string) {
 }
 
 // GospRequestFromFile reads a gosp.Request from a named JSON file and passes
-// this to LaunchHTMLGenerator.
+// this to LaunchPageGenerator.
 func GospRequestFromFile(p *Parameters) error {
 	f, err := os.Open(p.FileName)
 	if err != nil {
@@ -77,7 +77,7 @@ func GospRequestFromFile(p *Parameters) error {
 		return err
 	}
 	chdirOrAbort(sr.UserData.Filename)
-	LaunchHTMLGenerator(p, os.Stdout, &sr.UserData)
+	LaunchPageGenerator(p, os.Stdout, &sr.UserData)
 	return nil
 }
 
@@ -94,7 +94,7 @@ func ResetKillClock(t *time.Timer, d time.Duration) {
 
 // StartServer runs the program in server mode.  It accepts a connection on
 // a Unix-domain socket, reads a gosp.Request in JSON format, and spawns
-// LaunchHTMLGenerator to respond to the request.  The server terminates
+// LaunchPageGenerator to respond to the request.  The server terminates
 // when given a request with ExitNow set to true.
 func StartServer(p *Parameters) error {
 	// Server code should write only to the io.Writer it's given and not
@@ -163,7 +163,7 @@ func StartServer(p *Parameters) error {
 
 			// Pass the request to the user-defined Gosp code.
 			chdirOrAbort(sr.UserData.Filename)
-			LaunchHTMLGenerator(p, conn, &sr.UserData)
+			LaunchPageGenerator(p, conn, &sr.UserData)
 		}(conn)
 	}
 

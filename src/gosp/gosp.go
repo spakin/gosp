@@ -84,7 +84,7 @@ func LogDebugMessage(ch Metadata, m string) {
 
 // ReportPanic alerts the Web server that the Gosp server encountered an
 // unexpected error.  It should be called from a deferred function in
-// GospGenerateHTML.
+// GospGeneratePage.
 func ReportPanic(r interface{}, ch Metadata) {
 	ch <- KeyValue{Key: "error-message", Value: fmt.Sprint(r)}
 	ch <- KeyValue{Key: "error-message", Value: "+------------------------------------------------------------"}

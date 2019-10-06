@@ -23,10 +23,10 @@ type MetadataWriter func(gospOut io.Writer, meta chan gosp.KeyValue) string
 type Parameters struct {
 	SocketName       string         // Unix socket (filename) on which to listen for JSON requests
 	FileName         string         // Name of a file from which to read a JSON request
-	PluginName       string         // Name of a plugin file that provides a GospGenerateHTML function
+	PluginName       string         // Name of a plugin file that provides a GospGeneratePage function
 	AutoKillTime     time.Duration  // Amount of idle time after which the program should automatically exit
 	WriteMetadata    MetadataWriter // Function that writes HTTP metadata in some particular format
-	GospGenerateHTML PageGenerator  // Go Server Page as a function from a plugin
+	GospGeneratePage PageGenerator  // Go Server Page as a function from a plugin
 }
 
 // ParseCommandLine parses the command line to fill in some of the fields of a

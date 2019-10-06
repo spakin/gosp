@@ -23,7 +23,7 @@ gosp.Fprintf(gospOut, "%v%s", strings.Repeat(" na", 8), "")
 gosp.Fprintf(gospOut, "%s", ", Batman!</q>\n</p>\n")
 ```
 
-This code fragment is written as part of a `GospGenerateHTML` function of type
+This code fragment is written as part of a `GospGeneratePage` function of type
 ```go
 func(gospReq *gosp.RequestData, gospOut gosp.Writer, gospMeta gosp.Metadata)
 ```

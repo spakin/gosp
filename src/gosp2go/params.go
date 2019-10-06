@@ -18,8 +18,8 @@ var Version = "?.?.?"
 
 // Parameters encapsulates the key program parameters.
 type Parameters struct {
-	InFileName     string    // Name of a file from which to read Go Server Page HTML
-	OutFileName    string    // Name of a file to which to write the Go code or plugin or HTML output
+	InFileName     string    // Name of a file from which to read Go Server Page proper
+	OutFileName    string    // Name of a file to which to write the Go code or plugin or Web page
 	Build          bool      // true=compile the generated Go code
 	Run            bool      // true=execute the generated Go code
 	MaxTop         uint      // Maximum number of go:top blocks allowed per page
