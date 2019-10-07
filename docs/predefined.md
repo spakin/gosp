@@ -8,12 +8,12 @@ Predefined packages and variables
 
 A Go Server Page has available to it one package and a few variables that do not need to be declared explicitly.  These are described below.
 
-All predefined and internal values have names beginning with either `Gosp` or `gosp`.  To avoid introducing name conflicts it is recommended that you not declare your own values with either of those prefixes.
+To avoid introducing name conflicts with future versions of Go Server Pages it is recommended that you not declare your own variables, functions, types, etc. with names beginning with either `Gosp` or `gosp`.
 
 Packages
 --------
 
-The `gosp` package is automatically imported.  It defines a few functions intended for internal use by the Go code generated from a Go Server Page and a few values that can be of use to the user-written Go code appearing on a Go Server Page.
+The [`gosp` package](https://godoc.org/github.com/spakin/gosp/src/gosp) is automatically imported.  It defines a few functions intended for internal use by the Go code generated from a Go Server Page and a few values that can be of use to the user-written Go code appearing on a Go Server Page.
 
 The most useful declaration is `gosp.RequestData`, a type that encapsulates Web-server information passed to a Go Server Page.  Note that many of its fields come from the client.  Those should therefore not be used without first checking them for invalid or malicious content.
 ```go
@@ -48,9 +48,9 @@ func LogDebugMessage(m Metadata, s string)
 ```
 Always pass the variable `gospMeta` (see Variables below) as the first argument to each of these four functions.
 
-`gosp.SetHTTPStatus` indicates the HTTP status code the Web server should return to the client.  The status code defaults to 200 ("OK") but can be set to any of the codes defined in the [HTTP Status Code Registry](https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml).  If the Go Server Page is allowed to `import "net/http"` it can use any of the [`Status` constants defined by `net/http`](https://golang.org/pkg/net/http/#pkg-constants) instead of specifying a status code numerically.  Calling `gosp.SetHTTPStatus` repeatedly is allowed.  Only the final value takes effect.
+`gosp.SetHTTPStatus` indicates the HTTP status code the Web server should return to the client.  The status code defaults to 200 ("OK") but can be set to any of the codes defined in the [HTTP Status Code Registry](https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml).  If the Go Server Page is allowed to `import "net/http"` (not a particularly good idea from a security perspective) it can use any of the [`Status` constants defined by `net/http`](https://golang.org/pkg/net/http/#pkg-constants) instead of specifying a status code numerically.  Calling `gosp.SetHTTPStatus` repeatedly is allowed.  Only the final value takes effect.
 
-`gosp.SetMIMEType` specifies the document's [MIME type](https://en.wikipedia.org/wiki/Media_type).  The MIME type defaults to `text/html`.  A Go Server Page can thereby change the MIME type and return data of that type.  For example, it can specify `text/plain` and return plain text or `image/png` and return a binary [PNG image](https://en.wikipedia.org/wiki/Portable_Network_Graphics).  Calling `gosp.SetMIMEType` repeatedly is allowed.  Only the final value takes effect.
+`gosp.SetMIMEType` specifies the document's [MIME type](https://en.wikipedia.org/wiki/Media_type), which defaults to `text/html`.  A Go Server Page can change its MIME type with `gosp.SetMIMEType` then return data of that type.  For example, it can specify `text/plain` and return plain text or `image/png` and return a binary [PNG image](https://en.wikipedia.org/wiki/Portable_Network_Graphics).  Calling `gosp.SetMIMEType` repeatedly is allowed.  Only the final value takes effect.
 
 `gosp.SetHeaderField` provides a very general capability.  It enables a Go Server Page to send arbitrary [HTTP response header fields](https://en.wikipedia.org/wiki/List_of_HTTP_header_fields#Standard_response_fields) back to the client.  The arguments are the field name, the value to assign to that field, and a Boolean that indicates whether the value should replace the prior value associated with the field (`true`) as opposed to being appended to the prior value (`false`).  Some uses of `gosp.SetHeaderField` include transmitting cookies to the client and setting caching properties for the page.  Calling `gosp.SetHeaderField` repeatedly is allowed.
 

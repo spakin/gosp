@@ -55,8 +55,8 @@ make install
 ```
 (or similarly,
 ```bash
-make prefix=/opt/gosp
+make prefix=/opt/gosp install
 ```
-or the like).  This installs and enables the Go Server Pages Apache module.  If you would prefer to do so manually, use the `install-no-module` target instead.
+or the like).  This installs and enables the Go Server Pages Apache module and helper programs/package.  If you would prefer to install everything except the Apache module, use the `install-no-module` target instead of `install`.
 
 You're not done yet.  Once Go Server Pages is installed and enabled the Web server needs to be configured to actually *use* it.  See [Configuring Go Server Pages](configure.md) for details.

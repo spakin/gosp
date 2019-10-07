@@ -15,7 +15,7 @@ The most important configuration step is to tell Apache what pages should be han
 ```ApacheConf
 AddHandler gosp .html
 ```
-To limit Go to HTML appearing within a specific URI, say `/fancy`, put the `AddHandler` within a `<Location>` directive:
+To limit Go code to HTML appearing within a specific URI, say `/fancy`, put the `AddHandler` within a `<Location>` directive:
 ```ApacheConf
 <Location "/fancy/">
   AddHandler gosp .html
@@ -52,7 +52,7 @@ The module also honors the [`User`](https://httpd.apache.org/docs/current/mod/mo
 
 **`GospWorkDir`** is needed while the Web server is running.  It contains a `pages` subdirectory that shadows the filesystem structure and contains one shared object per requested URL.  It contains a `sockets` subdirectory that also shadows the filesystem structure and contains one local-domain socket per requested URL.  And it contains a `go-build` directory that caches results of `go build` commands.  It is safe to delete the contents of `GospWorkDir` when the Web server is not running.
 
-**`GospAllowedImports`** specifies the set of [Go packages](https://golang.org/pkg/) that a Go Server Page is allowed to `import`.  This is one of the main security mechanisms Go Server Pages provides.  Ideally, each page should be granted access only to the minimum set of packages it requires to run.  Although `ALL` is supported, remember that this does mean that a page can `import "os"` to gain full access to local files or `import "net"` to perform its own network communication.
+**`GospAllowedImports`** specifies the set of [Go packages](https://golang.org/pkg/) that a Go Server Page is allowed to `import`.  This is one of the main security mechanisms Go Server Pages provides.  Ideally, each page should be granted access only to the minimum set of packages it requires to run.  Although `ALL` is supported, note that this means a page can `import "os"` to gain full read/write access to local files or `import "net"` to perform its own network communication.
 
 As a special case, if the argument to `GospAllowedImports` begins with a `+`, the set of allowed packages is appended to its parent's set.  For example, with the configuration
 ```ApacheConf

@@ -7,7 +7,7 @@ nav_order: 1
 Expressions
 ===========
 
-The simplest Go code that can be included on a Web is at the level of an expression.  Any [Go expression](https://golang.org/ref/spec#Expressions)—including constants, variables, operators, function calls, etc.—can be used.  The only restriction is that the result be convertible to a `string`.  In other words, if the expression can serve as argument to [`fmt.Sprintf("%v", …)`](https://golang.org/pkg/fmt/#Sprintf), it can appear within `?go:expr` markup.
+The simplest Go code that can be included on a Web is at the level of an expression.  Any [Go expression](https://golang.org/ref/spec#Expressions)—including constants, variables, operators, function calls, etc.—can be used.  The only restriction is that the result be convertible to a `string`.  In other words, if the expression can serve as the argument to [`fmt.Sprintf("%v", …)`](https://golang.org/pkg/fmt/#Sprintf), it can appear within `?go:expr` markup.
 
 As a very simple example,
 ```html

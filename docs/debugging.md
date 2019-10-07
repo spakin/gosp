@@ -6,7 +6,7 @@ nav_order: 7
 Debugging tips
 ==============
 
-Recall that a Go Server Page is compiled to a binary plugin then loaded dynamically into a `gosp-server` process.  Consequently, it can be tricky debugging a Go Server Page in vivo.  Perhaps the best way to debug a faulty Go Server Page is to run `gosp-server` from the command line in non-server mode:
+Recall that a Go Server Page is compiled to a binary plugin then loaded dynamically into a `gosp-server` process.  Consequently, it can be tricky debugging a Go Server Page in vivo.  Arguably the best way to debug a faulty Go Server Page is to run `gosp-server` from the command line in non-server mode:
 
 ```bash
 gosp2go --build -o my-page.so myp-page.html
@@ -24,7 +24,7 @@ The data passed to the `gosp-server` by the Apache module can be fabricated by s
   }
 }
 ```
-Provide whatever fields from `gosp.RequestData` your particular Go Server Page accesses.
+Provide whatever fields from [`gosp.RequestData`](https://godoc.org/github.com/spakin/gosp/src/gosp#RequestData) your particular Go Server Page accesses.
 
 Configuring Apache with [`LogLevel debug`](https://httpd.apache.org/docs/current/mod/core.html#loglevel) will cause Go Server Pages to write a `Handling gosp.RequestData{…}` line to the Apache error-log file (e.g., `error.log`).  This can be helpful for diagnosing requests that lead to incorrect behavior.
 

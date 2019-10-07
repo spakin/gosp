@@ -9,7 +9,7 @@ Top-level code
 
 Code intended to appear at the top level of a Go program, right after the `package` declaration, can be specified with `?go:top` markup.  This include function, type, constant, and variable declarations and package imports.  Remember, though, that the only packages that can be imported are those authorized by the Web administrator, as discussed in [Configuring Go Server Pages](../configure.md).
 
-Unlike `?go:expr` and `?go:block` markup, `?go:top` blocks are not executed in place.  Instead, they are gathered sequentially into a single chunk of code from wherever they occur on the page:
+Unlike `?go:expr` and `?go:block` markup, `?go:top` blocks are not executed in place.  Instead, they are gathered sequentially into a single chunk of code from wherever they occur on the page and placed immediately after the (implicit) `package` line:
 ```html
 <?go:top
 import (

@@ -23,6 +23,6 @@ The following flowchart illustrates the Go Server Pages module's control flow wh
 
 ![Module control flow](../assets/img/gosp-flowchart.svg "Go Server Pages module control flow")
 
-The left side of the flowchart corresponds to the common case of an up-to-date version of the Go Server Pages plugin already being running.  The right side of the flowchart corresponds to the plugin not existing, in which case it is compiled and launched; or outdated, in which case it is stopped, recompiled, and launched.  While not shown in the figure, the actions on the right side of the figure are protected by a mutex to ensure that concurrent accesses to an outdated or nonexistent plugin do not trigger multiple compilations or launches of the same plugin.
+The left side of the flowchart corresponds to the common case of an up-to-date version of the Go Server Pages plugin already being running.  The right side of the flowchart corresponds to the plugin not existing, in which case it is compiled using `gosp2go` and launched using `gosp-server`; or outdated, in which case it is stopped, recompiled, and relaunched.  While not shown in the figure, the actions on the right side of the figure are protected by a mutex to ensure that concurrent accesses to an outdated or nonexistent plugin do not trigger multiple compilations or launches of the same plugin.
 
 If the Abort state in the flowchart is reached, the Go Server Pages Apache module returns to the client an HTTP Internal Server Error (status code 500).
