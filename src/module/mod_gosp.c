@@ -268,52 +268,67 @@ static void gosp_child_init(apr_pool_t *pool, server_rec *s)
 /* This function is called if the Gosp file is newer than the Gosp plugin.  It
  * kills the Gosp server, compiles the plugin if necessary, launches the Gosp
  * server, and retries serving the requested page. */
-static int rebuild_release_retry(request_rec *r, const char *sock_name,
+static int rebuild_relaunch_retry(request_rec *r, const char *sock_name,
                                  const char *plugin_name)
 {
-  apr_time_t begin_time;           /* Time at which we began waiting for the server to launch */
-  gosp_status_t gstatus;           /* Status of an internal Gosp call */
+  apr_time_t begin_time;   /* Time at which we began waiting for the server to launch */
+  apr_finfo_t finfo;       /* File information for the plugin */
+  int plugin_exists;       /* Boolean indicating if the plugin exists */
+  gosp_status_t gstatus;   /* Status of an internal Gosp call */
+  apr_status_t status;     /* Status of an APR call */
 
   /* We have a lot of work to do.  To ensure that only one process does the
    * work we first acquire the global lock. */
   if (acquire_global_lock(r->server) != GOSP_STATUS_OK)
     return HTTP_INTERNAL_SERVER_ERROR;
 
-  /* Check again if the Gosp plugin is newer than the Gosp file.  If so, then
-   * another process must have performed all the work while we were waiting for
-   * the lock.  In this case, release the lock and handle the request. */
-  if (is_newer_than(r, r->filename, plugin_name) == 0) {
-    if (release_global_lock(r->server) != GOSP_STATUS_OK)
+  /* Determine if the plugin exists. */
+  status = apr_stat(&finfo, plugin_name, 0, r->pool);
+  if (APR_STATUS_IS_ENOENT(status))
+    plugin_exists = FALSE;
+  else
+    if (status != APR_SUCCESS) {
+      (void) release_global_lock(r->server);
       return HTTP_INTERNAL_SERVER_ERROR;
-    gstatus = simple_request_response(r, sock_name);
-    if (gstatus == GOSP_STATUS_OK)
-      return r->status == HTTP_OK ? OK : r->status;
-    if (gstatus == GOSP_STATUS_FAIL)
+    }
+    else
+      plugin_exists = TRUE;
+
+  /* If the Gosp file is newer than the plugin it generates or the plugin
+   * doesn't exist, kill the Gosp server, remove its socket, and recompile the
+   * file to a plugin. */
+  if (!plugin_exists || is_newer_than(r, r->filename, plugin_name) == 1) {
+    /* Kill the Gosp server and remove its socket. */
+    gstatus = kill_gosp_server(r, sock_name);
+    if (gstatus != GOSP_STATUS_OK) {
+      (void) release_global_lock(r->server);
       return HTTP_INTERNAL_SERVER_ERROR;
+    }
+
+    /* Compile the Gosp plugin. */
+    gstatus = compile_gosp_server(r, plugin_name);
+    if (gstatus != GOSP_STATUS_OK) {
+      (void) release_global_lock(r->server);
+      return HTTP_INTERNAL_SERVER_ERROR;
+    }
   }
 
-  /* Kill the Gosp server, and remove its socket and plugin. */
-  gstatus = kill_gosp_server(r, sock_name, plugin_name);
-  if (gstatus != GOSP_STATUS_OK) {
-    (void) release_global_lock(r->server);
-    return HTTP_INTERNAL_SERVER_ERROR;
+  /* At this point, the Gosp plugin exists.  The server may or may not be
+   * running, though.  If we just killed it, it's not running.  If it killed
+   * itself on a timeout, it's not running.  But if another process beat us to
+   * acquiring the lock then launched the server, it is running.  Let's find
+   * out... */
+  if (server_is_responsive(r, sock_name) != GOSP_STATUS_OK) {
+    /* The server is not running.  Launch it. */
+    gstatus = launch_gosp_server(r, plugin_name, sock_name);
+    if (gstatus != GOSP_STATUS_OK) {
+      (void) release_global_lock(r->server);
+      return HTTP_INTERNAL_SERVER_ERROR;
+    }
   }
 
-  /* Compile the Gosp plugin. */
-  gstatus = compile_gosp_server(r, plugin_name);
-  if (gstatus != GOSP_STATUS_OK) {
-    (void) release_global_lock(r->server);
-    return HTTP_INTERNAL_SERVER_ERROR;
-  }
-
-  /* At this point, the Gosp plugin exists.  Launch it with gosp-server. */
-  gstatus = launch_gosp_server(r, plugin_name, sock_name);
-  if (gstatus != GOSP_STATUS_OK) {
-    (void) release_global_lock(r->server);
-    return HTTP_INTERNAL_SERVER_ERROR;
-  }
-
-  /* Try again to have the Gosp server handle the request.  Wait up to
+  /* The plugin exists and is being run by a live gosp-server process.  Try
+   * again to have the Gosp server handle the request.  Wait up to
    * GOSP_LAUNCH_WAIT_TIME for the executable to finish launching before giving
    * up.  We retain the lock because we don't want unrelated requests to the
    * same page to fail because they didn't know the server is in the process of
@@ -328,7 +343,7 @@ static int rebuild_release_retry(request_rec *r, const char *sock_name,
       (void) release_global_lock(r->server);
       return HTTP_INTERNAL_SERVER_ERROR;
     }
-    apr_sleep(1000);
+    apr_sleep(100000);
   }
 
   /* Release the lock and return. */
@@ -391,9 +406,10 @@ static int gosp_handler(request_rec *r)
       return HTTP_INTERNAL_SERVER_ERROR;
   }
 
-  /* The Gosp file is newer than the Gosp plugin.  Kill the old server,
-   * recompile it, relaunch it, and retry the request. */
-  return rebuild_release_retry(r, sock_name, plugin_name);
+  /* The Gosp file is newer than the Gosp plugin *or* the request failed for
+   * some other reason.  Recompile the plugin if necessary, kill the old
+   * server, relaunch it, and retry the request. */
+  return rebuild_relaunch_retry(r, sock_name, plugin_name);
 }
 
 /* Invoke gosp_handler at the end of every request. */

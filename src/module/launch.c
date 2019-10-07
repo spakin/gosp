@@ -197,7 +197,7 @@ gosp_status_t launch_gosp_server(request_rec *r, const char *plugin_name, const 
 
 /* Kill a running Gosp server.  Return GOSP_STATUS_OK if the Gosp server is no
  * longer running, GOSP_STATUS_FAIL if it might be. */
-gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char *plugin_name)
+gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name)
 {
   apr_status_t status;        /* Status of an APR call */
 
@@ -209,14 +209,6 @@ gosp_status_t kill_gosp_server(request_rec *r, const char *sock_name, const char
   if (status != APR_SUCCESS && !APR_STATUS_IS_ENOENT(status)) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
                   "Failed to remove socket %s", sock_name);
-    return GOSP_STATUS_FAIL;
-  }
-
-  /* Remove the server executable. */
-  status = apr_file_remove(plugin_name, r->pool);
-  if (status != APR_SUCCESS && !APR_STATUS_IS_ENOENT(status)) {
-    ap_log_rerror(APLOG_MARK, APLOG_ERR, status, r,
-                  "Failed to remove Gosp plugin %s", plugin_name);
     return GOSP_STATUS_FAIL;
   }
   return GOSP_STATUS_OK;

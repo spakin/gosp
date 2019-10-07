@@ -280,6 +280,43 @@ gosp_status_t send_request(request_rec *r, apr_socket_t *sock)
   return GOSP_STATUS_OK;
 }
 
+/* See if a Gosp server is still alive by asking it for its process ID.  Return
+ * GOSP_STATUS_OK if it's alive, GOSP_STATUS_FAIL if it's not or if we can't
+ * tell. */
+gosp_status_t server_is_responsive(request_rec *r, const char *sock_name)
+{
+  char *response;             /* Response string */
+  size_t resp_len;            /* Length of response string */
+  int pid;                    /* Gosp server process ID */
+  apr_socket_t *sock;         /* Socket with which to communicate with the Gosp server */
+  gosp_status_t gstatus;      /* Status of an internal Gosp call */
+  apr_status_t status;        /* Status of an APR call */
+
+  /* Connect to the process that handles the requested Go Server Page. */
+  ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_INFO, APR_SUCCESS, r,
+               "Checking if the Gosp server listening on socket %s is alive",
+               sock_name);
+  gstatus = connect_socket(r, sock_name, &sock);
+  if (gstatus != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
+
+  /* Ask the server to terminate. */
+  SEND_STRING("{\n");
+  SEND_STRING("  \"GetPID\": true\n");
+  SEND_STRING("}\n");
+
+  /* Receive a process ID in response. */
+  gstatus = receive_response(r, sock, &response, &resp_len);
+  if (gstatus != GOSP_STATUS_OK)
+    return GOSP_STATUS_FAIL;
+  if (strncmp(response, "gosp-pid ", 9) != 0)
+    return GOSP_STATUS_FAIL;
+  pid = atoi(response + 9);
+  if (pid <= 0)
+    return GOSP_STATUS_FAIL;
+  return GOSP_STATUS_OK;
+}
+
 /* Ask a Gosp server to shut down cleanly. */
 gosp_status_t send_termination_request(request_rec *r, const char *sock_name)
 {

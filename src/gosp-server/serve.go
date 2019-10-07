@@ -20,6 +20,7 @@ import (
 // A ServiceRequest is a request for service sent to us by the Web server.
 type ServiceRequest struct {
 	UserData gosp.RequestData // Data to pass to the user's code
+	GetPID   bool             // If true, respond with our process ID
 	ExitNow  bool             // If true, shut down the program cleanly
 }
 
@@ -158,6 +159,13 @@ func StartServer(p *Parameters) error {
 				if err == nil {
 					_ = c.Close()
 				}
+				return
+			}
+
+			// If we were sent a PID request, send back our PID in
+			// response.  Ignore the rest of the request.
+			if sr.GetPID {
+				fmt.Fprintf(conn, "gosp-pid %d\n", os.Getpid())
 				return
 			}
 
