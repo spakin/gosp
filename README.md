@@ -52,7 +52,7 @@ Go Server Pages is designed for simplicity.  Only the following new markup is in
 Documentation
 -------------
 
-Full documentation can be found at https://spakin.github.io/gosp/.
+Full documentation can be found at https://gosp.pakin.org/.
 
 Requirements
 ------------
