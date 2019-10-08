@@ -29,7 +29,7 @@ Here's a trivial example of a Go Server Page:
 </html>
 ```
 
-The only difference from ordinary HTML in the above is the `<?go:expr 2*2*2*3*3*5*7 ?>` markup.  This tells the Web server to evaluate `2*2*2*3*3*5*7` as a Go expression and replace the tag with the result, producing
+The only difference from ordinary HTML in the above is the `<?go:expr 2*2*2*3*3*5*7 ?>` markup.  This tells the Web server to evaluate `2*2*2*3*3*5*7` as a Go expression and replace the markup with the result, producing
 
     I like the number 2520 because it's divisible by each integer from 1 to 10.
 

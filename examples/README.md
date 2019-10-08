@@ -1,9 +1,9 @@
 Go Server Pages examples
 ========================
 
-This directory provides a number of examples of the types of tasks one can accomplish by embedding Go code on a Web page.  In order to actually test these examples, you will need to install and configure Go Server Pages.  [See the Go Server Pages documentation](https://spakin.github.io/gosp) for instructions.
+This directory provides a number of examples of the types of tasks one can accomplish by embedding Go code on a Web page.  In order to actually test these examples, you will need to install and configure Go Server Pages.  [See the Go Server Pages documentation](https://gosp.pakin.org/) for instructions.
 
-The examples, sorted roughly from most basic to most advanced, are described below.  Note that many of these use **import** to import various Go packages.  The Web server needs to be configured to authorize this action, as described in [Configuring Go Server Pages](https://spakin.github.io/gosp/configure.md).
+The examples, sorted roughly from most basic to most advanced, are described below.  Note that many of these use **import** to import various Go packages.  The Web server needs to be configured to authorize this action, as described in [Configuring Go Server Pages](https://gosp.pakin.org/configure.md).
 
 * [do-nothing.html](do-nothing.html).  This is an ordinary Web page including no Go code whatsoever.  It demonstrates that Go code is not required to appear on a Web page handled by the Go Server Pages Apache module and can also be used to test basic Web server functionality once Go Server Pages is installed.
 
@@ -29,4 +29,4 @@ The examples, sorted roughly from most basic to most advanced, are described bel
 
 * [cookies.html](cookies-types.html).  A "cookie" is a small chunk of data that a Web server can send to a client to store.  This cookie can later be retrieved by the Web server.  This page presents the client with a cookie that tallies the number of times the page has been visited.
 
-* [package.html](package.html).  It is often convenient to define a set of common page operations such as constructing a menu bar or page footer and put these in a helper package that various Go Server Pages can import.  This page assumes that [helper.go](helper.go) appears in its `GOPATH` (specified using the [`GospGoPath` configuration option](https://spakin.github.io/gosp/configure.md)).  It does an `import "helper"` and twice invokes its `helper.Bottles` function.
+* [package.html](package.html).  It is often convenient to define a set of common page operations such as constructing a menu bar or page footer and put these in a helper package that various Go Server Pages can import.  This page assumes that [helper.go](helper.go) appears in its `GOPATH` (specified using the [`GospGoPath` configuration option](https://gosp.pakin.org/configure.md)).  It does an `import "helper"` and twice invokes its `helper.Bottles` function.
