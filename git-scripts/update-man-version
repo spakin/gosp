@@ -29,7 +29,7 @@ fi
 
 # Replace the title line of the man page.
 set -e
-mdate=$(stat --format='%y' "$1" | awk '{print $1}')
+mdate=$(date '+%F')
 version=$(awk '/^VERSION = / {print $3}' Makefile)
 orig=$(mktemp --tmpdir --suffix=.1 gosp-XXXXXX)
 cp "$1" "$orig"
