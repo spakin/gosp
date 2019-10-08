@@ -49,15 +49,15 @@ Go Server Pages is designed for simplicity.  Only the following new markup is in
 | &lt;?go:top *code* ?&gt;     | Declare file-level code *code* (`import`, `func`, `const`, etc.) |
 | &lt;?go:include *file* ?&gt; | Include local file *file* as if it were pasted in |
 
-Documentation
--------------
-
-Full documentation can be found at https://gosp.pakin.org/.
-
 Requirements
 ------------
 
 Not surprisingly, Go Server Pages requires a [Go](https://golang.org/) installation.  Go Server Pages currently works only with the [Apache Web server](http://httpd.apache.org/).
+
+Documentation
+-------------
+
+Full documentation can be found at https://gosp.pakin.org/.
 
 Author
 ------
