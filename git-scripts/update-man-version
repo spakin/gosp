@@ -33,5 +33,5 @@ mdate=$(date '+%F')
 version=$(awk '/^VERSION = / {print $3}' Makefile)
 orig=$(mktemp --tmpdir --suffix=.1 gosp-XXXXXX)
 cp "$1" "$orig"
-sed "s/^\\.TH.*/.TH GOSP2GO 1 \"$mdate\" \"v$version\" \"User Commands\"/" "$orig" > "$1"
+awk '/^\.TH/ {$4="\"" mdate "\""; $5="\"v" version "\""} {print}' mdate="$mdate" version="$version" "$orig" > "$1"
 rm -f "$orig"
