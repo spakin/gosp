@@ -40,7 +40,7 @@ For example, `my-inputs.json` in the above might contain the following JSON code
 ```
 Provide whatever fields from [`gosp.RequestData`](https://godoc.org/github.com/spakin/gosp/src/gosp#RequestData) your particular Go Server Page accesses.
 
-See the [`gosp2go(1)` man page](../implementation/man-gosp2go.md) and the [`gosp-server(1)` man page](../implementation/man-gosp-server.md) for descriptions of those tools' command-line options.
+See the [`gosp2go(1)` man page](implementation/man-gosp2go.md) and the [`gosp-server(1)` man page](implementation/man-gosp-server.md) for descriptions of those tools' command-line options.
 
 Configuring Apache with [`LogLevel debug`](https://httpd.apache.org/docs/current/mod/core.html#loglevel) will cause Go Server Pages to write a `Handling gosp.RequestData{…}` line to the Apache error-log file (e.g., `error.log`).  This can be helpful for diagnosing requests that lead to incorrect behavior.
 
