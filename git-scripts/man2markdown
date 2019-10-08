@@ -1,0 +1,65 @@
+#! /usr/bin/env perl
+
+##############################################
+# Convert a Unix man page to Markdown format #
+# By Scott Pakin <scott+gosp@pakin.org>      #
+##############################################
+
+# Usage
+# -----
+#
+# Add the following to .git/hooks/pre-commit:
+#
+#   ./git-scripts/man2markdown src/gosp2go/gosp2go.1 > docs/implementation/man-gosp2go.md
+#   git add docs/implementation/man-gosp2go.md
+#   ./git-scripts/man2markdown src/gosp-server/gosp-server.1 > docs/implementation/man-gosp-server.md
+#   git add docs/implementation/man-gosp-server.md
+
+use File::Temp;
+use warnings;
+use strict;
+
+# Parse the command line.
+die "Usage: $0 <file.1>\n" if $#ARGV != 0;
+my ($man_name, $md_name) = @ARGV;
+
+# Generate a modified version of the man page that uses consistent formatting
+# across short and long option names.
+my $newman = File::Temp->new(TEMPLATE => "gosp-XXXXXX",
+                             TMPDIR => 1,
+                             UNLINK => 0,
+                             SUFFIX => ".1");
+open(MAN, "<", $man_name) || die "open(\"$man_name\"): $!\n";
+while (my $ln = <MAN>) {
+    $ln =~ s/^\.TP.*/.TP 4/;
+    print $newman $ln;
+}
+close MAN or die "close: $!\n";
+$newman->close();
+END { defined $newman && unlink $newman; }
+
+# Convert the man page to HTML.
+open(HTML, "groff -man -Thtml $newman|") || die "groff: $!\n";
+undef $/;
+my $html = <HTML>;
+close HTML or die "close: $!\n";
+
+# Convert the HTML to Markdown but with lots of embedded HTML remaining.
+my $markdown = $html;
+die if $markdown !~ m,<title>(.*)</title>,;
+my $title = $1;
+$markdown =~ s,^.*?<h2>,<h2>,s;
+$markdown = "---
+title: \L$title\E man page
+nav_exclude: true
+---
+
+# $title
+
+$markdown";
+$markdown =~ s/\n\n+/\n\n/sg;
+$markdown =~ s,<h2>([^\n]+).*?</h2>,\#\# $1,gs;
+$markdown =~ s/<hr>.*$//s;
+
+# Output the Markdown file to standard output.
+print $markdown;
