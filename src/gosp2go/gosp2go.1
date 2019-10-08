@@ -1,4 +1,4 @@
-.TH GOSP2GO 1 "2019-10-07" "v0.11.0" "User Commands"
+.TH GOSP2GO 1 "2019-10-08" "v0.11.0" "User Commands"
 .SH NAME
 gosp2go \- compile a Go Server Page to Go code
 .SH SYNOPSIS
@@ -16,24 +16,20 @@ Compile the generated Go code to a plugin
 .TP
 \fB\-r\fR, \fB\-\-run\fR
 Both compile and, using \fBgosp-server\fR, execute the generated Go code
-.HP
+.TP
 \fB\-t\fR \fInum\fR, \fB\-\-max\-top\fR=\fI\,num\/\fR
-.IP
 Allow at most \fInum\fR \f(CW<?go:top\fR .\|.\|. \f(CW?>\fR blocks per
 file [default: \f(CW1\fR]
-.HP
+.TP
 \fB\-o\fR \fIfile\fR, \fB\-\-output\fR=\fI\,file\/\fR
-.IP
 Write output to file \fIfile\fR ("\f(CW\-\fR" = standard output, the
 default); the file type depends on whether \fB\-\-build\fR,
 \fB\-\-run\fR, or neither is also specified
-.HP
+.TP
 \fB\-g\fR \fIfile\fR, \fB\-\-go\fR=\fI\,file\/\fR
-.IP
 Use \fIfile\fR as the Go compiler [default: \f(CWgo\fR]
-.HP
+.TP
 \fB\-a\fR \fIlist\fR, \fB\-\-allowed\fR=\fI\,list\/\fR
-.IP
 Specify a comma\-separated list of allowed Go imports; if \f(CWALL\fR
 (the default), allow all imports; if \f(CWNONE\fR, allow no imports
 .TP
