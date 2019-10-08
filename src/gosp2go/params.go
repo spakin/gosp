@@ -25,8 +25,8 @@ type Parameters struct {
 	MaxTop         uint      // Maximum number of go:top blocks allowed per page
 	GoCmd          string    // Go compiler executable (e.g., "/usr/bin/go")
 	DirStack       []string  // Stack of directories to which we chdir
-	HTTPHeaderType string    // Format in which to output HTTP headers
 	AllowedImports ImportSet // Set of packages the Go code is allowe to import
+	GospServerArgs []string  // Additional arguments to pass to gosp-server
 }
 
 // PushDirectoryOf switches to the parent directory of a given file.  It aborts
@@ -106,7 +106,7 @@ func (s *ImportSet) Set(lst string) error {
 // showUsage displays command-line usage in a human-friendly format then exits
 // with an error code.  It is intended to be assigned to flag.Usage.
 func showUsage() {
-	fmt.Fprintf(flag.CommandLine.Output(), `Usage: %s [options] [input_file.gosp]
+	fmt.Fprintf(flag.CommandLine.Output(), `Usage: %s [<options>] [input_file.gosp] [-- [<gosp-server options>]]
 
 The following options are accepted:
 
@@ -123,10 +123,6 @@ The following options are accepted:
                Write output to file FILE ("-" = standard output, the
                default); the file type depends on whether --build,
                --run, or neither is also specified
-
-  -H, --raw-headers
-               Output raw HTTP headers instead of specially formatted headers
-               for the Go Server Pages Apache module
 
   -g FILE, --go=FILE
                Use FILE as the Go compiler [default: "go"]
@@ -146,14 +142,6 @@ The following options are accepted:
 // given parameters are self-consistent.  It gives a usage message and aborts
 // if not.
 func checkParams(p *Parameters) {
-	switch flag.NArg() {
-	case 0:
-		p.InFileName = "-"
-	case 1:
-		p.InFileName = flag.Arg(0)
-	default:
-		flag.Usage()
-	}
 	if p.Build && p.Run {
 		fmt.Fprintf(flag.CommandLine.Output(), "%s: --build and --run are mutually exclusive.\n\n", os.Args[0])
 		flag.Usage()
@@ -161,6 +149,31 @@ func checkParams(p *Parameters) {
 	if p.Build && (p.OutFileName == "" || p.OutFileName == "-") {
 		fmt.Fprintf(flag.CommandLine.Output(), "%s: An output filename must be specified when --build is used.\n\n", os.Args[0])
 		flag.Usage()
+	}
+}
+
+// assignGospServerArgs prepares to pass any remaining arguments to gosp-server.
+func assignGospServerArgs(p *Parameters) {
+	p.GospServerArgs = flag.Args()
+	p.InFileName = "-"
+	if len(p.GospServerArgs) > 0 {
+		// If the first extra argument is not an option, it designates
+		// the name of the input file.
+		first := p.GospServerArgs[0]
+		if len(first) > 0 && first[0] != '-' {
+			p.InFileName = first
+			p.GospServerArgs = p.GospServerArgs[1:]
+		}
+	}
+	if len(p.GospServerArgs) > 0 && p.GospServerArgs[0] == "--" {
+		// Skip the "--" separator.
+		p.GospServerArgs = p.GospServerArgs[1:]
+	}
+	for _, opt := range p.GospServerArgs {
+		if len(opt) > 0 && opt[0] != '-' {
+			// Accept only options, not more filenames.
+			flag.Usage()
+		}
 	}
 }
 
@@ -181,13 +194,12 @@ func ParseCommandLine() *Parameters {
 	flag.UintVar(&p.MaxTop, "t", 1, "Abbreviation of --max-top")
 	flag.StringVar(&p.GoCmd, "go", "go", "Name of the Go executable")
 	flag.StringVar(&p.GoCmd, "g", "go", "Abbreviation of --go")
-	flag.StringVar(&p.HTTPHeaderType, "http-headers", "mod_gosp", "HTTP header format to request from gosp-server")
-	flag.StringVar(&p.HTTPHeaderType, "H", "mod_gosp", "Abbreviation of --raw-headers")
 	p.AllowedImports = NewImportSet()
 	p.AllowedImports["PLACEHOLDER_ALL"] = true // Converted to ALL if --allowed was never used
 	flag.Var(&p.AllowedImports, "allowed", "Comma-separated list of allowed Go imports")
 	flag.Var(&p.AllowedImports, "a", "Abbreviation of --allowed")
 	flag.Parse()
+	assignGospServerArgs(&p)
 
 	// If requested, output the version number and exit.
 	if *wantVersion {

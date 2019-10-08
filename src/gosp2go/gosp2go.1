@@ -3,7 +3,7 @@
 gosp2go \- compile a Go Server Page to Go code
 .SH SYNOPSIS
 .B gosp2go
-[\fI\,options\/\fR] [\fI\,input_file.gosp\/\fR]
+[\fI\,options\/\fR] [\fI\,input_file.gosp\/\fR] [-- [\fI\,gosp-server options\/\fR]]
 .SH DESCRIPTION
 \fBgosp2go\fR is typically invoked by the Go Server Pages Apache
 module to compile a Go Server Page to a plugin that can be launched
@@ -27,11 +27,6 @@ file [default: \f(CW1\fR]
 Write output to file \fIfile\fR ("\f(CW\-\fR" = standard output, the
 default); the file type depends on whether \fB\-\-build\fR,
 \fB\-\-run\fR, or neither is also specified
-.HP
-\fB\-H\fR, \fB\-\-raw\-headers\fR
-.IP
-Output raw HTTP headers instead of specially formatted headers
-for the Go Server Pages Apache module
 .HP
 \fB\-g\fR \fIfile\fR, \fB\-\-go\fR=\fI\,file\/\fR
 .IP

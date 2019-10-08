@@ -158,7 +158,8 @@ func Run(p *Parameters, goStr string, out io.Writer) {
 	Build(p, goStr, plugFn)
 	defer os.Remove(plugFn)
 	var cmd *exec.Cmd
-	cmd = exec.Command("gosp-server", "-plugin", plugFn, "-http-headers", p.HTTPHeaderType)
+	gsArgs := append([]string{"-plugin", plugFn}, p.GospServerArgs...)
+	cmd = exec.Command("gosp-server", gsArgs...)
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()

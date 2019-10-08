@@ -9,11 +9,25 @@ Debugging tips
 Recall that a Go Server Page is compiled to a binary plugin then loaded dynamically into a `gosp-server` process.  Consequently, it can be tricky debugging a Go Server Page in vivo.  Arguably the best way to debug a faulty Go Server Page is to run `gosp-server` from the command line in non-server mode:
 
 ```bash
-gosp2go --build -o my-page.so myp-page.html
+gosp2go --build -o my-page.so my-page.html
 gosp-server --plugin=my-page.so
 ```
 
-The data passed to the `gosp-server` by the Apache module can be fabricated by storing it in a [JSON](https://json.org/) file and passing that to `gosp-server` with the `--file` option.  For example, a file might contain the following JSON code:
+This can be abbreviated to
+```bash
+gosp2go --run my-page.html
+```
+
+The data passed to the `gosp-server` by the Apache module can be fabricated by storing it in a [JSON](https://json.org/) file and passing that to `gosp-server` with the `--file` option:
+```bash
+gosp2go --build -o my-page.so my-page.html
+gosp-server --plugin=my-page.so --file=my-inputs.json
+```
+or, for short,
+```bash
+gosp2go --run my-page.html -- --file=my-inputs.json
+```
+For example, `my-inputs.json` in the above might contain the following JSON code:
 ```JSON
 {
   "UserData": {
