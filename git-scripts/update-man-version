@@ -1,0 +1,37 @@
+#! /bin/bash
+
+#########################################
+# Update a man page to reflect the      #
+# current version of the program        #
+#                                       #
+# By Scott Pakin <scott+gosp@pakin.org> #
+#########################################
+
+# Usage
+# -----
+#
+# Add the following to .git/hooks/pre-commit:
+#
+#   ./git-scripts/update-man-version src/gosp2go/gosp2go.1
+#   git add src/gosp2go/gosp2go.1
+#   ./git-scripts/update-man-version src/gosp-server/gosp-server.1
+#   git add src/gosp-server/gosp-server.1
+
+# Ensure we were given a valid filename.
+if [ $# -eq 0 ] ; then
+    echo "Usage: $0 <man-page.1>" 1>&2
+    exit 1
+fi
+if [ ! -f "$1" ] ; then
+    echo "${0}: $1 is not an ordinary, existent file" 1>&2
+    exit 1
+fi
+
+# Replace the title line of the man page.
+set -e
+mdate=$(stat --format='%y' "$1" | awk '{print $1}')
+version=$(awk '/^VERSION = / {print $3}' Makefile)
+orig=$(mktemp --tmpdir --suffix=.1 gosp-XXXXXX)
+cp "$1" "$orig"
+sed "s/^\\.TH.*/.TH GOSP2GO 1 \"$mdate\" \"v$version\" \"User Commands\"/" "$orig" > "$1"
+rm -f "$orig"
