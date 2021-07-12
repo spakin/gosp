@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 )
 
@@ -148,6 +149,30 @@ func Build(p *Parameters, goStr, plugFn string) {
 		notify.Fatal(err)
 	}
 	defer os.Chdir(prevDir)
+
+	// Create a Go module file.
+	mod, err := os.Create("go.mod")
+	if err != nil {
+		notify.Fatal(err)
+	}
+	fmt.Fprintln(mod, "module github.com/spakin/gosp2go-plugin")
+	fmt.Fprintln(mod, "")
+	var maj, min int
+	n, err := fmt.Sscanf(runtime.Version(), "go%d.%d", &maj, &min)
+	if err != nil {
+		notify.Fatal(err)
+	}
+	if n != 2 {
+		notify.Fatalf("failed to parse the Go version string %q", runtime.Version())
+	}
+	fmt.Fprintf(mod, "go %d.%d\n\n", maj, min)
+	for _, mr := range p.ModRepls {
+		fmt.Fprintf(mod, "replace %s => %q\n", mr.Module, mr.Path)
+	}
+	err = mod.Close()
+	if err != nil {
+		notify.Fatal(err)
+	}
 
 	// Compile main.go into a plugin.
 	cmd := exec.Command(p.GoCmd, "build", "--buildmode=plugin", "-o", plugFn, "main.go")

@@ -7,55 +7,26 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 )
 
-// Version defines the Go Server Pages version number.  It should be overridden
-// by the Makefile.
+// Version defines the Go Server Pages version number.  This should be
+// overridden by the Makefile.
 var Version = "?.?.?"
 
 // Parameters encapsulates the key program parameters.
 type Parameters struct {
-	InFileName     string    // Name of a file from which to read Go Server Page proper
-	OutFileName    string    // Name of a file to which to write the Go code or plugin or Web page
-	Build          bool      // true=compile the generated Go code
-	Run            bool      // true=execute the generated Go code
-	MaxTop         uint      // Maximum number of go:top blocks allowed per page
-	GoCmd          string    // Go compiler executable (e.g., "/usr/bin/go")
-	DirStack       []string  // Stack of directories to which we chdir
-	AllowedImports ImportSet // Set of packages the Go code is allowe to import
-	GospServerArgs []string  // Additional arguments to pass to gosp-server
-}
-
-// PushDirectoryOf switches to the parent directory of a given file.  It aborts
-// on error.
-func (p *Parameters) PushDirectoryOf(fn string) {
-	dir, err := filepath.Abs(filepath.Dir(fn))
-	if err != nil {
-		notify.Fatal(err)
-	}
-	err = os.Chdir(dir)
-	if err != nil {
-		notify.Fatal(err)
-	}
-	p.DirStack = append(p.DirStack, dir)
-	if len(p.DirStack) > MaxIncludeDepth+1 { // +1 for the initial directory.
-		notify.Fatal(fmt.Errorf("Inclusion depth exceeded the maximum of %d", MaxIncludeDepth))
-	}
-}
-
-// PopDirectory returns to the previous directory we were in.  It aborts on
-// error.
-func (p *Parameters) PopDirectory() {
-	nds := len(p.DirStack)
-	dir := p.DirStack[nds-1]
-	err := os.Chdir(dir)
-	if err != nil {
-		notify.Fatal(err)
-	}
-	p.DirStack = p.DirStack[:nds-1]
+	InFileName     string                // Name of a file from which to read the Go Server Page proper
+	OutFileName    string                // Name of a file to which to write the Go code or plugin or Web page
+	Build          bool                  // true=compile the generated Go code
+	Run            bool                  // true=execute the generated Go code
+	MaxTop         uint                  // Maximum number of go:top blocks allowed per page
+	GoCmd          string                // Go compiler executable (e.g., "/usr/bin/go")
+	DirStack       []string              // Stack of directories to which we chdir
+	AllowedImports ImportSet             // Set of packages the Go code is allowe to import
+	GospServerArgs []string              // Additional arguments to pass to gosp-server
+	ModRepls       ModuleReplacementList // List of module replacements to write to generated go.mod files
 }
 
 // An ImportSet represents a set of package names.  The Boolean value is always
@@ -103,6 +74,40 @@ func (s *ImportSet) Set(lst string) error {
 	return nil
 }
 
+// A ModuleReplacement represents a single replacement to write to go.mod.
+type ModuleReplacement struct {
+	Module string // Module to replace
+	Path   string // Path name to replace it with
+}
+
+// ModuleReplacementList is a list of replacements to write to go.mod.
+type ModuleReplacementList []ModuleReplacement
+
+// String pretty-prints a ModuleReplacementList.
+func (r *ModuleReplacementList) String() string {
+	if r == nil {
+		return ""
+	}
+	repls := make([]string, 0, 3)
+	for _, rr := range *r {
+		repls = append(repls, fmt.Sprintf("%s,%q", rr.Module, rr.Path))
+	}
+	return strings.Join(repls, ",")
+}
+
+// Set appends a new replacement to a ModuleReplacementList.
+func (r *ModuleReplacementList) Set(s string) error {
+	ss := strings.Split(s, ",")
+	if len(ss) != 2 {
+		return fmt.Errorf("failed to parse %q as \"<module>,<path>\"", s)
+	}
+	*r = append(*r, ModuleReplacement{
+		Module: ss[0],
+		Path:   ss[1],
+	})
+	return nil
+}
+
 // showUsage displays command-line usage in a human-friendly format then exits
 // with an error code.  It is intended to be assigned to flag.Usage.
 func showUsage() {
@@ -130,6 +135,8 @@ The following options are accepted:
   -a LIST, --allowed=LIST
                Specify a comma-separated list of allowed Go imports; if "ALL"
                (the default), allow all imports; if "NONE", allow no imports
+  --replace MODULE,PATH
+               Indicate a module replacement to write to go.mod
 
   --version    Output the gosp2go version number and exit
 
@@ -198,6 +205,7 @@ func ParseCommandLine() *Parameters {
 	p.AllowedImports["PLACEHOLDER_ALL"] = true // Converted to ALL if --allowed was never used
 	flag.Var(&p.AllowedImports, "allowed", "Comma-separated list of allowed Go imports")
 	flag.Var(&p.AllowedImports, "a", "Abbreviation of --allowed")
+	flag.Var(&p.ModRepls, "replace", `Module replacement to write to go.mod, expressed as "<module>,<path>"`)
 	flag.Parse()
 	assignGospServerArgs(&p)
 

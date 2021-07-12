@@ -35,6 +35,35 @@ func MakeTempGo(goStr string) string {
 	return goDir
 }
 
+// PushDirectoryOf switches to the parent directory of a given file.  It aborts
+// on error.
+func (p *Parameters) PushDirectoryOf(fn string) {
+	dir, err := filepath.Abs(filepath.Dir(fn))
+	if err != nil {
+		notify.Fatal(err)
+	}
+	err = os.Chdir(dir)
+	if err != nil {
+		notify.Fatal(err)
+	}
+	p.DirStack = append(p.DirStack, dir)
+	if len(p.DirStack) > MaxIncludeDepth+1 { // +1 for the initial directory.
+		notify.Fatal(fmt.Errorf("Inclusion depth exceeded the maximum of %d", MaxIncludeDepth))
+	}
+}
+
+// PopDirectory returns to the previous directory we were in.  It aborts on
+// error.
+func (p *Parameters) PopDirectory() {
+	nds := len(p.DirStack)
+	dir := p.DirStack[nds-1]
+	err := os.Chdir(dir)
+	if err != nil {
+		notify.Fatal(err)
+	}
+	p.DirStack = p.DirStack[:nds-1]
+}
+
 // SmartOpen opens a file for either reading or writing.  A filename of "-"
 // indicates standard input/output.  The function aborts on error.
 func SmartOpen(fn string, write bool) *os.File {
