@@ -136,12 +136,24 @@ func GospToGo(p *Parameters, s string) string {
 // Build compiles the generated Go code to a given plugin filename.  It aborts
 // on error.
 func Build(p *Parameters, goStr, plugFn string) {
-	goFn := MakeTempGo(goStr)
-	defer os.Remove(goFn)
-	cmd := exec.Command(p.GoCmd, "build", "--buildmode=plugin", "-o", plugFn, goFn)
+	// Create a temporary directory and switch to it.
+	goDn := MakeTempGo(goStr)
+	defer os.RemoveAll(goDn)
+	prevDir, err := os.Getwd()
+	if err != nil {
+		notify.Fatal(err)
+	}
+	err = os.Chdir(goDn)
+	if err != nil {
+		notify.Fatal(err)
+	}
+	defer os.Chdir(prevDir)
+
+	// Compile main.go into a plugin.
+	cmd := exec.Command(p.GoCmd, "build", "--buildmode=plugin", "-o", plugFn, "main.go")
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		notify.Fatal(err)
 	}

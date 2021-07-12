@@ -9,13 +9,21 @@ import (
 	"go/token"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
-// MakeTempGo writes a string of Go code to a temporary file and returns the
-// name of that file.  The caller should delete the file when no longer needed.
-// MakeTempGo aborts on error.
+// MakeTempGo writes a string of Go code to main.go in a temporary directory
+// and returns the name of that directory.  The caller should delete the
+// directory when no longer needed.  MakeTempGo aborts on error.
 func MakeTempGo(goStr string) string {
-	goFile, err := ioutil.TempFile("", "gosp-*.go")
+	// Create a gosp-* directory.
+	goDir, err := ioutil.TempDir("", "gosp-*")
+	if err != nil {
+		notify.Fatal(err)
+	}
+
+	// Create main.go in the temporary directory.
+	goFile, err := os.Create(filepath.Join(goDir, "main.go"))
 	if err != nil {
 		notify.Fatal(err)
 	}
@@ -24,7 +32,7 @@ func MakeTempGo(goStr string) string {
 	if err != nil {
 		notify.Fatal(err)
 	}
-	return goFile.Name()
+	return goDir
 }
 
 // SmartOpen opens a file for either reading or writing.  A filename of "-"
