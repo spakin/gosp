@@ -73,12 +73,19 @@ static gosp_status_t launch_and_wait(request_rec *r, const char **args, int deta
 
   /* Establish an environment for the child. */
   cconfig = (gosp_context_config_t *) ap_get_module_config(r->per_dir_config, &gosp_module);
+  envp = (const char **) environ;
   if (cconfig->go_path == NULL)
-    envp = append_string(r->pool, (const char **) environ,
+    envp = append_string(r->pool, (const char **) envp,
                          apr_pstrcat(r->pool, "GOPATH=", DEFAULT_GO_PATH, NULL));
   else
-    envp = append_string(r->pool, (const char **) environ,
+    envp = append_string(r->pool, (const char **) envp,
                          apr_pstrcat(r->pool, "GOPATH=", cconfig->go_path, NULL));
+  if (cconfig->go_mod_cache == NULL)
+    envp = append_string(r->pool, (const char **) envp,
+                         apr_pstrcat(r->pool, "GOMODCACHE=", DEFAULT_GO_MOD_CACHE, NULL));
+  else
+    envp = append_string(r->pool, (const char **) envp,
+                         apr_pstrcat(r->pool, "GOMODCACHE=", cconfig->go_mod_cache, NULL));
 
   /* Spawn the process and wait for it to complete.  It appears we need to do
    * this even for detached process to avoid leaving defunct processes lying

@@ -27,6 +27,15 @@ const char *gosp_set_go_path(cmd_parms *cmd, void *cfg, const char *arg)
   return NULL;
 }
 
+/* Assign a value to the GOMODCACHE environment variable. */
+const char *gosp_set_go_mod_cache(cmd_parms *cmd, void *cfg, const char *arg)
+{
+  gosp_context_config_t *cconfig;   /* Per-context configuration */
+  cconfig = (gosp_context_config_t *) cfg;
+  cconfig->go_mod_cache = arg;
+  return NULL;
+}
+
 /* Assign the name of the Go compiler. */
 const char *gosp_set_go_compiler(cmd_parms *cmd, void *cfg, const char *arg)
 {
@@ -126,6 +135,8 @@ static const command_rec gosp_directives[] =
                  "Name of a directory in which Gosp can generate files needed during execution"),
    AP_INIT_TAKE1("GospGoPath", gosp_set_go_path, NULL, RSRC_CONF|ACCESS_CONF,
                  "Value of the GOPATH environment variable to use when building Gosp pages"),
+   AP_INIT_TAKE1("GospGoModCache", gosp_set_go_mod_cache, NULL, RSRC_CONF|ACCESS_CONF,
+                 "Value of the GOMODCACHE environment variable to use when building Gosp pages"),
    AP_INIT_TAKE1("GospGoCompiler", gosp_set_go_compiler, NULL, RSRC_CONF|ACCESS_CONF,
                  "Go compiler executable"),
    AP_INIT_TAKE1("GospServer", gosp_set_gosp_server, NULL, RSRC_CONF|ACCESS_CONF,

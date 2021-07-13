@@ -69,6 +69,7 @@ src/module/mod_gosp.la: $(addprefix src/module/,$(MODULE_C_SOURCES) gosp.h)
 	  -DGOSP2GO='\"$(bindir)/gosp2go\"' \
 	  -DGOSP_SERVER='\"$(bindir)/gosp-server\"' \
 	  -DDEFAULT_GO_PATH='\"$(gospgodir)\"' \
+	  -DDEFAULT_GO_MOD_CACHE='\"$(gospgodir)\"' \
 	  -I. -c $(addprefix src/module/,$(MODULE_C_SOURCES))
 
 ###########################################################################

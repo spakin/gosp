@@ -52,6 +52,11 @@
 # error DEFAULT_GO_PATH needs to be defined as the default GOPATH.
 #endif
 
+/* Ensure DEFAULT_GO_MOD_CACHE is defined, typically on the command line. */
+#ifndef DEFAULT_GO_MOD_CACHE
+# error DEFAULT_GO_MOD_CACHE needs to be defined as the default GOMODCACHE.
+#endif
+
 /* Define some status codes for the functions we define. */
 #define GOSP_STATUS_OK          0    /* Function succeeded */
 #define GOSP_STATUS_NEED_ACTION 1    /* Function failed but may succeed if the caller takes some action and retries */
@@ -87,6 +92,7 @@ typedef struct {
   const char *go_cmd;          /* Go compiler executable filespec */
   const char *gosp_server;     /* gosp-server executable filespec */
   const char *go_path;         /* Value to assign to GOPATH when compiling Gosp pages */
+  const char *go_mod_cache;    /* Value to assign to GOMODCACHE when compiling Gosp pages */
   const char *max_idle;        /* Maximum idle time before a Gosp server automatically exits */
   const char *max_top;         /* Maximum number of top-level blocks allowed per Gosp page */
   const char *allowed_imports; /* Comma-separated list of packages that can be imported */

@@ -157,7 +157,7 @@ gosp_status_t release_global_lock(server_rec *s)
   return GOSP_STATUS_OK;
 }
 
-/* Append a string onto a NULL-terminated list. */
+/* Append a string onto a NULL-terminated list of strings. */
 const char **append_string(apr_pool_t *p, const char *const *list, const char *str)
 {
   const char **new_list;         /* New list to return */
