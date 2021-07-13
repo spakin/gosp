@@ -195,6 +195,7 @@ static void *gosp_merge_context_config(apr_pool_t *p, void *base, void *delta) {
   MERGE_CHILD_OVER_PARENT(gosp_server);
   MERGE_CHILD_OVER_PARENT(max_idle);
   MERGE_CHILD_OVER_PARENT(max_top);
+  MERGE_CHILD_OVER_PARENT(go_mod_cache);
 
   /* Merge allowed_imports differently if it begins with a "+" or not. */
   if (child->allowed_imports == NULL || child->allowed_imports[0] != '+')
