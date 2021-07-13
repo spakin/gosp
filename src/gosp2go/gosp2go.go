@@ -151,7 +151,7 @@ func Build(p *Parameters, goStr, plugFn string) {
 	defer os.Chdir(prevDir)
 
 	// Create a Go module file.
-	mod, err := os.Create("go.mod")
+	mod, err := os.Create("go.mod.tmp") // Temporary -- should be reverted to go.mod when ready for testing
 	if err != nil {
 		notify.Fatal(err)
 	}
