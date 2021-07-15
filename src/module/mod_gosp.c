@@ -81,6 +81,20 @@ const char *gosp_set_allowed_imports(cmd_parms *cmd, void *cfg, const char *arg)
   return NULL;
 }
 
+/* Append a Go module replacement rule to the existing set. */
+const char *gosp_add_mod_repl(cmd_parms *cmd, void *cfg, const char *pkgname, const char *pathname)
+{
+  gosp_context_config_t *cconfig;   /* Per-context configuration */
+  cconfig = (gosp_context_config_t *) cfg;
+  if (cconfig->mod_repls == NULL)
+    cconfig->mod_repls = apr_hash_make(cmd->pool);  /* Create on first use. */
+  apr_hash_set(cconfig->mod_repls,
+               apr_pstrdup(cmd->pool, pkgname),
+               APR_HASH_KEY_STRING,
+               pathname == NULL ? NULL : apr_pstrdup(cmd->pool, pathname));
+  return NULL;
+}
+
 /* Map a user name to a user ID. */
 const char *gosp_set_user_id(cmd_parms *cmd, void *cfg, const char *arg)
 {
@@ -147,6 +161,8 @@ static const command_rec gosp_directives[] =
                  "Maximum number of top-level blocks allowed per page"),
    AP_INIT_TAKE1("GospAllowedImports", gosp_set_allowed_imports, NULL, RSRC_CONF|ACCESS_CONF,
                  "Comma-separated list of packages that can be imported or \"ALL\" or \"NONE\""),
+   AP_INIT_TAKE12("GospModReplace", gosp_add_mod_repl, NULL, RSRC_CONF|ACCESS_CONF,
+                  "Module replacement to apply, which should be <module> <path> to add a replacement or just <module> to delete an existing replacement"),
    AP_INIT_TAKE1("User", gosp_set_user_id, NULL, RSRC_CONF|ACCESS_CONF,
                  "The user under which the server will answer requests"),
    AP_INIT_TAKE1("Group", gosp_set_group_id, NULL, RSRC_CONF|ACCESS_CONF,
@@ -196,6 +212,25 @@ static void *gosp_merge_context_config(apr_pool_t *p, void *base, void *delta) {
   MERGE_CHILD_OVER_PARENT(max_idle);
   MERGE_CHILD_OVER_PARENT(max_top);
   MERGE_CHILD_OVER_PARENT(go_mod_cache);
+
+  /* Merge module replacements by overwriting parent values with child
+   * values. */
+  if (parent->mod_repls != NULL && child->mod_repls != NULL) {
+    /* Difficult case: Merge item-by-item. */
+    apr_hash_index_t *idx;
+    merged->mod_repls = apr_hash_copy(p, parent->mod_repls);
+    for (idx = apr_hash_first(p, child->mod_repls);
+         idx;
+         idx = apr_hash_next(idx)) {
+      const void *pkgname;
+      void *pathname;
+      apr_hash_this(idx, &pkgname, NULL, &pathname);
+      apr_hash_set(merged->mod_repls, pkgname, APR_HASH_KEY_STRING, pathname);
+    }
+  }
+  else
+    /* Easy case: Keep whichever set of module replacements is non-empty. */
+    MERGE_CHILD_OVER_PARENT(mod_repls);
 
   /* Merge allowed_imports differently if it begins with a "+" or not. */
   if (child->allowed_imports == NULL || child->allowed_imports[0] != '+')

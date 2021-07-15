@@ -68,6 +68,7 @@ src/module/mod_gosp.la: $(addprefix src/module/,$(MODULE_C_SOURCES) gosp.h)
 	  -DDEFAULT_GO_COMMAND='\"$(GO)\"' \
 	  -DGOSP2GO='\"$(bindir)/gosp2go\"' \
 	  -DGOSP_SERVER='\"$(bindir)/gosp-server\"' \
+	  -DGOSP_PKG_DIR='\"$(gospgodir)/src/gosp\"' \
 	  -DDEFAULT_GO_PATH='\"$(gospgodir)\"' \
 	  -DDEFAULT_GO_MOD_CACHE='\"$(gospgodir)\"' \
 	  -I. -c $(addprefix src/module/,$(MODULE_C_SOURCES))
@@ -117,6 +118,7 @@ install-no-module: bin/gosp2go bin/gosp-server install-man install-doc
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(gospgodir)/pkg
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(gospgodir)/src/gosp
 	$(INSTALL) -m 0644 src/gosp/gosp.go $(DESTDIR)$(gospgodir)/src/gosp
+	cd $(DESTDIR)$(gospgodir)/src/gosp ; $(RM) go.mod ; $(GO) mod init github.com/spakin/gosp-gosp
 	env GOPATH="$(DESTDIR)$(gospgodir):$(GOPATH)" $(GO) install $(GOFLAGS) gosp
 	env GOPATH="$(DESTDIR)$(gospgodir):$(EXT_GOPATH)" $(GO) build $(GOFLAGS) -o "$(DESTDIR)$(bindir)/gosp-server" gosp-server
 

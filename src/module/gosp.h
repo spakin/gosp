@@ -47,6 +47,11 @@
 # error DEFAULT_GO_COMMAND needs to be defined as the Go compiler executable.
 #endif
 
+/* Ensure GOSP_PKG_DIR is defined, typically on the command line. */
+#ifndef GOSP_PKG_DIR
+# error GOSP_PKG_DIR needs to be defined as the absolute directory containing the gosp package.
+#endif
+
 /* Ensure DEFAULT_GO_PATH is defined, typically on the command line. */
 #ifndef DEFAULT_GO_PATH
 # error DEFAULT_GO_PATH needs to be defined as the default GOPATH.
@@ -96,6 +101,7 @@ typedef struct {
   const char *max_idle;        /* Maximum idle time before a Gosp server automatically exits */
   const char *max_top;         /* Maximum number of top-level blocks allowed per Gosp page */
   const char *allowed_imports; /* Comma-separated list of packages that can be imported */
+  apr_hash_t *mod_repls;       /* Replacements to include in a Go module file */
 } gosp_context_config_t;
 
 /* Define access permissions for any files and directories we create. */

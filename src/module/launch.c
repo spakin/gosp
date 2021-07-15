@@ -110,6 +110,9 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *plugin_name)
   const char *work_dir;             /* Top-level work directory */
   const char *imports;              /* List of allowed imports */
   apr_status_t status;              /* Status of an APR call */
+  int nargs;                        /* Number of arguments to pass to launch_and_weight, including gosp2go and the trailing NULL */
+  apr_hash_index_t *hidx;           /* Index into the module-replacement hash table */
+  int i;
 
   /* Announce what we're about to do. */
   ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_INFO, APR_SUCCESS, r,
@@ -137,19 +140,32 @@ gosp_status_t compile_gosp_server(request_rec *r, const char *plugin_name)
     imports++;
 
   /* Construct the argument list. */
-  args = (const char **) apr_palloc(r->pool, 12*sizeof(char *));
-  args[0] = GOSP2GO;
-  args[1] = "--build";
-  args[2] = "-o";
-  args[3] = plugin_name;
-  args[4] = "--go";
-  args[5] = cconfig->go_cmd;
-  args[6] = "--allowed";
-  args[7] = imports;
-  args[8] = "--max-top";
-  args[9] = cconfig->max_top == NULL ? "1000000000" : cconfig->max_top;
-  args[10] = r->filename;
-  args[11] = NULL;
+  nargs = 14 + 2*apr_hash_count(cconfig->mod_repls);
+  args = (const char **) apr_palloc(r->pool, nargs*sizeof(char *));
+  i = 0;
+  args[i++] = GOSP2GO;
+  args[i++] = "--build";
+  args[i++] = "-o";
+  args[i++] = plugin_name;
+  args[i++] = "--go";
+  args[i++] = cconfig->go_cmd;
+  args[i++] = "--allowed";
+  args[i++] = imports;
+  args[i++] = "--max-top";
+  args[i++] = cconfig->max_top == NULL ? "1000000000" : cconfig->max_top;
+  args[i++] = "--replace";
+  args[i++] = apr_pstrcat(r->pool, "gosp,", GOSP_PKG_DIR, NULL);
+  for (hidx = apr_hash_first(r->pool, cconfig->mod_repls);
+       hidx;
+       hidx = apr_hash_next(hidx)) {
+    const void *pkgname;
+    void *pathname;
+    apr_hash_this(hidx, &pkgname, NULL, &pathname);
+    args[i++] = "--replace";
+    args[i++] = apr_pstrcat(r->pool, pkgname, ",", pathname, NULL);
+  }
+  args[i++] = r->filename;
+  args[i++] = NULL;
 
   /* Spawn gosp2go and wait for it to complete. */
   return launch_and_wait(r, args, FALSE);
