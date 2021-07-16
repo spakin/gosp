@@ -151,7 +151,7 @@ func Build(p *Parameters, goStr, plugFn string) {
 	defer os.Chdir(prevDir)
 
 	// Create a Go module file.
-	mod, err := os.Create("go.mod.tmp") // Temporary -- should be reverted to go.mod when ready for testing
+	mod, err := os.Create("go.mod")
 	if err != nil {
 		notify.Fatal(err)
 	}
@@ -174,8 +174,19 @@ func Build(p *Parameters, goStr, plugFn string) {
 		notify.Fatal(err)
 	}
 
+	// The easiest way to suppress the "go: found gosp in gosp
+	// v0.0.0-00010101000000-000000000000" message from being written to
+	// the Apache error-log file is first to run "go mod tidy" with
+	// standard output and standard error discarded.  Afterwards we can run
+	// "go build" in peace and quiet (assuming no actual errors).
+	cmd := exec.Command(p.GoCmd, "mod", "tidy")
+	err = cmd.Run()
+	if err != nil {
+		notify.Fatal(err)
+	}
+
 	// Compile main.go into a plugin.
-	cmd := exec.Command(p.GoCmd, "build", "--buildmode=plugin", "-o", plugFn, "main.go")
+	cmd = exec.Command(p.GoCmd, "build", "--buildmode=plugin", "-o", plugFn, "main.go")
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
