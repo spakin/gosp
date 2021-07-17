@@ -112,6 +112,7 @@ $(DESTDIR)$(bindir)/gosp-server: $(GOSP_SERVER_DEPS)
 		$(RM) gosp.go ; \
 		$(GO) mod init go_server_pages ; \
 		$(GO) mod edit --replace=gosp="$(gospgodir)/src/gosp" ; \
+		$(GO) mod tidy ; \
 		$(GO) build $(GOFLAGS) $(VERSION_FLAG) -o $(DESTDIR)$(bindir)/gosp-server \
 	) ; \
 	$(RM) -r "$$workdir"
