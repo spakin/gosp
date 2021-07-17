@@ -25,16 +25,16 @@ func LoadPlugin(p *Parameters) {
 	if err != nil {
 		notify.Fatal(err)
 	}
-	gghSym, err := pl.Lookup("GospGeneratePage")
+	ggpSym, err := pl.Lookup("GospGeneratePage")
 	if err != nil {
 		notify.Fatal(err)
 	}
-	ggh, ok := gghSym.(func(*gosp.RequestData, gosp.Writer, gosp.Metadata))
+	ggp, ok := ggpSym.(func(*gosp.RequestData, gosp.Writer, gosp.Metadata))
 	if !ok {
 		notify.Fatalf("the GospGeneratePage function in %s has type %T instead of type %T",
-			p.PluginName, ggh, p.GospGeneratePage)
+			p.PluginName, ggpSym, ggp)
 	}
-	p.GospGeneratePage = PageGenerator(ggh)
+	p.GospGeneratePage = PageGenerator(ggp)
 }
 
 func main() {

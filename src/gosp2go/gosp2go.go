@@ -182,7 +182,7 @@ func Build(p *Parameters, goStr, plugFn string) {
 	cmd := exec.Command(p.GoCmd, "mod", "tidy")
 	err = cmd.Run()
 	if err != nil {
-		notify.Fatal(err)
+		notify.Fatalf("Failed to run %v: %v", cmd.Args, err)
 	}
 
 	// Compile main.go into a plugin.
@@ -191,7 +191,7 @@ func Build(p *Parameters, goStr, plugFn string) {
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		notify.Fatal(err)
+		notify.Fatalf("Failed to run %v: %v", cmd.Args, err)
 	}
 }
 
@@ -212,7 +212,7 @@ func Run(p *Parameters, goStr string, out io.Writer) {
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		notify.Fatal(err)
+		notify.Fatalf("Failed to run %v: %v", cmd.Args, err)
 	}
 }
 

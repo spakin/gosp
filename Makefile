@@ -80,26 +80,41 @@ src/module/mod_gosp.la: $(addprefix src/module/,$(MODULE_C_SOURCES) gosp.h)
 # and gosp-server subdirectories          #
 # --------------------------------------- #
 
-EXT_GOPATH := $(abspath .):$(GOPATH)
 GOSP2GO_DEPS = \
-	gosp2go/gosp2go.go \
-	gosp2go/boilerplate.go \
-	gosp2go/params.go \
-	gosp2go/utils.go \
-	gosp/gosp.go
+	src/gosp2go/gosp2go.go \
+	src/gosp2go/boilerplate.go \
+	src/gosp2go/params.go \
+	src/gosp2go/utils.go \
+	src/gosp/gosp.go
 GOSP_SERVER_DEPS = \
-	gosp-server/gosp-server.go \
-	gosp-server/params.go \
-	gosp-server/write-meta.go \
-	gosp-server/serve.go \
-	gosp/gosp.go
+	src/gosp-server/gosp-server.go \
+	src/gosp-server/params.go \
+	src/gosp-server/write-meta.go \
+	src/gosp-server/serve.go \
+	src/gosp/gosp.go
 VERSION_FLAG = -ldflags="-X main.Version=$(VERSION)"
 
-bin/gosp2go: $(addprefix src/,$(GOSP2GO_DEPS))
-	env GOPATH="$(EXT_GOPATH)" $(GO) build $(GOFLAGS) $(VERSION_FLAG) -o bin/gosp2go gosp2go
+bin/gosp2go: $(GOSP2GO_DEPS)
+	cd src/gosp2go ; \
+	$(GO) build $(GOFLAGS) $(VERSION_FLAG) -o ../../bin/gosp2go
 
-bin/gosp-server: $(addprefix src/,$(GOSP_SERVER_DEPS))
-	env GOPATH="$(EXT_GOPATH)" $(GO) build $(GOFLAGS) $(VERSION_FLAG) -o bin/gosp-server gosp-server
+bin/gosp-server: $(GOSP_SERVER_DEPS)
+	cd src/gosp-server ; \
+	$(GO) build $(GOFLAGS) $(VERSION_FLAG) -o ../../bin/gosp-server
+
+# For gosp-server to load a plugin built against an installed gosp.go,
+# gosp-server needs to build against the same gosp.go.
+$(DESTDIR)$(bindir)/gosp-server: $(GOSP_SERVER_DEPS)
+	workdir=`mktemp --tmpdir --directory gosp-server.XXXXXX` ; \
+	cp $(GOSP_SERVER_DEPS) "$$workdir" ; \
+	( \
+		cd "$$workdir" ; \
+		$(RM) gosp.go ; \
+		$(GO) mod init go_server_pages ; \
+		$(GO) mod edit --replace=gosp="$(gospgodir)/src/gosp" ; \
+		$(GO) build $(GOFLAGS) $(VERSION_FLAG) -o $(DESTDIR)$(bindir)/gosp-server \
+	) ; \
+	$(RM) -r "$$workdir"
 
 ###########################################################################
 
@@ -107,10 +122,8 @@ bin/gosp-server: $(addprefix src/,$(GOSP_SERVER_DEPS))
 # Install Go Server Pages #
 # ----------------------- #
 
-# install-no-module installs everything except the Apache module.
-
-# Note that we need to rebuild gosp-server as part of "make install" so it uses
-# the exact same GOPATH as any plugins we later build with gosp2go.
+# install-no-module installs everything except the Apache module.  Note that we
+# unfortunately need to rebuild gosp-server as part of the install process.
 install-no-module: bin/gosp2go bin/gosp-server install-man install-doc
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(bindir)
 	$(INSTALL) -m 0755 bin/gosp2go $(DESTDIR)$(bindir)
@@ -118,9 +131,9 @@ install-no-module: bin/gosp2go bin/gosp-server install-man install-doc
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(gospgodir)/pkg
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(gospgodir)/src/gosp
 	$(INSTALL) -m 0644 src/gosp/gosp.go $(DESTDIR)$(gospgodir)/src/gosp
-	cd $(DESTDIR)$(gospgodir)/src/gosp ; $(RM) go.mod ; $(GO) mod init github.com/spakin/gosp-gosp
-	env GOPATH="$(DESTDIR)$(gospgodir):$(GOPATH)" $(GO) install $(GOFLAGS) gosp
-	env GOPATH="$(DESTDIR)$(gospgodir):$(EXT_GOPATH)" $(GO) build $(GOFLAGS) -o "$(DESTDIR)$(bindir)/gosp-server" gosp-server
+	$(INSTALL) -m 0644 src/gosp/go.mod $(DESTDIR)$(gospgodir)/src/gosp/go.mod
+	$(INSTALL) -m 0755 bin/gosp2go $(DESTDIR)$(bindir)
+	$(MAKE) $(MAKEFLAGS) $(DESTDIR)$(bindir)/gosp-server
 
 # Install the man pages for gosp2go and gosp-server.
 install-man: src/gosp2go/gosp2go.1 src/gosp-server/gosp-server.1
