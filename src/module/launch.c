@@ -80,10 +80,7 @@ static gosp_status_t launch_and_wait(request_rec *r, const char **args, int deta
   else
     envp = append_string(r->pool, (const char **) envp,
                          apr_pstrcat(r->pool, "GOPATH=", cconfig->go_path, NULL));
-  if (cconfig->go_mod_cache == NULL)
-    envp = append_string(r->pool, (const char **) envp,
-                         apr_pstrcat(r->pool, "GOMODCACHE=", DEFAULT_GO_MOD_CACHE, NULL));
-  else
+  if (cconfig->go_mod_cache != NULL)
     envp = append_string(r->pool, (const char **) envp,
                          apr_pstrcat(r->pool, "GOMODCACHE=", cconfig->go_mod_cache, NULL));
 

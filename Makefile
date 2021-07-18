@@ -70,7 +70,6 @@ src/module/mod_gosp.la: $(addprefix src/module/,$(MODULE_C_SOURCES) gosp.h)
 	  -DGOSP_SERVER='\"$(bindir)/gosp-server\"' \
 	  -DGOSP_PKG_DIR='\"$(gospgodir)/src/gosp\"' \
 	  -DDEFAULT_GO_PATH='\"$(gospgodir)\"' \
-	  -DDEFAULT_GO_MOD_CACHE='\"$(gospgodir)\"' \
 	  -I. -c $(addprefix src/module/,$(MODULE_C_SOURCES))
 
 ###########################################################################
@@ -134,6 +133,7 @@ install-no-module: bin/gosp2go bin/gosp-server install-man install-doc
 	$(INSTALL) -m 0644 src/gosp/gosp.go $(DESTDIR)$(gospgodir)/src/gosp
 	$(INSTALL) -m 0644 src/gosp/go.mod $(DESTDIR)$(gospgodir)/src/gosp/go.mod
 	$(INSTALL) -m 0755 bin/gosp2go $(DESTDIR)$(bindir)
+	$(RM) $(DESTDIR)$(bindir)/gosp-server
 	$(MAKE) $(MAKEFLAGS) $(DESTDIR)$(bindir)/gosp-server
 
 # Install the man pages for gosp2go and gosp-server.
