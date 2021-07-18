@@ -42,6 +42,7 @@ The Go Server Pages Apache module processes the following directives:
 | :----------------    | :--------------------------------------     | :---------------------------------------------------------------------------------- |
 | `GospWorkDir`        | `/var/cache/apache2/mod_gosp`               | Name of a directory in which Gosp can generate files needed during execution        |
 | `GospAllowedImports` | `NONE`                                      | Comma-separated list of packages that are allowed to be imported or `ALL` or `NONE` |
+| `GospModReplace`     | *none*                                      | Module replacement to write to generated `go.mod` files                             |
 | `GospGoPath`         | *some path*`/lib/gosp/go`                   | Value of the `GOPATH` environment variable to use when building a page              |
 | `GospGoModCache`     | `$GOPATH/pkg/mod`                           | Value of the `GOMODCACHE` environment variable to use when building a page          |
 | `GospMaxIdleTime`    | `0m`                                        | Maximum idle time before a Gosp server automatically exits (0m = infinite)          |
@@ -64,6 +65,12 @@ GospAllowedImports time,fmt,html,strings
 </Directory>
 ```
 most pages can import only the `time`, `fmt`, `html`, and `strings` packages.  Pages served from beneath the `/home/trusted` directory, however, can additionally import the `os` package.  (Without the `+`, pages beneath `/home/trusted` would be able to import *only* the `os` package.)
+
+**`GospModReplace`** specifies a [module replacement](https://golang.org/ref/mod#go-mod-file-replace) to be written to the `go.mod` file associated with each Go Server Page.  It takes two arguments: a module name and a replacement module or directory.  The latter can be omitted to cancel a replacement introduced by a parent configuration.  `GospModReplace` can be used multiple times in a configuration.  As an example,
+```ApacheConf
+GospModReplace serverLocal /var/www/go/src/serverLocal
+```
+will write `replace serverLocal => /var/www/go/src/serverLocal` into each page's `go.mod` file when compiling the page.  Assuming that `serverLocal` is allowed by `GospAllowedImports`, pages will be able to import and use the `serverLocal` package.  If needed, version numbers can be appended to the module name and/or replacement with `@` as in `serverLocal@v1.2.3`.
 
 **`GospGoPath`** sets the `GOPATH` variable as specified to the specified value during page compilation.  This variable names a directory in which downloaded Go packages can be stored.  (Technically, it can be a `:`-separated list of directories, with an initial `+` indicating that these should be prepended to the parent configuration's `GospGoPath`.  Multi-directory `GOPATH`s have ceased being useful starting with Go 1.16.)
 
