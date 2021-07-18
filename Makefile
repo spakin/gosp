@@ -156,6 +156,25 @@ install: install-no-module src/module/mod_gosp.la
 
 ###########################################################################
 
+# ---------------------------------- #
+# Report all configuration variables #
+# ---------------------------------- #
+
+vars:
+	@echo 'prefix      = /usr/local'
+	@echo 'exec_prefix = $(prefix)'
+	@echo 'bindir      = $(exec_prefix)/bin'
+	@echo 'datarootdir = $(prefix)/share'
+	@echo 'mandir      = $(datarootdir)/man'
+	@echo 'man1dir     = $(mandir)/man1'
+	@echo 'docdir      = $(datarootdir)/doc/gosp'
+	@echo 'libdir      = $(exec_prefix)/lib'
+	@echo 'gospdir     = $(libdir)/gosp'
+	@echo 'gospgodir   = $(gospdir)/go'
+	@echo "Apache module directory = `a2query -d`"
+
+###########################################################################
+
 # -------------------------------- #
 # Create a Go Server Pages tarball #
 # -------------------------------- #
@@ -192,4 +211,4 @@ clean:
 	$(RM) $(addprefix src/module/,$(MODULE_GENFILES))
 	$(RM) -r src/module/.libs
 
-.PHONY: all install-no-module install-man install-doc install dist clean
+.PHONY: all install-no-module install-man install-doc install vars dist clean
