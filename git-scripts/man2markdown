@@ -60,6 +60,7 @@ $markdown";
 $markdown =~ s/\n\n+/\n\n/sg;
 $markdown =~ s,<h2>([^\n]+).*?</h2>,\#\# $1,gs;
 $markdown =~ s/<hr>.*$//s;
+$markdown =~ s,<b>([-\w]+)</b>\(1\),<b><a href="man-$1.html">$1</a></b>(1),g;
 
 # Output the Markdown file to standard output.
 print $markdown;

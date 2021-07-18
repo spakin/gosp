@@ -18,7 +18,7 @@ To date, Go Server Pages has been tested only on Linux, specifically [Ubuntu](ht
 sudo apt install apache2-dev
 ```
 
-2. **Go**.  [Download a Go compiler](https://golang.org/dl/) (version 1.13+) to compile the various components of Go Server Pages that are written in [Go](https://golang.org/).  We assume the availability of a [`go` command](https://golang.org/cmd/go/) for invoking the compiler and associated tools.
+2. **Go**.  [Download a Go compiler](https://golang.org/dl/) to compile the various components of Go Server Pages that are written in [Go](https://golang.org/).  The most recent version of Go Server Pages as of this writing (July 2021) was tested with Go 1.15.5 and 1.16.6, but may work with Go versions as far back as 1.13.  We assume the availability of a [`go` command](https://golang.org/cmd/go/) for invoking the compiler and associated tools.
 
 3. A C compiler (needed to build the Apache module) and [GNU Make](https://www.gnu.org/software/make/).  In Ubuntu, that means
 ```bash
@@ -30,9 +30,11 @@ Compiling
 
 Go Server Pages builds with a plain-vanilla `Makefile`.  The first stanza of the [Go Server Pages `Makefile`](https://github.com/spakin/gosp/blob/master/Makefile) lists various installation directories, commands, and flags that can be overridden during the build process.
 
-Decide where you want to install Go Server Pages.  The default prefix is `/usr/local`.  By default, the build system installs helper programs in a `bin` subdirectory of the prefix directory, Go packages in a `lib/gosp/go` subdirectory, manual pages in a `share/man` subdirectory, and other documentation in a `share/doc/gosp` subdirectory.  For example, the source code for the `gosp` package will be installed by default as `/usr/local/lib/gosp/go/src/gosp/gosp.go`.
-
-If those directories are acceptable, simply run
+Decide where you want to install Go Server Pages.  The default prefix is `/usr/local`.  By default, the build system installs helper programs in a `bin` subdirectory of the prefix directory, Go packages in a `lib/gosp/go` subdirectory, manual pages in a `share/man` subdirectory, and other documentation in a `share/doc/gosp` subdirectory.  For example, the source code for the `gosp` package will be installed by default as `/usr/local/lib/gosp/go/src/gosp/gosp.go`.  Run
+```bash
+make vars
+```
+for a report of installation locations.  If those directories are acceptable, simply run
 ```bash
 make
 ```
@@ -45,7 +47,7 @@ make prefix=/opt/gosp
 Installing
 ----------
 
-**Caveat #1**: The Go Server Pages Apache module will install into whatever directory Apache modules normally get installed into, regardless of the `prefix` and other directory variables.  On an Ubuntu system, this is likely to be `/usr/lib/apache2/modules`.  (Run `a2query -d` to check.)
+**Caveat #1**: The Go Server Pages Apache module will install into whatever directory Apache modules normally get installed into, regardless of the `prefix` and other directory variables.  On an Ubuntu system, this is likely to be `/usr/lib/apache2/modules`.  (Run `make vars` or `a2query -d` to check.)
 
 **Caveat #2**: When installing, you must specify the same `prefix` and other build settings as when you compiled.  This is because the Apache module needs to know where it will be able to find its helper programs and Go packages.
 

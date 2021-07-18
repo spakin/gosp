@@ -1,8 +1,7 @@
 /*
 Package gosp provides all of the types, functions, and values needed to compile
-a generated Gosp server.  RequestData, Open, and perhaps LiesInOrBelow are the
-only things defined by this package that an end user should care about.
-Everything else is used internally by the Gosp server.
+a generated Gosp server.  Some of these are intended to be used only internally
+by the Gosp server.
 */
 package gosp
 

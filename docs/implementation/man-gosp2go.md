@@ -77,7 +77,7 @@ information and exit</p>
 
 ## SEE ALSO
 
-<p style="margin-left:11%; margin-top: 1em"><b>gosp-server</b>(1)</p>
+<p style="margin-left:11%; margin-top: 1em"><b><a href="man-gosp-server.html">gosp-server</a></b>(1)</p>
 
 ## AUTHOR
 

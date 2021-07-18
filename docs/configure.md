@@ -42,7 +42,8 @@ The Go Server Pages Apache module processes the following directives:
 | :----------------    | :--------------------------------------     | :---------------------------------------------------------------------------------- |
 | `GospWorkDir`        | `/var/cache/apache2/mod_gosp`               | Name of a directory in which Gosp can generate files needed during execution        |
 | `GospAllowedImports` | `NONE`                                      | Comma-separated list of packages that are allowed to be imported or `ALL` or `NONE` |
-| `GospGoPath`         | *empty*                                     | Value of the `GOPATH` environment variable to use when building a page              |
+| `GospGoPath`         | *some path*`/lib/gosp/go`                   | Value of the `GOPATH` environment variable to use when building a page              |
+| `GospGoModCache`     | `$GOPATH/pkg/mod`                           | Value of the `GOMODCACHE` environment variable to use when building a page          |
 | `GospMaxIdleTime`    | `0m`                                        | Maximum idle time before a Gosp server automatically exits (0m = infinite)          |
 | `GospServer`         | *some_path*`/bin/gosp-server`               | `gosp-server` executable                                                            |
 | `GospGoCompiler`     | *some_path*`/bin/go`                        | Go compiler executable                                                              |
@@ -64,17 +65,9 @@ GospAllowedImports time,fmt,html,strings
 ```
 most pages can import only the `time`, `fmt`, `html`, and `strings` packages.  Pages served from beneath the `/home/trusted` directory, however, can additionally import the `os` package.  (Without the `+`, pages beneath `/home/trusted` would be able to import *only* the `os` package.)
 
-**`GospGoPath`** sets the `GOPATH` variable as specified during page compilation.  It can be useful for pointing to a library of common routines (e.g., for typesetting page headers or footers) and for exposing to Go code individual "safe" functions taken from "dangerous" packages.
+**`GospGoPath`** sets the `GOPATH` variable as specified to the specified value during page compilation.  This variable names a directory in which downloaded Go packages can be stored.  (Technically, it can be a `:`-separated list of directories, with an initial `+` indicating that these should be prepended to the parent configuration's `GospGoPath`.  Multi-directory `GOPATH`s have ceased being useful starting with Go 1.16.)
 
-As a special case, if the argument to `GospGoPath` begins with a `+`, the path is prepended to its parent's path.  For example, given the configuration
-```ApacheConf
-GospGoPath /var/www/go:/usr/local/lib/gosp/go
-
-<Directory "/var/www/special/">
-    GospGoPath +/var/www/special/go
-</Directory>
-```
-most pages will compile with `GOPATH=/var/www/go:/usr/local/lib/gosp/go`, but pages located in the filesystem under `/var/www/special/` will compile with `GOPATH=/var/www/special/go:/var/www/go:/usr/local/lib/gosp/go`.  (Without the `+`, pages beneath `/var/www/special` would have *only* `/var/www/special/go` in their `GOPATH`.)
+**`GospGoModCache`** sets the `GOMODCACHE` variable to the specified value during page compilation.  This variable names a directory in which module-versioning information can be stored.  Because `GOMODCACHE` defaults to the `pkg/mod` subdirectory of `GOPATH`, `GospModCache` probably never needs to be changed.
 
 **`GospMaxIdleTime`** provides an automatic cleanup mechanism.  To avoid leaving one Go Server Page process running indefinitely per Web page, these processes can exit automatically after `GospMaxIdleTime` of no usage.  The only downside is the (reasonably low) cost of a process launch the next time the page is accessed after a long period of no accesses.  Times are specified as a number followed by a suffix of `s` for seconds, `m` for minutes, or `h` for hours.  `GospMaxIdleTime` should not be set too small or a process could self-terminate before sending back the page's contents.  A few minutes (say, `5m`) is a good value for `GospMaxIdleTime`.
 

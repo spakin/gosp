@@ -8,7 +8,7 @@ aux_links:
   "Download <em>Go Server Pages</em> from GitHub":
     - "https://github.com/spakin/gosp"
 
-footer_content: 'Copyright &copy; 2019 <a href="https://www.pakin.org/~scott/">Scott Pakin</a>.<br />
+footer_content: 'Copyright &copy; 2021 <a href="https://www.pakin.org/~scott/">Scott Pakin</a>.<br />
 The gopher in the Go Server Pages logo was designed by
 <a href="http://reneefrench.blogspot.com/">Renee French</a> and is licensed
 under <a href="https://creativecommons.org/licenses/by/3.0/">CC-BY-3.0</a>.'

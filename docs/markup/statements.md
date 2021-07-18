@@ -17,7 +17,7 @@ for i := 1; i <= 10; i++ {
 ?>
 </ol>
 ```
-(`gospOut` is a predefined [`io.Writer`](https://golang.org/pkg/io/#Writer) that writes to the Web page itself.)  Go blocks can conveniently be intermixed with Web-page text, which is treated as if it were a `gosp.Fprintf(gospOut, …)` itself:
+(`gospOut` is a predefined [`io.Writer`](https://golang.org/pkg/io/#Writer) that writes to the Web page itself.)  Conveniently, Go blocks can be intermixed with Web-page text, which is treated as if it were a `gosp.Fprintf(gospOut, …)` itself:
 ```html
 <ul>
 <?go:block

@@ -68,7 +68,7 @@ used to provide request data to the plugin.</p>
 
 ## SEE ALSO
 
-<p style="margin-left:11%; margin-top: 1em"><b>gosp2go</b>(1)</p>
+<p style="margin-left:11%; margin-top: 1em"><b><a href="man-gosp2go.html">gosp2go</a></b>(1)</p>
 
 ## AUTHOR
 
